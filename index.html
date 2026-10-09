@@ -4,200 +4,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Grand Market — доска объявлений</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     font-family: -apple-system, 'Segoe UI', sans-serif;
-    background: #0a0a0f;
-    color: #eaeaea;
-    min-height: 100vh;
-    overflow-x: hidden;
+    background: #0a0a0f; color: #eaeaea; min-height: 100vh; overflow-x: hidden;
   }
-
-  /* === АНИМАЦИЯ ПОЯВЛЕНИЯ === */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(30px);} to { opacity:1; transform: translateY(0);} }
+  @keyframes fadeIn { from { opacity:0;} to { opacity:1;} }
   @keyframes glowPulse {
-    0%, 100% { text-shadow: 0 0 8px #00ff88, 0 0 20px #00ff88; }
-    50%      { text-shadow: 0 0 16px #00ffaa, 0 0 40px #00ffaa; }
+    0%,100% { text-shadow: 0 0 8px #00ff88, 0 0 20px #00ff88; }
+    50% { text-shadow: 0 0 16px #00ffaa, 0 0 40px #00ffaa; }
   }
-
-  .anim-1 { animation: fadeUp 0.8s ease 0.1s both; }
-  .anim-2 { animation: fadeUp 0.8s ease 0.3s both; }
-  .anim-3 { animation: fadeUp 0.8s ease 0.5s both; }
-  .anim-4 { animation: fadeUp 0.8s ease 0.7s both; }
-
-  header {
-    padding: 40px 24px 20px;
-    text-align: center;
-  }
-
-  h1 {
-    font-size: 2.5em;
-    color: #00ff88;
-    animation: glowPulse 2.5s ease-in-out infinite;
-    letter-spacing: 1px;
-  }
-
-  .subtitle {
-    color: #888;
-    margin-top: 8px;
-    font-size: 1em;
-  }
-
-  /* === ВЕРХНЯЯ ПАНЕЛЬ === */
-  .topbar {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 24px;
-    flex-wrap: wrap;
-  }
-
+  .anim-1{animation:fadeUp .8s ease .1s both;} .anim-2{animation:fadeUp .8s ease .3s both;}
+  .anim-3{animation:fadeUp .8s ease .5s both;} .anim-4{animation:fadeUp .8s ease .7s both;}
+  header { padding: 40px 24px 20px; text-align: center; }
+  h1 { font-size: 2.5em; color: #00ff88; animation: glowPulse 2.5s ease-in-out infinite; letter-spacing: 1px; }
+  .subtitle { color: #888; margin-top: 8px; font-size: 1em; }
+  .topbar { display: flex; justify-content: center; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
   button {
-    background: linear-gradient(135deg, #00ff88, #00cc66);
-    color: #0a0a0f;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 0.95em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    background: linear-gradient(135deg, #00ff88, #00cc66); color: #0a0a0f; border: none;
+    padding: 12px 24px; border-radius: 8px; font-size: .95em; font-weight: 600;
+    cursor: pointer; transition: transform .15s, box-shadow .15s;
   }
-
-  button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 255, 136, 0.4);
-  }
-
-  button.secondary {
-    background: transparent;
-    color: #00ff88;
-    border: 1px solid #00ff88;
-  }
-
-  /* === ДОСКА ОБЪЯВЛЕНИЙ === */
-  .board {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
-    padding: 32px 24px;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
-  .card {
-    background: #15151e;
-    border: 1px solid #22222e;
-    border-radius: 12px;
-    padding: 18px;
-    animation: fadeUp 0.5s ease both;
-    transition: transform 0.2s ease, border-color 0.2s ease;
-  }
-
-  .card:hover {
-    transform: translateY(-4px);
-    border-color: #00ff88;
-  }
-
-  .card h3 {
-    color: #00ff88;
-    font-size: 1.1em;
-    margin-bottom: 8px;
-  }
-
-  .card .price {
-    font-size: 1.4em;
-    color: #fff;
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
-
-  .card .desc {
-    color: #aaa;
-    font-size: 0.9em;
-    line-height: 1.5;
-  }
-
-  .empty {
-    text-align: center;
-    color: #666;
-    padding: 60px 20px;
-    grid-column: 1 / -1;
-  }
-
-  /* === МОДАЛЬНОЕ ОКНО === */
-  .modal-bg {
-    position: fixed; inset: 0;
-    background: rgba(0, 0, 0, 0.75);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 100;
-    animation: fadeIn 0.2s ease;
-  }
+  button:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,255,136,.4); }
+  button.secondary { background: transparent; color: #00ff88; border: 1px solid #00ff88; }
+  button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
+           gap: 16px; padding: 32px 24px; max-width: 1100px; margin: 0 auto; }
+  .card { background: #15151e; border: 1px solid #22222e; border-radius: 12px; padding: 18px;
+          animation: fadeUp .5s ease both; transition: transform .2s, border-color .2s; }
+  .card:hover { transform: translateY(-4px); border-color: #00ff88; }
+  .card h3 { color: #00ff88; font-size: 1.1em; margin-bottom: 8px; }
+  .card .price { font-size: 1.4em; color: #fff; font-weight: bold; margin-bottom: 8px; }
+  .card .desc { color: #aaa; font-size: .9em; line-height: 1.5; }
+  .empty { text-align: center; color: #666; padding: 60px 20px; grid-column: 1/-1; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.75);
+              display: none; align-items: center; justify-content: center; padding: 20px;
+              z-index: 100; animation: fadeIn .2s ease; }
   .modal-bg.open { display: flex; }
-
-  .modal {
-    background: #15151e;
-    border: 1px solid #22222e;
-    border-radius: 14px;
-    padding: 28px;
-    width: 100%;
-    max-width: 420px;
-    animation: fadeUp 0.3s ease;
-  }
-
-  .modal h2 {
-    color: #00ff88;
-    margin-bottom: 18px;
-    font-size: 1.3em;
-  }
-
-  input, textarea {
-    width: 100%;
-    background: #0a0a0f;
-    border: 1px solid #22222e;
-    color: #eaeaea;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    font-size: 0.95em;
-    font-family: inherit;
-    transition: border-color 0.2s ease;
-  }
-
-  input:focus, textarea:focus {
-    outline: none;
-    border-color: #00ff88;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 8px;
-  }
-
-  .profile-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: #00ff88;
-    font-size: 0.9em;
-    padding: 6px 14px;
-    border: 1px solid #00ff88;
-    border-radius: 20px;
-  }
+  .modal { background: #15151e; border: 1px solid #22222e; border-radius: 14px;
+           padding: 28px; width: 100%; max-width: 420px; animation: fadeUp .3s ease; }
+  .modal h2 { color: #00ff88; margin-bottom: 18px; font-size: 1.3em; }
+  input, textarea { width: 100%; background: #0a0a0f; border: 1px solid #22222e; color: #eaeaea;
+                    padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: .95em;
+                    font-family: inherit; transition: border-color .2s; }
+  input:focus, textarea:focus { outline: none; border-color: #00ff88; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+  .profile-badge { display: inline-flex; align-items: center; gap: 8px; color: #00ff88;
+                   font-size: .9em; padding: 6px 14px; border: 1px solid #00ff88; border-radius: 20px; }
+  .msg { color: #ff6666; font-size: .85em; margin-bottom: 8px; min-height: 18px; }
+  .msg.ok { color: #00ff88; }
 </style>
 </head>
 <body>
@@ -205,137 +63,128 @@
 <header>
   <h1 class="anim-1">Grand Market</h1>
   <p class="subtitle anim-2">Анонимная доска объявлений</p>
-
   <div class="topbar anim-3">
-    <button onclick="openAddListing()">+ Добавить объявление</button>
+    <button onclick="openAddListing()" id="addBtn" disabled>+ Добавить объявление</button>
     <button class="secondary" id="profileBtn" onclick="openProfile()">Войти</button>
   </div>
-
-  <div class="anim-4" style="margin-top: 18px;">
+  <div class="anim-4" style="margin-top:18px;">
     <span class="profile-badge" id="userBadge" style="display:none;"></span>
   </div>
 </header>
 
 <div class="board anim-4" id="board">
-  <!-- Сюда рендерятся объявления -->
+  <div class="empty">Загрузка...</div>
 </div>
 
-<!-- МОДАЛКА: ДОБАВИТЬ ОБЪЯВЛЕНИЕ -->
 <div class="modal-bg" id="addModal">
   <div class="modal">
     <h2>Новое объявление</h2>
+    <div class="msg" id="addMsg"></div>
     <input type="text" id="itemTitle" placeholder="Название товара" maxlength="60">
     <input type="text" id="itemPrice" placeholder="Цена (например: 1500 ₽)">
     <textarea id="itemDesc" placeholder="Описание" rows="4" maxlength="500"></textarea>
     <div class="modal-actions">
       <button class="secondary" onclick="closeModal('addModal')">Отмена</button>
-      <button onclick="saveListing()">Опубликовать</button>
+      <button onclick="saveListing()" id="publishBtn">Опубликовать</button>
     </div>
   </div>
 </div>
 
-<!-- МОДАЛКА: ПРОФИЛЬ -->
 <div class="modal-bg" id="profileModal">
   <div class="modal">
     <h2 id="profileTitle">Вход</h2>
+    <div class="msg" id="authMsg"></div>
     <form id="authForm" onsubmit="return submitAuth(event)">
-      <input type="text" id="login" name="username" placeholder="Логин" autocomplete="username">
+      <input type="email" id="email" name="email" placeholder="Email" autocomplete="email">
       <input type="password" id="pass" name="password" placeholder="Пароль" autocomplete="current-password">
       <div class="modal-actions">
         <button type="button" class="secondary" onclick="closeModal('profileModal')">Отмена</button>
         <button type="submit" id="authBtn">Войти</button>
       </div>
     </form>
+    <p style="margin-top:14px;color:#888;font-size:.85em;text-align:center;">
+      Нет аккаунта? <a href="#" onclick="toggleMode();return false;" style="color:#00ff88;">Зарегистрироваться</a>
+    </p>
   </div>
 </div>
 
 <script>
-// ============ СОСТОЯНИЕ ============
-const STORAGE_LISTINGS = 'gm_listings';
-const STORAGE_USER = 'gm_user';
+// ========== ПОДКЛЮЧЕНИЕ К SUPABASE ==========
+const SUPABASE_URL = 'https://dpfonttqfumtpcctexbv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_d5ssouz-pOXvFiydwf728g_DD-8f3ue';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function loadListings() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_LISTINGS)) || []; }
-  catch { return []; }
-}
-function saveListings(arr) {
-  localStorage.setItem(STORAGE_LISTINGS, JSON.stringify(arr));
-}
-function getUser() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_USER)); }
-  catch { return null; }
-}
-function setUser(u) {
-  if (u) localStorage.setItem(STORAGE_USER, JSON.stringify(u));
-  else localStorage.removeItem(STORAGE_USER);
+let authMode = 'login';
+let currentUser = null;
+
+function toggleMode() {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  document.getElementById('profileTitle').textContent = authMode === 'login' ? 'Вход' : 'Регистрация';
+  document.getElementById('authBtn').textContent = authMode === 'login' ? 'Войти' : 'Зарегистрироваться';
+  document.querySelector('#profileModal a').textContent = authMode === 'login' ? 'Зарегистрироваться' : 'Уже есть аккаунт?';
+  document.getElementById('authMsg').textContent = '';
 }
 
-// ============ РЕНДЕР ============
-function render() {
-  const board = document.getElementById('board');
-  const list = loadListings();
-  board.innerHTML = '';
+async function submitAuth(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('pass').value;
+  const msg = document.getElementById('authMsg');
+  msg.textContent = ''; msg.className = 'msg';
 
-  if (list.length === 0) {
-    board.innerHTML = '<div class="empty">Пока нет объявлений. Добавь первое!</div>';
+  if (!email || !pass) { msg.textContent = 'Заполни все поля'; return false; }
+
+  let result;
+  if (authMode === 'login') {
+    result = await sb.auth.signInWithPassword({ email, password: pass });
   } else {
-    list.slice().reverse().forEach((item, i) => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.style.animationDelay = (i * 0.05) + 's';
-      card.innerHTML = `
-        <h3>${escapeHtml(item.title)}</h3>
-        <div class="price">${escapeHtml(item.price)}</div>
-        <div class="desc">${escapeHtml(item.desc)}</div>
-      `;
-      board.appendChild(card);
-    });
+    result = await sb.auth.signUp({ email, password: pass });
   }
 
-  // Обновляем бейдж пользователя
-  const user = getUser();
-  const badge = document.getElementById('userBadge');
-  const btn = document.getElementById('profileBtn');
-  if (user) {
-    badge.style.display = 'inline-flex';
-    badge.textContent = '👤 ' + user.login;
-    btn.textContent = 'Выйти';
-    btn.onclick = logout;
-  } else {
-    badge.style.display = 'none';
-    btn.textContent = 'Войти';
-    btn.onclick = openProfile;
-  }
+  if (result.error) { msg.textContent = result.error.message; return false; }
+
+  msg.className = 'msg ok';
+  msg.textContent = authMode === 'login' ? 'Успешный вход!' : 'Аккаунт создан!';
+
+  setTimeout(() => {
+    closeModal('profileModal');
+    document.getElementById('email').value = '';
+    document.getElementById('pass').value = '';
+    render();
+  }, 800);
+  return false;
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
+async function logout() {
+  if (!confirm('Выйти?')) return;
+  await sb.auth.signOut();
+  currentUser = null;
+  render();
 }
 
-// ============ МОДАЛКИ ============
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+async function fetchListings() {
+  const { data, error } = await sb.from('listings').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
 
-function openAddListing() { openModal('addModal'); }
-
-function openProfile() { openModal('profileModal'); }
-
-// ============ СОХРАНЕНИЕ ОБЪЯВЛЕНИЯ ============
-function saveListing() {
+async function saveListing() {
   const title = document.getElementById('itemTitle').value.trim();
   const price = document.getElementById('itemPrice').value.trim();
   const desc = document.getElementById('itemDesc').value.trim();
+  const msg = document.getElementById('addMsg');
+  const btn = document.getElementById('publishBtn');
+  msg.textContent = ''; msg.className = 'msg';
 
-  if (!title || !price) {
-    alert('Заполни название и цену');
-    return;
-  }
+  if (!title || !price) { msg.textContent = 'Заполни название и цену'; return; }
 
-  const list = loadListings();
-  list.push({ title, price, desc, time: Date.now() });
-  saveListings(list);
+  btn.disabled = true;
+  const { error } = await sb.from('listings').insert({
+    title, price, description: desc || null, user_id: currentUser?.id || null
+  });
+  btn.disabled = false;
+
+  if (error) { msg.textContent = error.message; return; }
 
   document.getElementById('itemTitle').value = '';
   document.getElementById('itemPrice').value = '';
@@ -344,44 +193,58 @@ function saveListing() {
   render();
 }
 
-// ============ АВТОРИЗАЦИЯ (локальная) ============
-function submitAuth(e) {
-  e.preventDefault();
-  const login = document.getElementById('login').value.trim();
-  const pass = document.getElementById('pass').value;
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
 
-  if (!login || !pass) {
-    alert('Введи логин и пароль');
-    return false;
+async function render() {
+  const board = document.getElementById('board');
+  const badge = document.getElementById('userBadge');
+  const btn = document.getElementById('profileBtn');
+  const addBtn = document.getElementById('addBtn');
+
+  const { data: { user } } = await sb.auth.getUser();
+  currentUser = user || null;
+  if (currentUser) {
+    badge.style.display = 'inline-flex';
+    badge.textContent = '👤 ' + (currentUser.email || 'user');
+    btn.textContent = 'Выйти';
+    btn.onclick = logout;
+    addBtn.disabled = false;
+  } else {
+    badge.style.display = 'none';
+    btn.textContent = 'Войти';
+    btn.onclick = openProfile;
+    addBtn.disabled = true;
   }
 
-  // Локально сохраняем. Браузер сам предложит сохранить пароль.
-  setUser({ login, passHash: simpleHash(pass), time: Date.now() });
-
-  document.getElementById('login').value = '';
-  document.getElementById('pass').value = '';
-  closeModal('profileModal');
-  render();
-  return false;
-}
-
-function logout() {
-  if (!confirm('Выйти из профиля?')) return;
-  setUser(null);
-  render();
-}
-
-// Простейший хэш (для локального хранения, НЕ для продакшена!)
-function simpleHash(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h) + str.charCodeAt(i);
-    h |= 0;
+  const list = await fetchListings();
+  board.innerHTML = '';
+  if (!list.length) {
+    board.innerHTML = '<div class="empty">Пока нет объявлений. Добавь первое!</div>';
+  } else {
+    list.forEach((item, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.animationDelay = (i * 0.05) + 's';
+      card.innerHTML = `
+        <h3>${escapeHtml(item.title)}</h3>
+        <div class="price">${escapeHtml(item.price)}</div>
+        <div class="desc">${escapeHtml(item.description)}</div>
+      `;
+      board.appendChild(card);
+    });
   }
-  return h.toString(16);
 }
 
-// ============ СТАРТ ============
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openAddListing() { openModal('addModal'); }
+function openProfile() { openModal('profileModal'); }
+
+sb.auth.onAuthStateChange(() => render());
 render();
 </script>
 </body>
