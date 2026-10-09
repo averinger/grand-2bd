@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grand Market — доска объявлений</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Grand AI — чат</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -13,11 +12,12 @@
     background: #fff5f8;
     color: #2a2a3a;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     overflow-x: hidden;
     position: relative;
   }
 
-  /* Декоративные круги на фоне */
   body::before, body::after {
     content: '';
     position: fixed;
@@ -38,38 +38,34 @@
     bottom: -150px; right: -150px;
   }
 
-  /* === АНИМАЦИИ === */
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(30px); }
+    from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes float {
     0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(-8px); }
+    50%      { transform: translateY(-6px); }
   }
   @keyframes shimmer {
     0%   { background-position: -200% center; }
     100% { background-position: 200% center; }
   }
-
-  .anim-1 { animation: fadeUp 0.8s ease 0.1s both; }
-  .anim-2 { animation: fadeUp 0.8s ease 0.3s both; }
-  .anim-3 { animation: fadeUp 0.8s ease 0.5s both; }
-  .anim-4 { animation: fadeUp 0.8s ease 0.7s both; }
+  @keyframes dots {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+    40%           { transform: scale(1); opacity: 1; }
+  }
 
   header {
-    padding: 50px 24px 20px;
+    padding: 30px 24px 16px;
     text-align: center;
     position: relative;
-    z-index: 1;
+    z-index: 2;
+    flex-shrink: 0;
   }
 
   h1 {
-    font-size: 2.8em;
+    font-size: 2.2em;
     font-weight: 800;
     background: linear-gradient(90deg, #ff6b9d, #ff8fb1, #ff6b9d);
     background-size: 200% auto;
@@ -82,308 +78,257 @@
 
   .subtitle {
     color: #b08898;
-    margin-top: 10px;
-    font-size: 1em;
+    margin-top: 6px;
+    font-size: 0.9em;
     font-weight: 500;
   }
 
-  .topbar {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 28px;
-    flex-wrap: wrap;
+  .chat-wrap {
+    flex: 1;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 16px 20px 100px;
+    position: relative;
+    z-index: 2;
+    overflow-y: auto;
   }
 
-  button {
+  .message {
+    margin-bottom: 14px;
+    animation: fadeUp 0.35s ease both;
+    display: flex;
+  }
+
+  .message.user { justify-content: flex-end; }
+  .message.bot  { justify-content: flex-start; }
+
+  .bubble {
+    max-width: 80%;
+    padding: 14px 18px;
+    border-radius: 18px;
+    line-height: 1.5;
+    font-size: 0.95em;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  .message.user .bubble {
     background: linear-gradient(135deg, #ff8fb1, #ff6b9d);
     color: #fff;
-    border: none;
-    padding: 13px 26px;
-    border-radius: 12px;
-    font-size: 0.95em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border-bottom-right-radius: 4px;
     box-shadow: 0 4px 14px rgba(255, 107, 157, 0.3);
   }
 
-  button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255, 107, 157, 0.45);
-  }
-
-  button.secondary {
+  .message.bot .bubble {
     background: #fff;
-    color: #ff6b9d;
-    border: 2px solid #ffc4d6;
-    box-shadow: 0 2px 8px rgba(255, 196, 214, 0.3);
-  }
-
-  button.secondary:hover {
-    background: #fff5f8;
-    border-color: #ff8fb1;
-    box-shadow: 0 6px 20px rgba(255, 143, 177, 0.3);
-  }
-
-  button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-
-  /* === ДОСКА === */
-  .board {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 18px;
-    padding: 36px 24px;
-    max-width: 1100px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-  }
-
-  .card {
-    background: #fff;
-    border: 1px solid #ffe0eb;
-    border-radius: 16px;
-    padding: 22px;
-    animation: fadeUp 0.5s ease both;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    box-shadow: 0 2px 12px rgba(255, 196, 214, 0.15);
-  }
-
-  .card:hover {
-    transform: translateY(-6px);
-    border-color: #ffb3c9;
-    box-shadow: 0 12px 32px rgba(255, 143, 177, 0.25);
-  }
-
-  .card h3 {
-    color: #ff6b9d;
-    font-size: 1.15em;
-    margin-bottom: 10px;
-    font-weight: 700;
-  }
-
-  .card .price {
-    font-size: 1.5em;
     color: #2a2a3a;
-    font-weight: 800;
-    margin-bottom: 10px;
-    letter-spacing: -0.5px;
-  }
-
-  .card .desc {
-    color: #8a7580;
-    font-size: 0.92em;
-    line-height: 1.55;
-  }
-
-  .empty {
-    text-align: center;
-    color: #c4a8b3;
-    padding: 80px 20px;
-    grid-column: 1 / -1;
-    font-size: 1.05em;
-  }
-
-  /* === МОДАЛКИ === */
-  .modal-bg {
-    position: fixed; inset: 0;
-    background: rgba(255, 200, 215, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 100;
-    animation: fadeIn 0.25s ease;
-  }
-  .modal-bg.open { display: flex; }
-
-  .modal {
-    background: #fff;
     border: 1px solid #ffe0eb;
-    border-radius: 20px;
-    padding: 32px;
-    width: 100%;
-    max-width: 440px;
-    animation: fadeUp 0.35s ease;
-    box-shadow: 0 24px 60px rgba(255, 143, 177, 0.25);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 12px rgba(255, 196, 214, 0.2);
   }
 
-  .modal h2 {
-    color: #ff6b9d;
-    margin-bottom: 20px;
-    font-size: 1.4em;
-    font-weight: 700;
+  .typing {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .typing span {
+    width: 8px; height: 8px;
+    background: #ff8fb1;
+    border-radius: 50%;
+    animation: dots 1.4s infinite ease-in-out both;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+
+  .input-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid #ffe0eb;
+    padding: 14px 20px;
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
   }
 
-  input, textarea {
-    width: 100%;
+  .input-bar input {
+    flex: 1;
     background: #fff5f8;
     border: 2px solid #ffe0eb;
     color: #2a2a3a;
-    padding: 13px 16px;
-    border-radius: 12px;
-    margin-bottom: 12px;
-    font-size: 0.95em;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 1em;
     font-family: inherit;
-    transition: border-color 0.2s ease, background 0.2s ease;
-  }
-
-  input::placeholder, textarea::placeholder {
-    color: #c4a8b3;
-  }
-
-  input:focus, textarea:focus {
+    transition: border-color 0.2s, background 0.2s;
     outline: none;
+  }
+  .input-bar input:focus {
     border-color: #ff8fb1;
     background: #fff;
   }
+  .input-bar input::placeholder { color: #c4a8b3; }
 
-  .modal-actions {
+  .input-bar button {
+    background: linear-gradient(135deg, #ff8fb1, #ff6b9d);
+    color: #fff;
+    border: none;
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    font-size: 1.3em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    box-shadow: 0 4px 14px rgba(255, 107, 157, 0.35);
     display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 12px;
-  }
-
-  .profile-badge {
-    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    color: #ff6b9d;
-    font-size: 0.9em;
-    font-weight: 600;
-    padding: 8px 18px;
-    background: #fff;
-    border: 2px solid #ffc4d6;
-    border-radius: 24px;
-    box-shadow: 0 2px 8px rgba(255, 196, 214, 0.25);
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .input-bar button:hover { transform: translateY(-2px); }
+  .input-bar button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .status {
+    text-align: center;
+    color: #c4a8b3;
+    font-size: 0.85em;
+    padding: 8px 0 0;
+    animation: fadeIn 0.5s ease;
   }
 
-  .msg {
-    color: #ff4d6d;
-    font-size: 0.88em;
-    margin-bottom: 10px;
-    min-height: 20px;
-    font-weight: 500;
+  .reset-btn {
+    display: block;
+    margin: 0 auto;
+    background: #fff;
+    color: #ff6b9d;
+    border: 2px solid #ffc4d6;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
   }
-  .msg.ok { color: #10b981; }
+  .reset-btn:hover { background: #fff5f8; border-color: #ff8fb1; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1 class="anim-1">Grand Market</h1>
-  <p class="subtitle anim-2">Анонимная доска объявлений</p>
-
-  <div class="topbar anim-3">
-    <button onclick="openAddListing()" id="addBtn" disabled>+ Добавить объявление</button>
-    <button class="secondary" id="profileBtn" onclick="openProfile()">Войти</button>
-  </div>
-
-  <div class="anim-4" style="margin-top:20px;">
-    <span class="profile-badge" id="userBadge" style="display:none;"></span>
-  </div>
+  <h1>Grand AI</h1>
+  <p class="subtitle">Локальная нейросеть · без ограничений</p>
 </header>
 
-<div class="board anim-4" id="board">
-  <div class="empty">Загрузка...</div>
-</div>
-
-<div class="modal-bg" id="addModal">
-  <div class="modal">
-    <h2>Новое объявление</h2>
-    <div class="msg" id="addMsg"></div>
-    <input type="text" id="itemTitle" placeholder="Название товара" maxlength="60">
-    <input type="text" id="itemPrice" placeholder="Цена (например: 1500 ₽)">
-    <textarea id="itemDesc" placeholder="Описание" rows="4" maxlength="500"></textarea>
-    <div class="modal-actions">
-      <button class="secondary" onclick="closeModal('addModal')">Отмена</button>
-      <button onclick="saveListing()" id="publishBtn">Опубликовать</button>
-    </div>
+<div class="chat-wrap" id="chat">
+  <div class="message bot">
+    <div class="bubble">Привет! Я локальная нейросеть, работающая прямо на твоём сервере. О чём поговорим?</div>
   </div>
 </div>
 
-<div class="modal-bg" id="profileModal">
-  <div class="modal">
-    <h2 id="profileTitle">Вход</h2>
-    <div class="msg" id="authMsg"></div>
-    <form id="authForm" onsubmit="return submitAuth(event)">
-      <input type="email" id="email" name="email" placeholder="Email" autocomplete="email">
-      <input type="password" id="pass" name="password" placeholder="Пароль" autocomplete="current-password">
-      <div class="modal-actions">
-        <button type="button" class="secondary" onclick="closeModal('profileModal')">Отмена</button>
-        <button type="submit" id="authBtn">Войти</button>
-      </div>
-    </form>
-    <p style="margin-top:16px;color:#b08898;font-size:.88em;text-align:center;">
-      Нет аккаунта? <a href="#" onclick="toggleMode();return false;" style="color:#ff6b9d;font-weight:600;text-decoration:none;">Зарегистрироваться</a>
-    </p>
-  </div>
+<div class="input-bar">
+  <input type="text" id="input" placeholder="Напиши сообщение..." autocomplete="off">
+  <button id="sendBtn" onclick="sendMessage()">➤</button>
 </div>
 
 <script>
-const SUPABASE_URL = 'https://dpfonttqfumtpcctexbv.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_d5ssouz-pOXvFiydwf728g_DD-8f3ue';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const API_URL = 'https://b0bab2b35c13e7.lhr.life/v1/chat/completions';
 
-let authMode = 'login';
-let currentUser = null;
+let history = [
+  { role: 'system', content: 'Ты дружелюбный ассистент. Отвечай кратко и по делу, на русском языке.' }
+];
+let isSending = false;
 
-function toggleMode() {
-  authMode = authMode === 'login' ? 'signup' : 'login';
-  document.getElementById('profileTitle').textContent = authMode === 'login' ? 'Вход' : 'Регистрация';
-  document.getElementById('authBtn').textContent = authMode === 'login' ? 'Войти' : 'Зарегистрироваться';
-  document.querySelector('#profileModal a').textContent = authMode === 'login' ? 'Зарегистрироваться' : 'Уже есть аккаунт?';
-  document.getElementById('authMsg').textContent = '';
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
 }
 
-async function submitAuth(e) {
-  e.preventDefault();
-  const email = document.getElementById('email').value.trim();
-  const pass = document.getElementById('pass').value;
-  const msg = document.getElementById('authMsg');
-  msg.textContent = ''; msg.className = 'msg';
+function addMessage(role, text) {
+  const wrap = document.createElement('div');
+  wrap.className = 'message ' + (role === 'user' ? 'user' : 'bot');
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = escapeHtml(text);
+  wrap.appendChild(bubble);
+  chatEl.appendChild(wrap);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return bubble;
+}
 
-  if (!email || !pass) { msg.textContent = 'Заполни все поля'; return false; }
+function addTyping() {
+  const wrap = document.createElement('div');
+  wrap.className = 'message bot';
+  wrap.id = 'typingIndicator';
+  wrap.innerHTML = '<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>';
+  chatEl.appendChild(wrap);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
 
-  let result;
-  if (authMode === 'login') {
-    result = await sb.auth.signInWithPassword({ email, password: pass });
-  } else {
-    result = await sb.auth.signUp({ email, password: pass });
+function removeTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+async function sendMessage() {
+  if (isSending) return;
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  isSending = true;
+  sendBtn.disabled = true;
+  inputEl.value = '';
+
+  addMessage('user', text);
+  history.push({ role: 'user', content: text });
+  addTyping();
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: history,
+        max_tokens: 400,
+        temperature: 0.8
+      })
+    });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const answer = data.choices?.[0]?.message?.content?.trim() || '(пустой ответ)';
+
+    removeTyping();
+    addMessage('bot', answer);
+    history.push({ role: 'assistant', content: answer });
+  } catch (e) {
+    removeTyping();
+    addMessage('bot', 'Ошибка: ' + e.message + '. Проверь, что сервер и туннель работают.');
+  } finally {
+    isSending = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
   }
-
-  if (result.error) { msg.textContent = result.error.message; return false; }
-
-  msg.className = 'msg ok';
-  msg.textContent = authMode === 'login' ? 'Успешный вход!' : 'Аккаунт создан!';
-
-  setTimeout(() => {
-    closeModal('profileModal');
-    document.getElementById('email').value = '';
-    document.getElementById('pass').value = '';
-    render();
-  }, 800);
-  return false;
 }
 
-async function logout() {
-  if (!confirm('Выйти?')) return;
-  await sb.auth.signOut();
-  currentUser = null;
-  render();
-}
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMessage();
+});
 
-async function fetchListings() {
-  const { data, error } = await sb.from('listings').select('*').order('created_at', { ascending: false });
+inputEl.focus();
+</script>
+</body>
+</html>('*').order('created_at', { ascending: false });
   if (error) { console.error(error); return []; }
   return data || [];
 }
