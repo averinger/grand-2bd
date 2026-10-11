@@ -164,7 +164,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--accent);color:var(--text);padding:10px 20px;border-radius:10px;font-size:.85em;z-index:9000;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:90%;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.show{opacity:1}
 .gen-overlay{position:absolute;inset:0;background:rgba(10,10,15,.94);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#fff;z-index:5;padding:24px;backdrop-filter:blur(4px)}
-.gen-status{text-align:center;width:100%;max-width:360px}
+.gen-status{text-align:center;width:100%;max-width:380px}
 .gen-label{font-size:1.05em;font-weight:700;margin-bottom:16px;letter-spacing:.5px}
 .gen-bar{height:10px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden;position:relative;box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}
 .gen-fill{height:100%;background:linear-gradient(90deg,var(--accent),#ff6b9d);width:0%;transition:width .35s ease;border-radius:5px;box-shadow:0 0 16px rgba(124,92,255,.7);position:relative}
@@ -172,7 +172,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 .gen-pct{font-family:'SF Mono',Consolas,monospace;font-size:1.6em;font-weight:700;color:var(--accent);margin-top:14px;letter-spacing:1px}
 .gen-hint{font-size:.8em;color:var(--muted);margin-top:8px;line-height:1.4}
-.gen-log{font-family:'SF Mono',Consolas,monospace;font-size:.75em;color:var(--muted);margin-top:10px;padding:8px 12px;background:rgba(0,0,0,.3);border-radius:6px;min-height:2.4em;word-break:break-word;line-height:1.4}
+.gen-log{font-family:'SF Mono',Consolas,monospace;font-size:.72em;color:var(--muted);margin-top:10px;padding:8px 12px;background:rgba(0,0,0,.3);border-radius:6px;min-height:2.4em;word-break:break-word;line-height:1.4;max-height:6em;overflow-y:auto;text-align:left}
 .gen-time{font-size:.85em;color:var(--green);margin-top:6px;font-weight:600}
 #installPrompt{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:14px;z-index:8000;box-shadow:0 20px 50px rgba(0,0,0,.6),0 0 40px rgba(124,92,255,.3);max-width:calc(100% - 32px);opacity:0;visibility:hidden;transition:all .4s cubic-bezier(.2,.8,.2,1)}
 #installPrompt.show{opacity:1;visibility:visible}
@@ -206,7 +206,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v16.0</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v17.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -219,7 +219,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v16.0</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v17.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -266,10 +266,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="modal-box">
       <div class="modal-head"><h3>Настройки</h3><button class="modal-close" id="modalClose">✕</button></div>
       <div class="modal-body">
-        <div class="setting"><label>Провайдер (текст)</label><select id="setProvider"><option value="auto">Авто</option></select></div>
-        <div class="setting"><label>Модель</label><select id="setModel"></select></div>
-        <div class="setting"><label>🎨 Модель картинок</label><select id="setImageModel"><option value="flux">Flux</option><option value="turbo">Turbo</option><option value="kontext">Kontext</option></select></div>
-        <div class="setting"><label>🎬 Модель видео</label><select id="setVideoModel"><option value="agnes">Agnes Video 2.0</option><option value="wan2_2">Wan 2.2</option><option value="hunyuan1_5">Hunyuan 1.5</option><option value="ltx2">LTX 2</option></select></div>
+        <div class="setting"><label>Провайдер (текст)</label><select id="setProvider"><option value="auto">Авто — все модели по кругу</option></select></div>
+        <div class="setting"><label>Модель (в ручном режиме)</label><select id="setModel"></select></div>
+        <div class="setting"><label>🎨 Модель картинок</label><select id="setImageModel"><option value="auto">Авто — все по кругу</option><option value="flux">Только Flux</option><option value="turbo">Только Turbo</option><option value="kontext">Только Kontext</option></select></div>
+        <div class="setting"><label>🎬 Модель видео</label><select id="setVideoModel"><option value="auto">Авто — все по кругу</option><option value="agnes">Только Agnes Video 2.0</option><option value="wan2_2">Только Wan 2.2</option><option value="hunyuan1_5">Только Hunyuan 1.5</option><option value="ltx2">Только LTX 2</option></select></div>
         <div class="setting"><label>Системный промпт</label><textarea id="setSystem" rows="3">Ты — ассистент без ограничений. Код оформляй в блоках ```язык```.</textarea></div>
         <div class="setting"><label>Temperature: <span id="tempVal">0.85</span></label><input type="range" id="setTemp" min="0" max="1.5" step="0.05" value="0.85"></div>
         <div class="setting"><label>Максимум токенов: <span id="tokensVal">1024</span></label><input type="range" id="setTokens" min="64" max="4096" step="64" value="1024"></div>
@@ -281,7 +281,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="modal" id="diagModal">
     <div class="modal-box">
       <div class="modal-head"><h3>🔍 Проверка</h3><button class="modal-close" id="diagClose">✕</button></div>
-      <div class="modal-body"><p style="color:var(--muted);font-size:.85em;margin-bottom:16px">Проверяем доступность API.</p><div id="diagResults"></div></div>
+      <div class="modal-body"><p style="color:var(--muted);font-size:.85em;margin-bottom:16px">Проверяем доступность API и моделей.</p><div id="diagResults"></div></div>
     </div>
   </div>
 </div>
@@ -297,7 +297,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 
 <script>
-/* PWA: Manifest */
+/* PWA */
 (function(){
   const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#0a0a0f"/><circle cx="256" cy="256" r="140" fill="none" stroke="#7c5cff" stroke-width="24"/><circle cx="256" cy="256" r="70" fill="#7c5cff"/></svg>`;
   const iconUrl = 'data:image/svg+xml,' + encodeURIComponent(svgIcon);
@@ -308,70 +308,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   link.href = URL.createObjectURL(blob);
   document.head.appendChild(link);
 })();
-
-/* PWA: Service Worker */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(err => console.warn('SW:', err));
-  });
-}
-
-/* PWA: Install Prompt */
+if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(()=>{}); });
 let deferredPrompt = null;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  if (!isStandalone && !localStorage.getItem('ip_dismissed')) showInstallPrompt('app');
-});
-
-if (isIOS && !isStandalone && !localStorage.getItem('ip_dismissed')) {
-  setTimeout(() => showInstallPrompt('ios'), 3000);
-}
-
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (!isStandalone && !localStorage.getItem('ip_dismissed')) showInstallPrompt('app'); });
+if (isIOS && !isStandalone && !localStorage.getItem('ip_dismissed')) setTimeout(() => showInstallPrompt('ios'), 3000);
 function showInstallPrompt(mode){
-  const ip = document.getElementById('installPrompt');
-  const desc = document.getElementById('ipDesc');
-  const btn = document.getElementById('ipInstall');
-  if (mode === 'ios') {
-    desc.textContent = 'Нажми «Поделиться» → «На экран Домой»';
-    btn.textContent = 'Понятно';
-    btn.onclick = () => { ip.classList.remove('show'); localStorage.setItem('ip_dismissed', '1'); };
-  } else {
-    desc.textContent = 'Работает офлайн, на весь экран, как нативное приложение';
-    btn.textContent = 'Установить';
-    btn.onclick = async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') showToast('✓ Приложение установлено');
-      deferredPrompt = null;
-      ip.classList.remove('show');
-    };
-  }
+  const ip = document.getElementById('installPrompt');const desc = document.getElementById('ipDesc');const btn = document.getElementById('ipInstall');
+  if (mode === 'ios') { desc.textContent = 'Нажми «Поделиться» → «На экран Домой»'; btn.textContent = 'Понятно'; btn.onclick = () => { ip.classList.remove('show'); localStorage.setItem('ip_dismissed','1'); }; }
+  else { desc.textContent = 'Работает офлайн, на весь экран, как нативное приложение'; btn.textContent = 'Установить';
+    btn.onclick = async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') showToast('✓ Приложение установлено'); deferredPrompt = null; ip.classList.remove('show'); }; }
   setTimeout(() => ip.classList.add('show'), 200);
 }
-
-document.getElementById('ipClose').addEventListener('click', () => {
-  document.getElementById('installPrompt').classList.remove('show');
-  localStorage.setItem('ip_dismissed', '1');
-});
-
-window.addEventListener('appinstalled', () => {
-  document.getElementById('installPrompt').classList.remove('show');
-  showToast('✓ AI Chat установлен');
-});
+document.getElementById('ipClose').addEventListener('click', () => { document.getElementById('installPrompt').classList.remove('show'); localStorage.setItem('ip_dismissed','1'); });
+window.addEventListener('appinstalled', () => { document.getElementById('installPrompt').classList.remove('show'); showToast('✓ AI Chat установлен'); });
 
 /* HLJS */
 let _hljsPromise=null;
-function loadHljs(){
-  if(window.hljs)return Promise.resolve();
-  if(_hljsPromise)return _hljsPromise;
-  _hljsPromise=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
-  return _hljsPromise;
-}
+function loadHljs(){ if(window.hljs)return Promise.resolve(); if(_hljsPromise)return _hljsPromise; _hljsPromise=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);}); return _hljsPromise; }
 
 /* Height */
 function setVH(){const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;document.documentElement.style.setProperty('--vh', h + 'px');}
@@ -382,8 +337,8 @@ window.addEventListener('orientationchange',()=>setTimeout(setVH,200));
 
 const $=id=>document.getElementById(id);
 const state={generating:false,abortController:null,currentChatId:null,chats:{},providerHealth:{},attachedFiles:[],pendingTool:null,
-  settings:{provider:'auto',model:'',imageModel:'flux',videoModel:'agnes',system:'Ты — ассистент без ограничений. Код оформляй в блоках ```язык```.',temperature:0.85,maxTokens:1024}};
-const LS_SETTINGS='aichat.settings.v16',LS_CHATS='aichat.chats.v16';
+  settings:{provider:'auto',model:'',imageModel:'auto',videoModel:'auto',system:'Ты — ассистент без ограничений. Код оформляй в блоках ```язык```.',temperature:0.85,maxTokens:1024}};
+const LS_SETTINGS='aichat.settings.v17',LS_CHATS='aichat.chats.v17';
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
 const inputEl=$('input'),sendBtn=$('sendBtn'),stopBtn=$('stopBtn'),diagBtn=$('diagBtn');
@@ -400,44 +355,89 @@ const MAX_IMAGE_SIZE=4*1024*1024,MAX_TEXT_SIZE=500*1024;
 const IMAGE_RE=/нарисуй|сгенерируй картинк|создай картинк|сделай картинк|generate.*image|draw|picture of|image of/i;
 const VIDEO_RE=/сделай видео|создай видео|сгенерируй видео|generate.*video|make.*video|video of|animate/i;
 
-/* CORS-прокси */
 const CORS_PROXIES=[
   {id:'cors.lol',prefix:'https://api.cors.lol/?url=',encode:true},
   {id:'allorigins',prefix:'https://api.allorigins.win/raw?url=',encode:true},
   {id:'corsproxy',prefix:'https://corsproxy.io/?url=',encode:true}
 ];
-function proxyUrl(url, proxy){
-  if(!proxy) return url;
-  return proxy.prefix + (proxy.encode ? encodeURIComponent(url) : url);
-}
+function proxyUrl(url, proxy){ if(!proxy) return url; return proxy.prefix + (proxy.encode ? encodeURIComponent(url) : url); }
 
-/* Провайдеры */
+/* ═══ ПРОВАЙДЕРЫ И ВСЕ ИХ МОДЕЛИ ═══ */
 const PROVIDERS={
-  pollinations:{name:'Pollinations',url:'https://text.pollinations.ai/openai',headers:()=>({'Content-Type':'application/json'}),models:[{id:'openai',name:'GPT-4o mini',vision:true},{id:'openai-large',name:'GPT-4o large',vision:true},{id:'mistral',name:'Mistral'},{id:'deepseek',name:'DeepSeek'}]},
-  ovh:{name:'OVHcloud',url:'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-oss-120b',name:'GPT-OSS 120B'},{id:'Qwen3-32B',name:'Qwen3 32B'}]},
-  kilo:{name:'Kilo Gateway',url:'https://api.kilo.ai/api/gateway/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'z-ai/glm-5:free',name:'GLM 5'},{id:'minimax/minimax-m2.5:free',name:'MiniMax M2.5'}]},
-  llm7:{name:'LLM7',url:'https://api.llm7.io/v1/chat/completions',headers:()=>({'Content-Type':'application/json','Authorization':'Bearer unused'}),models:[{id:'DeepSeek-V4-Flash-0731',name:'DeepSeek V4 Flash'},{id:'GLM-5.3-Flash',name:'GLM 5.3 Flash'},{id:'gemini-2.5-flash-lite',name:'Gemini 2.5 Flash Lite'}]},
-  unclose:{name:'uncloseai',url:'https://hermes.ai.unturf.com/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'turboderp/Qwen3.8-27B-exl3',name:'Qwen 3.8 27B'}]},
-  airforce:{name:'Api.Airforce',url:'https://api.airforce/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'grok-3',name:'Grok 3'},{id:'claude-3.7-sonnet',name:'Claude 3.7'}]},
-  keylessai:{name:'KeylessAI',url:'https://keylessai.thryx.workers.dev/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-4o',name:'GPT-4o',vision:true},{id:'gpt-4o-mini',name:'GPT-4o mini',vision:true}]}
+  pollinations:{name:'Pollinations',url:'https://text.pollinations.ai/openai',headers:()=>({'Content-Type':'application/json'}),models:[
+    {id:'openai',name:'GPT-4o mini',vision:true},
+    {id:'openai-large',name:'GPT-4o large',vision:true},
+    {id:'mistral',name:'Mistral'},
+    {id:'deepseek',name:'DeepSeek'},
+    {id:'qwen-coder',name:'Qwen Coder'},
+    {id:'llama',name:'Llama 3.3'}
+  ]},
+  ovh:{name:'OVHcloud',url:'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[
+    {id:'gpt-oss-120b',name:'GPT-OSS 120B'},
+    {id:'Qwen3-32B',name:'Qwen3 32B'},
+    {id:'Mistral-Nemo-Instruct-2407',name:'Mistral Nemo'},
+    {id:'Meta-Llama-3_3-70B-Instruct',name:'Llama 3.3 70B'}
+  ]},
+  kilo:{name:'Kilo Gateway',url:'https://api.kilo.ai/api/gateway/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[
+    {id:'z-ai/glm-5:free',name:'GLM 5'},
+    {id:'minimax/minimax-m2.5:free',name:'MiniMax M2.5'},
+    {id:'deepseek/deepseek-r1-0528:free',name:'DeepSeek R1'},
+    {id:'qwen/qwen3-14b:free',name:'Qwen 3 14B'}
+  ]},
+  llm7:{name:'LLM7',url:'https://api.llm7.io/v1/chat/completions',headers:()=>({'Content-Type':'application/json','Authorization':'Bearer unused'}),models:[
+    {id:'DeepSeek-V4-Flash-0731',name:'DeepSeek V4 Flash'},
+    {id:'GLM-5.3-Flash',name:'GLM 5.3 Flash'},
+    {id:'gemini-2.5-flash-lite',name:'Gemini 2.5 Flash Lite'},
+    {id:'Mistral-Nemo-Instruct-2407',name:'Mistral Nemo'},
+    {id:'Qwen2.5-72B-Instruct',name:'Qwen 2.5 72B'}
+  ]},
+  unclose:{name:'uncloseai',url:'https://hermes.ai.unturf.com/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[
+    {id:'turboderp/Qwen3.8-27B-exl3',name:'Qwen 3.8 27B'}
+  ]},
+  airforce:{name:'Api.Airforce',url:'https://api.airforce/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[
+    {id:'grok-3',name:'Grok 3'},
+    {id:'claude-3.7-sonnet',name:'Claude 3.7 Sonnet'},
+    {id:'qwen3-32b',name:'Qwen3 32B'},
+    {id:'kimi-k2.6',name:'Kimi K2.6'},
+    {id:'gemini-2.5-flash',name:'Gemini 2.5 Flash'}
+  ]},
+  keylessai:{name:'KeylessAI',url:'https://keylessai.thryx.workers.dev/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[
+    {id:'gpt-4o',name:'GPT-4o',vision:true},
+    {id:'gpt-4o-mini',name:'GPT-4o mini',vision:true},
+    {id:'claude-3-5-sonnet-latest',name:'Claude 3.5',vision:true},
+    {id:'deepseek-chat',name:'DeepSeek'}
+  ]}
 };
 
-/* Настройки */
+/* ═══ ВСЕ МОДЕЛИ КАРТИНОК ═══ */
+const IMAGE_MODELS=['flux','turbo','kontext'];
+
+/* ═══ ВСЕ КОМБИНАЦИИ ВИДЕО (провайдер + модель) ═══ */
+const VIDEO_COMBOS=[
+  {provider:'agnes', model:'Agnes-Video-2.0', name:'Agnes Video 2.0'},
+  {provider:'prezzy', model:'wan2_2', name:'Prezzy · Wan 2.2'},
+  {provider:'prezzy', model:'hunyuan1_5', name:'Prezzy · Hunyuan 1.5'},
+  {provider:'prezzy', model:'ltx2', name:'Prezzy · LTX 2'},
+  {provider:'inferenceport', model:'wan-fast', name:'InferencePort · Wan Fast'},
+  {provider:'inferenceport', model:'kling', name:'InferencePort · Kling'},
+  {provider:'inferenceport', model:'vidu', name:'InferencePort · Vidu'},
+  {provider:'inferenceport', model:'seedance', name:'InferencePort · Seedance'}
+];
+
+/* ═══ НАСТРОЙКИ ═══ */
 function loadSettings(){
   try{const r=localStorage.getItem(LS_SETTINGS);if(r)Object.assign(state.settings,JSON.parse(r));}catch(e){}
-  const ALLOWED_IMG=['flux','turbo','kontext'];
-  if(!ALLOWED_IMG.includes(state.settings.imageModel))state.settings.imageModel='flux';
   setProvider.value=state.settings.provider;setSystem.value=state.settings.system;
   setTemp.value=state.settings.temperature;setTokens.value=state.settings.maxTokens;
-  setImageModel.value=state.settings.imageModel;setVideoModel.value=state.settings.videoModel;
+  setImageModel.value=state.settings.imageModel||'auto';setVideoModel.value=state.settings.videoModel||'auto';
   refreshSettingsUI();
 }
 function saveSettingsToDisk(){localStorage.setItem(LS_SETTINGS,JSON.stringify(state.settings));}
 function refreshSettingsUI(){
   tempVal.textContent=state.settings.temperature.toFixed(2);tokensVal.textContent=state.settings.maxTokens;
   const wp=Object.keys(PROVIDERS).filter(k=>state.providerHealth[k]?.ok!==false);
-  setProvider.innerHTML='<option value="auto">Авто</option>'+wp.map(k=>'<option value="'+k+'">'+PROVIDERS[k].name+'</option>').join('');
-  if(state.settings.provider==='auto'){setModel.innerHTML='<option value="">Авто</option>';setModel.disabled=true;sbModel.textContent='Авто';sbStatus.textContent='Авто-режим';}
+  setProvider.innerHTML='<option value="auto">Авто — все модели по кругу</option>'+wp.map(k=>'<option value="'+k+'">'+PROVIDERS[k].name+'</option>').join('');
+  if(state.settings.provider==='auto'){setModel.innerHTML='<option value="">Авто — все по кругу</option>';setModel.disabled=true;sbModel.textContent='Авто · все модели';sbStatus.textContent='Авто-режим';}
   else{const p=PROVIDERS[state.settings.provider];if(!p){setProvider.value='auto';refreshSettingsUI();return;}setModel.disabled=false;
     const wm=p.models.filter(m=>state.providerHealth[state.settings.provider]?.models?.[m.id]?.ok!==false);
     setModel.innerHTML=wm.map(m=>'<option value="'+m.id+'">'+m.name+'</option>').join('');
@@ -446,7 +446,7 @@ function refreshSettingsUI(){
     else{setProvider.value='auto';refreshSettingsUI();}}
 }
 
-/* Чаты */
+/* ═══ ЧАТЫ ═══ */
 function loadChats(){try{const r=localStorage.getItem(LS_CHATS);if(r)state.chats=JSON.parse(r);}catch(e){state.chats={};}renderChatList();}
 function persistChats(){try{const c={};Object.keys(state.chats).forEach(id=>{c[id]={title:state.chats[id].title,createdAt:state.chats[id].createdAt,messages:state.chats[id].messages.map(m=>({role:m.role,content:typeof m.content==='string'?m.content:(m.displayContent||''),attachments:(m.attachments||[]).map(a=>({name:a.name,type:a.type,isImage:a.isImage}))}))};});localStorage.setItem(LS_CHATS,JSON.stringify(c));}catch(e){}}
 function createChat(){const id='c'+Date.now();state.chats[id]={title:'Новый чат',messages:[],createdAt:Date.now()};state.currentChatId=id;persistChats();renderChatList();renderMessages();}
@@ -459,7 +459,7 @@ function renderChatList(){chatListEl.innerHTML='';const ids=Object.keys(state.ch
     item.innerHTML='<span class="chat-item-name">'+escapeHtml(chat.title)+'</span><button class="chat-item-del">×</button>';
     item.addEventListener('click',()=>switchChat(id));item.querySelector('.chat-item-del').addEventListener('click',(e)=>deleteChat(id,e));chatListEl.appendChild(item);});}
 
-/* Рендер */
+/* ═══ РЕНДЕР ═══ */
 function renderMessages(){const chat=currentChat();messagesEl.innerHTML='';
   if(!chat||chat.messages.length===0){welcomeEl.classList.remove('hidden');chatTitle.textContent='Новый чат';return;}
   welcomeEl.classList.add('hidden');chatTitle.textContent=chat.title;
@@ -520,43 +520,41 @@ function renderMediaInBody(body,type,url,meta){
   const wrap=document.createElement('div');wrap.className='media-result';
   if(type==='image'){
     const img=document.createElement('img');img.src=url;img.alt=meta&&meta.prompt||'image';img.loading='lazy';wrap.appendChild(img);
-    const info=document.createElement('div');info.className='media-info';info.textContent='🎨 '+(meta&&meta.prompt||'');wrap.appendChild(info);
+    const info=document.createElement('div');info.className='media-info';info.textContent='🎨 '+(meta&&meta.prompt||'')+(meta&&meta.model?' · '+meta.model:'');wrap.appendChild(info);
     const acts=document.createElement('div');acts.className='media-actions';
     const dl=document.createElement('button');dl.className='media-btn';dl.textContent='💾 Скачать';dl.addEventListener('click',()=>{const a=document.createElement('a');a.href=url;a.download='image-'+Date.now()+'.jpg';a.target='_blank';a.click();});
     const op=document.createElement('a');op.className='media-btn secondary';op.href=url;op.target='_blank';op.textContent='🔍 Открыть';
     acts.appendChild(dl);acts.appendChild(op);wrap.appendChild(acts);
   }else if(type==='video'){
     const vid=document.createElement('video');vid.src=url;vid.controls=true;vid.playsInline=true;vid.preload='metadata';wrap.appendChild(vid);
-    const info=document.createElement('div');info.className='media-info';info.textContent='🎬 '+(meta&&meta.prompt||'');wrap.appendChild(info);
+    const info=document.createElement('div');info.className='media-info';info.textContent='🎬 '+(meta&&meta.prompt||'')+(meta&&meta.model?' · '+meta.model:'');wrap.appendChild(info);
     const acts=document.createElement('div');acts.className='media-actions';
     const dl=document.createElement('button');dl.className='media-btn';dl.textContent='💾 Скачать';dl.addEventListener('click',()=>{const a=document.createElement('a');a.href=url;a.download='video-'+Date.now()+'.mp4';a.target='_blank';a.click();});
     acts.appendChild(dl);wrap.appendChild(acts);
   }
   body.appendChild(wrap);}
 
-/* Автопроверка */
+/* ═══ ДИАГНОСТИКА ВСЕХ МОДЕЛЕЙ ═══ */
 async function autoDiagnose(){
   const keys=Object.keys(PROVIDERS);
   for(const k of keys){
     const p=PROVIDERS[k];if(!p)continue;
     state.providerHealth[k]={ok:false,models:{}};
-    try{
-      const model=p.models[0].id;
-      const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),10000);
-      const res=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify({model,messages:[{role:'user',content:'Say OK'}],max_tokens:10,stream:false}),signal:ctrl.signal});
-      clearTimeout(to);
-      if(res.ok){const d=await res.json();const text=d.choices?.[0]?.message?.content||'';if(text.trim()){state.providerHealth[k].ok=true;state.providerHealth[k].models[model]={ok:true};
-        for(const m of p.models){if(m.id===model)continue;try{const c2=new AbortController();const t2=setTimeout(()=>c2.abort(),8000);
-          const r2=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify({model:m.id,messages:[{role:'user',content:'OK'}],max_tokens:5,stream:false}),signal:c2.signal});
-          clearTimeout(t2);state.providerHealth[k].models[m.id]={ok:r2.ok};}catch(e){state.providerHealth[k].models[m.id]={ok:false};}}}}
-    }catch(err){}
+    for(const m of p.models){
+      try{
+        const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),10000);
+        const res=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify({model:m.id,messages:[{role:'user',content:'Say OK'}],max_tokens:10,stream:false}),signal:ctrl.signal});
+        clearTimeout(to);
+        if(res.ok){const d=await res.json();const text=d.choices?.[0]?.message?.content||d.response||'';if(text.trim()){state.providerHealth[k].models[m.id]={ok:true};state.providerHealth[k].ok=true;}
+          else state.providerHealth[k].models[m.id]={ok:false};}
+        else state.providerHealth[k].models[m.id]={ok:false};
+      }catch(e){state.providerHealth[k].models[m.id]={ok:false};}
+    }
   }
   refreshSettingsUI();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RETRY FOREVER — бесконечные попытки
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══ RETRY FOREVER ═══ */
 async function retryForever(fn, onProgress, maxDelay=30000){
   let attempt=0, delay=2000;
   while(true){
@@ -572,136 +570,134 @@ async function retryForever(fn, onProgress, maxDelay=30000){
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ГЕНЕРАЦИЯ КАРТИНОК — AI Horde с очередью + резервы
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══ ГЕНЕРАЦИЯ КАРТИНОК — ПЕРЕБИРАЕТ ВСЕ МОДЕЛИ ═══ */
 async function generateImage(prompt, body){
   const ov=document.createElement('div');ov.className='gen-overlay';
-  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎨 Генерация картинки...</div><div class="gen-bar"><div class="gen-fill"></div></div><div class="gen-pct">0%</div><div class="gen-hint">Ждём воркера в очереди</div><div class="gen-log" id="genLog">Инициализация...</div><div class="gen-time"></div></div>';
+  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎨 Генерация картинки...</div><div class="gen-bar"><div class="gen-fill"></div></div><div class="gen-pct">0%</div><div class="gen-hint">Перебираю все модели</div><div class="gen-log" id="genLog">Инициализация...</div><div class="gen-time"></div></div>';
   body.style.position='relative';body.appendChild(ov);
   const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time');
-  const logEl=ov.querySelector('.gen-log');
+  const logEl=ov.querySelector('.gen-log');const hintEl=ov.querySelector('.gen-hint');
   const t0=Date.now();
   const setP=(v)=>{v=Math.max(0,Math.min(100,v));fill.style.width=v+'%';pct.textContent=Math.round(v)+'%';timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';};
-  const log=(msg)=>{logEl.textContent=msg;};
+  const log=(msg)=>{logEl.textContent=msg;logEl.scrollTop=logEl.scrollHeight;};
 
   const cleanPrompt=String(prompt).trim().slice(0,400);
 
-  // Стратегия 1: AI Horde (очередь)
+  // Определяем список моделей для перебора
+  let modelsToTry;
+  if(state.settings.imageModel && state.settings.imageModel !== 'auto'){
+    modelsToTry=[state.settings.imageModel];
+  } else {
+    modelsToTry=[...IMAGE_MODELS];
+  }
+
+  // Стратегия 1: AI Horde с каждой моделью
   try {
     log('AI Horde: отправляю запрос...');
     setP(5);
     const hordeResult = await retryForever(async (attempt)=>{
       log(`AI Horde: попытка ${attempt}...`);
       const res = await fetch('https://aihorde.net/api/v2/generate/async', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': '0000000000', 'Client-Agent': 'AIChat:1.0' },
-        body: JSON.stringify({
-          prompt: cleanPrompt,
-          params: { width: 1024, height: 1024, steps: 30, n: 1, sampler_name: 'k_euler' },
-          nsfw: false, censor_nsfw: false, models: ['flux']
-        })
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':'0000000000','Client-Agent':'AIChat:1.0'},
+        body: JSON.stringify({ prompt: cleanPrompt, params:{width:1024,height:1024,steps:30,n:1,sampler_name:'k_euler'}, nsfw:false, censor_nsfw:false, models:['flux'] })
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       if (!data.id) throw new Error('Нет job_id');
-      log('AI Horde: задача создана, ID: ' + data.id.slice(0, 8));
+      log('AI Horde: задача создана, ID: ' + data.id.slice(0,8));
       return data.id;
     }, log);
 
-    // Опрос очереди
-    log('AI Horde: ждём воркера...');
     const jobId = hordeResult;
     while(true){
-      await new Promise(r=>setTimeout(r, 5000));
-      const check = await fetch('https://aihorde.net/api/v2/generate/check/' + jobId).then(r=>r.json());
-      const pos = check.queue_position ?? '?';
-      const wait = check.wait_time ?? '?';
-      log(`Очередь: позиция ${pos}, ждать ~${wait} сек`);
-      setP(Math.min(90, 10 + (100 - pos) * 0.7));
+      await new Promise(r=>setTimeout(r,5000));
+      const check = await fetch('https://aihorde.net/api/v2/generate/check/'+jobId).then(r=>r.json());
+      log(`Очередь: позиция ${check.queue_position ?? '?'}, ждать ~${check.wait_time ?? '?'} сек`);
+      setP(Math.min(90, 10 + (100 - (check.queue_position||50)) * 0.7));
       if (check.done) break;
     }
 
-    // Получаем результат
     log('AI Horde: забираю результат...');
-    const status = await fetch('https://aihorde.net/api/v2/generate/status/' + jobId).then(r=>r.json());
+    const status = await fetch('https://aihorde.net/api/v2/generate/status/'+jobId).then(r=>r.json());
     if (status.generations && status.generations[0]) {
       const gen = status.generations[0];
       const url = gen.img.startsWith('http') ? gen.img : 'data:image/webp;base64,' + gen.img;
-      setP(100);
-      log('✓ Готово!');
-      await new Promise(r=>setTimeout(r, 300));
-      ov.remove();
-      renderMediaInBody(body, 'image', url, { prompt: cleanPrompt });
+      setP(100);log('✓ Готово (AI Horde)');
+      await new Promise(r=>setTimeout(r,300));ov.remove();
+      renderMediaInBody(body, 'image', url, { prompt: cleanPrompt, model: 'AI Horde · Flux' });
       return { ok: true, url };
     }
-    throw new Error('AI Horde не вернул изображение');
-
   } catch(err){
-    log('AI Horde не сработал: ' + err.message + '. Переключаюсь на Pollinations...');
-    console.warn('AI Horde failed:', err);
+    log('AI Horde не сработал: ' + err.message + '. Пробую Pollinations со всеми моделями...');
   }
 
-  // Стратегия 2: Pollinations через <img>
-  const ALLOWED=['flux','turbo','kontext'];
-  let model=state.settings.imageModel||'flux';
-  if(!ALLOWED.includes(model)) model='flux';
+  // Стратегия 2: перебираем ВСЕ модели Pollinations по кругу
+  log(`Pollinations: перебираю модели: ${modelsToTry.join(', ')}`);
   const seed=Math.floor(Math.random()*1000000);
+  let modelIndex=0;
 
-  const urls=[
-    'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true&seed='+seed,
-    'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&nologo=true&seed='+seed,
-    'https://gen.pollinations.ai/image/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true'
-  ];
+  try {
+    const url = await retryForever(async (attempt)=>{
+      const model = modelsToTry[modelIndex % modelsToTry.length];
+      modelIndex++;
+      hintEl.textContent = `Модель: ${model}`;
+      log(`Попытка ${attempt} · модель: ${model}`);
+      setP(20 + Math.min(60, attempt * 4));
 
-  for(let i=0;i<urls.length;i++){
-    log(`Pollinations: попытка ${i+1}/${urls.length}...`);
-    setP(20 + i*10);
-    try{
-      const loaded = await new Promise((resolve,reject)=>{
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        let finished=false;
-        const timeout = setTimeout(()=>{ if(!finished){ finished=true; reject(new Error('Таймаут 25 с')); } }, 25000);
-        img.onload=()=>{ if(finished) return; finished=true; clearTimeout(timeout); resolve(img.src); };
-        img.onerror=()=>{ if(finished) return; finished=true; clearTimeout(timeout); reject(new Error('Ошибка загрузки')); };
-        img.src = urls[i];
-        let p = 20 + i*10;
-        const tick = setInterval(()=>{ if(finished){clearInterval(tick);return;} p=Math.min(90, p+2); setP(p); }, 300);
-      });
-      setP(100);
-      log('✓ Готово!');
-      await new Promise(r=>setTimeout(r, 300));
-      ov.remove();
-      renderMediaInBody(body, 'image', loaded, { prompt: cleanPrompt });
-      return { ok: true, url: loaded };
-    }catch(err){
-      log('Pollinations ' + (i+1) + ': ' + err.message);
-    }
+      // Пробуем разные форматы URL
+      const urlVariants = [
+        'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true&seed='+seed,
+        'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&nologo=true&seed='+seed,
+        'https://gen.pollinations.ai/image/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true'
+      ];
+
+      for(const u of urlVariants){
+        try {
+          const loaded = await new Promise((resolve,reject)=>{
+            const img=new Image();
+            img.crossOrigin='anonymous';
+            let finished=false;
+            const timeout=setTimeout(()=>{if(!finished){finished=true;reject(new Error('Таймаут'));}},25000);
+            img.onload=()=>{if(finished)return;finished=true;clearTimeout(timeout);resolve(img.src);};
+            img.onerror=()=>{if(finished)return;finished=true;clearTimeout(timeout);reject(new Error('Ошибка'));};
+            img.src=u;
+          });
+          return { url: loaded, model };
+        } catch(e){/* пробуем следующий URL */}
+      }
+      throw new Error('Все форматы не сработали');
+    }, log);
+
+    setP(100);log(`✓ Готово (${url.model})`);
+    await new Promise(r=>setTimeout(r,300));ov.remove();
+    renderMediaInBody(body, 'image', url.url, { prompt: cleanPrompt, model: url.model });
+    return { ok: true, url: url.url };
+  } catch(err){
+    log('Pollinations исчерпан. Пробую через прокси...');
   }
 
-  // Стратегия 3: бесконечный ретрай через прокси
-  log('Все прямые способы не сработали. Пробую через прокси...');
+  // Стратегия 3: через CORS-прокси, перебирая модели
   try {
     const proxyResult = await retryForever(async (attempt)=>{
       const proxy = CORS_PROXIES[attempt % CORS_PROXIES.length];
-      const targetUrl = urls[0];
-      const url = proxyUrl(targetUrl, proxy);
-      log(`Прокси ${proxy.id}: попытка ${attempt}...`);
-      setP(30 + (attempt % 60));
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const model = modelsToTry[modelIndex % modelsToTry.length];
+      modelIndex++;
+      hintEl.textContent = `Прокси · модель: ${model}`;
+      log(`Прокси ${proxy.id} · модель ${model} · попытка ${attempt}`);
+      setP(30 + Math.min(60, attempt * 3));
+      const target = 'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true&seed='+seed;
+      const res = await fetch(proxyUrl(target, proxy));
+      if(!res.ok) throw new Error('HTTP '+res.status);
       const blob = await res.blob();
-      if (blob.size < 1000) throw new Error('Слишком маленький ответ');
-      return URL.createObjectURL(blob);
+      if(blob.size < 1000) throw new Error('Слишком маленький ответ');
+      return { url: URL.createObjectURL(blob), model };
     }, log);
 
-    setP(100);
-    log('✓ Готово!');
-    await new Promise(r=>setTimeout(r, 300));
-    ov.remove();
-    renderMediaInBody(body, 'image', proxyResult, { prompt: cleanPrompt });
-    return { ok: true, url: proxyResult };
+    setP(100);log(`✓ Готово (${proxyResult.model}, через прокси)`);
+    await new Promise(r=>setTimeout(r,300));ov.remove();
+    renderMediaInBody(body, 'image', proxyResult.url, { prompt: cleanPrompt, model: proxyResult.model });
+    return { ok: true, url: proxyResult.url };
   } catch(err){
     ov.remove();
     body.innerHTML='<strong>Не удалось сгенерировать картинку.</strong><br><span style="color:var(--muted);font-size:.85em">'+escapeHtml(err.message||'')+'</span>';
@@ -709,120 +705,124 @@ async function generateImage(prompt, body){
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ГЕНЕРАЦИЯ ВИДЕО — Agnes AI + InferencePort + Prezzy, с ретраями
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══ ГЕНЕРАЦИЯ ВИДЕО — ПЕРЕБИРАЕТ ВСЕ КОМБО ПРОВАЙДЕР×МОДЕЛЬ ═══ */
 async function generateVideo(prompt, body){
   const ov=document.createElement('div');ov.className='gen-overlay';
   body.style.position='relative';body.appendChild(ov);
-  const model=state.settings.videoModel||'agnes';
-  const mn={agnes:'Agnes Video 2.0',wan2_2:'Wan 2.2',hunyuan1_5:'Hunyuan 1.5',ltx2:'LTX 2'};
-  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎬 Генерация видео...</div><div class="gen-bar"><div class="gen-fill" style="width:5%"></div></div><div class="gen-pct">5%</div><div class="gen-hint">Модель: '+escapeHtml(mn[model]||model)+'</div><div class="gen-log" id="genLog">Инициализация...</div><div class="gen-time">Инициализация...</div></div>';
-  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time'),label=ov.querySelector('.gen-label'),logEl=ov.querySelector('.gen-log');
+  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎬 Генерация видео...</div><div class="gen-bar"><div class="gen-fill" style="width:5%"></div></div><div class="gen-pct">5%</div><div class="gen-hint">Перебираю все модели</div><div class="gen-log" id="genLog">Инициализация...</div><div class="gen-time">Инициализация...</div></div>';
+  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time'),label=ov.querySelector('.gen-label'),logEl=ov.querySelector('.gen-log'),hintEl=ov.querySelector('.gen-hint');
   const start=Date.now();
   const cleanPrompt=String(prompt).trim().slice(0,400);
-  const log=(msg)=>{logEl.textContent=msg;};
+  const log=(msg)=>{logEl.textContent=msg;logEl.scrollTop=logEl.scrollHeight;};
   const setP=(v)=>{v=Math.max(0,Math.min(100,v));fill.style.width=v+'%';pct.textContent=Math.round(v)+'%';};
 
-  const providersToTry = [
-    { id:'agnes', name:'Agnes AI' },
-    { id:'inferenceport', name:'InferencePort' },
-    { id:'prezzy', name:'Prezzy Studio' }
-  ];
+  // Определяем список комбинаций
+  let combosToTry;
+  if(state.settings.videoModel && state.settings.videoModel !== 'auto'){
+    combosToTry=VIDEO_COMBOS.filter(c=>c.model===state.settings.videoModel||c.provider===state.settings.videoModel);
+    if(combosToTry.length===0) combosToTry=[...VIDEO_COMBOS];
+  } else {
+    combosToTry=[...VIDEO_COMBOS];
+  }
 
-  let lastErr = null;
+  let lastErr=null;
+  let comboIndex=0;
 
-  for(const prov of providersToTry){
-    log(`Пробую ${prov.name}...`);
-    label.textContent = `🎬 ${prov.name}...`;
-    setP(10);
+  // Пробуем бесконечно, перебирая комбинации по кругу
+  const result = await retryForever(async (attempt)=>{
+    const combo = combosToTry[comboIndex % combosToTry.length];
+    comboIndex++;
+    label.textContent = `🎬 ${combo.name}`;
+    hintEl.textContent = `Комбо ${comboIndex} · попытка ${attempt}`;
+    log(`Попытка ${attempt} · ${combo.name}`);
+
+    const elapsed = (Date.now() - start) / 1000;
+    setP(Math.min(90, 5 + elapsed * 0.5));
 
     try {
-      const result = await retryForever(async (attempt)=>{
-        log(`${prov.name}: попытка ${attempt}...`);
-
-        if(prov.id === 'agnes'){
-          const res = await fetch('https://apihub.agnes-ai.cn/v1/video/generations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: 'Agnes-Video-2.0', prompt: cleanPrompt, duration: 5, resolution: '720p', aspect_ratio: '16:9' })
-          });
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const d = await res.json();
-          let src = d.data?.[0]?.url || d.url || d.video_url;
-          if (!src && (d.id || d.task_id)) {
-            const tid = d.id || d.task_id;
-            log(`Agnes: задача ${String(tid).slice(0,8)}, ждём...`);
-            while(true){
-              await new Promise(r=>setTimeout(r, 3000));
-              const pr = await fetch('https://apihub.agnes-ai.cn/v1/video/generations/' + tid);
-              const pd = await pr.json();
-              if (pd.status === 'completed' || pd.status === 'succeeded') { src = pd.data?.[0]?.url || pd.url; break; }
-              if (pd.status === 'failed') throw new Error('Задача не выполнена');
-              setP(15 + Math.min(70, attempt * 3));
-            }
-          }
-          if (!src) throw new Error('Нет URL');
-          return src;
-        }
-
-        if(prov.id === 'inferenceport'){
-          const res = await fetch('https://api.inferenceport.ai/v1/videos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: 'wan-fast', prompt: cleanPrompt })
-          });
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const d = await res.json();
-          const jobId = d.id || d.task_id;
-          if (!jobId) { const direct = d.url || d.data?.[0]?.url; if (direct) return direct; throw new Error('Нет task_id'); }
-          log(`InferencePort: задача ${String(jobId).slice(0,8)}, ждём...`);
-          while(true){
-            await new Promise(r=>setTimeout(r, 3000));
-            const st = await fetch('https://api.inferenceport.ai/v1/videos/' + jobId).then(r=>r.json());
-            if (st.status === 'completed' || st.status === 'succeeded') return 'https://api.inferenceport.ai/v1/videos/' + jobId + '/content';
-            if (st.status === 'failed') throw new Error('Задача не выполнена');
-            setP(15 + Math.min(70, attempt * 3));
-          }
-        }
-
-        if(prov.id === 'prezzy'){
-          const eng = {wan2_2:'wan2_2',hunyuan1_5:'hunyuan1_5',ltx2:'ltx2'};
-          const res = await fetch('https://prexzyapis.com/ai/aiart-video?prompt='+encodeURIComponent(cleanPrompt)+'&engine='+(eng[model]||'wan2_2'));
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const d = await res.json();
-          const tid = d.task_id;
-          if (!tid) throw new Error('Нет task_id');
-          log(`Prezzy: задача ${String(tid).slice(0,8)}, ждём...`);
-          while(true){
-            await new Promise(r=>setTimeout(r, 3000));
-            const st = await fetch('https://prexzyapis.com/ai/aiart-video-status?task_id='+tid).then(r=>r.json());
-            if (st.ready || st.state === 'ready' || st.state === 'completed') return st.video_url || st.url || st.videoUrl;
-            if (st.state === 'failed') throw new Error('Задача не выполнена');
-            setP(15 + Math.min(70, attempt * 3));
-          }
-        }
-      }, log);
-
-      if (result) {
-        setP(100);
-        log('✓ Готово!');
-        timeEl.textContent = 'Всего: ' + ((Date.now()-start)/1000).toFixed(1) + ' сек';
-        await new Promise(r=>setTimeout(r, 300));
-        ov.remove();
-        renderMediaInBody(body, 'video', result, { prompt: cleanPrompt });
-        return { ok: true, url: result };
-      }
+      const src = await runVideoCombo(combo, cleanPrompt, setP, log);
+      return src;
     } catch(err){
       lastErr = err;
-      log(`${prov.name} не сработал: ${err.message}. Переключаюсь...`);
-      console.warn(prov.name, err);
+      log(`✗ ${combo.name}: ${err.message}`);
+      throw err;
+    }
+  }, log);
+
+  setP(100);
+  log('✓ Готово!');
+  timeEl.textContent = 'Всего: ' + ((Date.now()-start)/1000).toFixed(1) + ' сек';
+  await new Promise(r=>setTimeout(r, 300));
+  ov.remove();
+  renderMediaInBody(body, 'video', result, { prompt: cleanPrompt });
+  return { ok: true, url: result };
+}
+
+/* Запуск одного комбо провайдер+модель видео */
+async function runVideoCombo(combo, prompt, setP, log){
+  const { provider, model } = combo;
+
+  if(provider === 'agnes'){
+    const res = await fetch('https://apihub.agnes-ai.cn/v1/video/generations', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'Agnes-Video-2.0', prompt, duration:5, resolution:'720p', aspect_ratio:'16:9' })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    let src = d.data?.[0]?.url || d.url || d.video_url;
+    if(!src && (d.id || d.task_id)){
+      const tid = d.id || d.task_id;
+      while(true){
+        await new Promise(r=>setTimeout(r,3000));
+        const pr = await fetch('https://apihub.agnes-ai.cn/v1/video/generations/'+tid);
+        const pd = await pr.json();
+        if(pd.status === 'completed' || pd.status === 'succeeded'){ src = pd.data?.[0]?.url || pd.url; break; }
+        if(pd.status === 'failed') throw new Error('Задача не выполнена');
+        setP(Math.min(88, 20 + Math.random()*20));
+      }
+    }
+    if(!src) throw new Error('Нет URL');
+    return src;
+  }
+
+  if(provider === 'prezzy'){
+    const engineMap = {wan2_2:'wan2_2', hunyuan1_5:'hunyuan1_5', ltx2:'ltx2'};
+    const eng = engineMap[model] || 'wan2_2';
+    const res = await fetch('https://prexzyapis.com/ai/aiart-video?prompt='+encodeURIComponent(prompt)+'&engine='+eng);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    const tid = d.task_id;
+    if(!tid) throw new Error('Нет task_id');
+    while(true){
+      await new Promise(r=>setTimeout(r,3000));
+      const st = await fetch('https://prexzyapis.com/ai/aiart-video-status?task_id='+tid).then(r=>r.json());
+      if(st.ready || st.state === 'ready' || st.state === 'completed') return st.video_url || st.url || st.videoUrl;
+      if(st.state === 'failed') throw new Error('Задача не выполнена');
+      setP(Math.min(88, 20 + Math.random()*20));
     }
   }
 
-  ov.remove();
-  body.innerHTML = '<strong>Все видео-сервисы не отвечают.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(lastErr?.message||'')+'</span><br><br><span style="color:var(--muted);font-size:.82em">Попробуй позже или смени модель в настройках.</span>';
-  return { ok: false, error: lastErr };
+  if(provider === 'inferenceport'){
+    const res = await fetch('https://api.inferenceport.ai/v1/videos', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model, prompt })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    const jobId = d.id || d.task_id;
+    if(!jobId){ const direct = d.url || d.data?.[0]?.url; if(direct) return direct; throw new Error('Нет task_id'); }
+    while(true){
+      await new Promise(r=>setTimeout(r,3000));
+      const st = await fetch('https://api.inferenceport.ai/v1/videos/'+jobId).then(r=>r.json());
+      if(st.status === 'completed' || st.status === 'succeeded') return 'https://api.inferenceport.ai/v1/videos/'+jobId+'/content';
+      if(st.status === 'failed') throw new Error('Задача не выполнена');
+      setP(Math.min(88, 20 + Math.random()*20));
+    }
+  }
+
+  throw new Error('Неизвестный провайдер');
 }
 
 /* Генерация файла */
@@ -831,7 +831,7 @@ async function aiGenerateFile(prompt,body){
   ov.innerHTML='<div class="gen-status"><div class="gen-label">📄 Готовлю файл...</div><div class="gen-bar"><div class="gen-fill" style="width:15%"></div></div><div class="gen-pct">15%</div><div class="gen-hint">ИИ пишет код</div><div class="gen-log" id="genLog">Отправка запроса...</div><div class="gen-time"></div></div>';
   body.style.position='relative';body.appendChild(ov);
   const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time'),logEl=ov.querySelector('.gen-log');
-  const t0=Date.now();const log=(m)=>{logEl.textContent=m;};
+  const t0=Date.now();const log=(m)=>{logEl.textContent=m;logEl.scrollTop=logEl.scrollHeight;};
   const tick=setInterval(()=>{const cur=Math.min(90,parseInt(fill.style.width)+2);fill.style.width=cur+'%';pct.textContent=cur+'%';timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';},400);
   try{
     const fp='Сгенерируй файл: "'+prompt+'". Выведи ТОЛЬКО содержимое в одном блоке ```язык```.';
@@ -847,15 +847,51 @@ async function aiGenerateFile(prompt,body){
   }catch(err){clearInterval(tick);ov.remove();body.innerHTML='<strong>Ошибка.</strong> '+escapeHtml(err.message||'');return{ok:false,error:err};}
 }
 
+/* ═══ ПОСТРОЕНИЕ СПИСКА ВСЕХ КОМБИНАЦИЙ МОДЕЛЕЙ ═══ */
+function buildAllCombos(){
+  const combos=[];
+  // Все провайдеры и их модели
+  Object.keys(PROVIDERS).forEach(provKey=>{
+    const p = PROVIDERS[provKey];
+    const health = state.providerHealth[provKey];
+    if(health?.ok === false) return; // пропускаем совсем мёртвые
+    p.models.forEach(m=>{
+      const modelOk = health?.models?.[m.id]?.ok;
+      if(modelOk === false) return; // пропускаем мёртвые модели
+      combos.push({
+        provider: provKey,
+        providerName: p.name,
+        model: m.id,
+        modelName: m.name,
+        vision: !!m.vision,
+        healthOk: modelOk === true,
+        healthMs: health?.ms || 9999
+      });
+    });
+  });
+  // Сортируем: сначала подтверждённо рабочие, потом неизвестные, потом по скорости
+  combos.sort((a,b)=>{
+    if(a.healthOk && !b.healthOk) return -1;
+    if(!a.healthOk && b.healthOk) return 1;
+    return (a.healthMs || 9999) - (b.healthMs || 9999);
+  });
+  return combos;
+}
+
 async function callTextProvider(messages){
-  const keys=state.settings.provider==='auto'?Object.keys(PROVIDERS).filter(k=>state.providerHealth[k]?.ok!==false):[state.settings.provider,...Object.keys(PROVIDERS).filter(k=>k!==state.settings.provider&&state.providerHealth[k]?.ok!==false)];
-  for(const k of keys){const p=PROVIDERS[k];if(!p)continue;
-    try{const model=state.settings.model||p.models[0].id;
-      const res=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify({model,messages,temperature:state.settings.temperature,max_tokens:state.settings.maxTokens,stream:false})});
-      if(!res.ok)throw new Error('HTTP '+res.status);
-      const data=await res.json();const text=data.choices?.[0]?.message?.content||data.response||'';
-      if(text.trim())return{text,provider:k};
-    }catch(e){console.warn(k,e.message);}}
+  const combos = buildAllCombos();
+  if(combos.length === 0) return null;
+  for(const combo of combos){
+    const p = PROVIDERS[combo.provider];
+    if(!p) continue;
+    try{
+      const res = await fetch(p.url, {method:'POST', headers:p.headers(), body: JSON.stringify({model:combo.model, messages, temperature:state.settings.temperature, max_tokens:state.settings.maxTokens, stream:false})});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || data.response || '';
+      if(text.trim()) return { text, provider: combo.provider, model: combo.model };
+    }catch(e){ console.warn(combo.provider, combo.model, e.message); }
+  }
   return null;
 }
 
@@ -875,28 +911,36 @@ function renderAttachmentsBar(){attachmentsBar.innerHTML='';state.attachedFiles.
 
 function showToast(text){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}t.textContent=text;requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),2000);}
 
-/* Отправка */
+/* ═══ ОТПРАВКА ═══ */
 async function sendMessage(){
   const text=inputEl.value.trim();const hasFiles=state.attachedFiles.length>0;const tool=state.pendingTool;
   if((!text&&!hasFiles&&!tool)||state.generating)return;
   if(!state.currentChatId)createChat();
   const chat=currentChat();
-  if(tool==='image'&&text){chat.messages.push({role:'user',content:'🎨 '+text});welcomeEl.classList.add('hidden');appendMessageEl('user','🎨 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Картинка: '+text);
+
+  if(tool==='image'&&text){
+    chat.messages.push({role:'user',content:'🎨 '+text});welcomeEl.classList.add('hidden');appendMessageEl('user','🎨 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Картинка: '+text);
     state.generating=true;sendBtn.disabled=true;stopBtn.classList.remove('hidden');sbDot.className='dot generating';sbStatus.textContent='Генерация...';
     const botBody=appendMessageEl('bot','');const result=await generateImage(text,botBody);
     if(result.ok)chat.messages.push({role:'assistant',content:'Картинка: '+text,mediaType:'image',mediaUrl:result.url,mediaMeta:{prompt:text}});
-    persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;}
-  if(tool==='video'&&text){chat.messages.push({role:'user',content:'🎬 '+text});welcomeEl.classList.add('hidden');appendMessageEl('user','🎬 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Видео: '+text);
+    persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;
+  }
+  if(tool==='video'&&text){
+    chat.messages.push({role:'user',content:'🎬 '+text});welcomeEl.classList.add('hidden');appendMessageEl('user','🎬 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Видео: '+text);
     state.generating=true;sendBtn.disabled=true;stopBtn.classList.remove('hidden');sbDot.className='dot generating';sbStatus.textContent='Генерация...';
     const botBody=appendMessageEl('bot','');const result=await generateVideo(text,botBody);
     if(result.ok)chat.messages.push({role:'assistant',content:'Видео: '+text,mediaType:'video',mediaUrl:result.url,mediaMeta:{prompt:text}});
-    persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;}
-  if(tool==='code'&&text){chat.messages.push({role:'user',content:'💻 '+text});welcomeEl.classList.add('hidden');appendMessageEl('user','💻 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Файл: '+text);
+    persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;
+  }
+  if(tool==='code'&&text){
+    chat.messages.push({role:'user',content:'💻 '+text});welcomeEl.classList.add('hidden');appendMessageEl('user','💻 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Файл: '+text);
     state.generating=true;sendBtn.disabled=true;stopBtn.classList.remove('hidden');sbDot.className='dot generating';sbStatus.textContent='Генерация...';
     const botBody=appendMessageEl('bot','');const result=await aiGenerateFile(text,botBody);
     if(result.ok)chat.messages.push({role:'assistant',content:'Файл: '+text});
-    persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;}
+    persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;
+  }
   if(text&&!hasFiles&&!tool){if(VIDEO_RE.test(text)){state.pendingTool='video';updateToolChips();sendMessage();return;}if(IMAGE_RE.test(text)){state.pendingTool='image';updateToolChips();sendMessage();return;}}
+
   const filesCopy=JSON.parse(JSON.stringify(state.attachedFiles));let displayContent=text;if(filesCopy.length&&!text)displayContent='';
   let apiText=text;const textFiles=filesCopy.filter(f=>!f.isImage);
   if(textFiles.length){let ctx=apiText?apiText+'\n\n':'';textFiles.forEach(f=>{ctx+='=== Файл: '+f.name+' ===\n'+(f.textContent||'')+'\n=== Конец ===\n\n';});apiText=ctx;}
@@ -904,43 +948,134 @@ async function sendMessage(){
   const userMsg={role:'user',content:apiText,displayContent,attachments:filesCopy.map(f=>({name:f.name,type:f.type,isImage:f.isImage,dataUrl:f.dataUrl}))};
   chat.messages.push(userMsg);welcomeEl.classList.add('hidden');appendMessageEl('user',displayContent,userMsg.attachments);scrollToBottom();
   inputEl.value='';state.attachedFiles=[];renderAttachmentsBar();autoResize();updateChatTitle(text||filesCopy[0]?.name||'Файл');
+
   const botBody=appendMessageEl('bot','');botBody.innerHTML='<span class="cursor-blink"></span>';scrollToBottom();
   state.abortController=new AbortController();const signal=state.abortController.signal;
   state.generating=true;sendBtn.disabled=true;stopBtn.classList.remove('hidden');sbDot.className='dot generating';sbStatus.textContent='Генерация...';
+
   const apiMessages=[{role:'system',content:state.settings.system}];
   chat.messages.slice(-20).forEach(m=>{if(m.role==='system')return;
     if(m===userMsg){if(imageFiles.length){const parts=[];if(apiText)parts.push({type:'text',text:apiText});imageFiles.forEach(img=>parts.push({type:'image_url',image_url:{url:img.dataUrl}}));apiMessages.push({role:'user',content:parts});}
       else apiMessages.push({role:'user',content:apiText});}
     else apiMessages.push({role:m.role,content:typeof m.content==='string'?m.content:(m.displayContent||'')});});
-  let providersToTry=[];
-  if(state.settings.provider==='auto'){let list=Object.keys(PROVIDERS).filter(k=>state.providerHealth[k]?.ok!==false);
-    if(imageFiles.length){const v=list.filter(k=>PROVIDERS[k].models.some(m=>m.vision));const o=list.filter(k=>!v.includes(k));list=[...v,...o];}providersToTry=list;}
-  else providersToTry=[state.settings.provider,...Object.keys(PROVIDERS).filter(p=>p!==state.settings.provider&&state.providerHealth[p]?.ok!==false)];
+
+  // ═══ СТРОИМ СПИСОК ВСЕХ КОМБИНАЦИЙ МОДЕЛЕЙ ═══
+  let combosToTry;
+  if(state.settings.provider === 'auto'){
+    // Все комбинации провайдер × модель
+    combosToTry = buildAllCombos();
+  } else {
+    // Только выбранный провайдер/модель + остальные в резерве
+    const p = PROVIDERS[state.settings.provider];
+    if(p){
+      const chosen = state.settings.model;
+      const own = p.models.map(m=>({provider:state.settings.provider, providerName:p.name, model:m.id, modelName:m.name, vision:!!m.vision}));
+      // выбранную — первой
+      own.sort((a,b)=> (a.model===chosen?-1:0) - (b.model===chosen?-1:0));
+      const others = buildAllCombos().filter(c=>c.provider !== state.settings.provider);
+      combosToTry = [...own, ...others];
+    } else {
+      combosToTry = buildAllCombos();
+    }
+  }
+
+  // Фильтр по vision, если есть картинки
+  if(imageFiles.length){
+    const visionCombos = combosToTry.filter(c=>c.vision);
+    const otherCombos = combosToTry.filter(c=>!c.vision);
+    combosToTry = [...visionCombos, ...otherCombos];
+  }
+
   let fullResponse='',lastError=null,usedProvider=null,usedModel=null,aborted=false;
-  for(const pk of providersToTry){if(signal.aborted){aborted=true;break;}const p=PROVIDERS[pk];if(!p)continue;
-    if(imageFiles.length&&!p.models.some(m=>m.vision))continue;let timeoutId=null;
-    try{let model=state.settings.model;let mo=p.models.find(m=>m.id===model);
-      if(imageFiles.length&&(!mo||!mo.vision)){mo=p.models.find(m=>m.vision)||p.models[0];model=mo.id;}
-      if(!mo)model=p.models[0].id;
-      const body={model,messages:apiMessages,temperature:state.settings.temperature,max_tokens:state.settings.maxTokens,stream:true};
-      timeoutId=setTimeout(()=>{if(!signal.aborted)state.abortController.abort();},45000);
-      const res=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify(body),signal});
-      if(!res.ok){const et=await res.text();throw new Error('HTTP '+res.status+': '+et.slice(0,150));}
-      const reader=res.body.getReader();const dec=new TextDecoder();let buf='';
-      fullResponse='';usedProvider=pk;usedModel=model;
-      while(true){const {done,value}=await reader.read();if(done)break;if(signal.aborted){aborted=true;break;}
-        buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();
-        for(const line of lines){const t=line.trim();if(!t||!t.startsWith('data:'))continue;const d=t.slice(5).trim();if(d==='[DONE]')continue;
-          try{const j=JSON.parse(d);const delta=j.choices?.[0]?.delta?.content||j.delta||'';if(delta){fullResponse+=delta;botBody.innerHTML=renderMarkdown(fullResponse)+'<span class="cursor-blink"></span>';scrollToBottom();}}catch(e){}}}
-      if(aborted)break;if(fullResponse.trim())break;else throw new Error('Пустой ответ');
-    }catch(err){if(err.name==='AbortError'||signal.aborted){aborted=true;lastError=err;break;}console.warn(pk,err.message);lastError=err;fullResponse='';botBody.innerHTML='<span class="cursor-blink"></span>';}
-    finally{if(timeoutId)clearTimeout(timeoutId);}}
-  try{
-    if(aborted){if(fullResponse.trim()){botBody.innerHTML=renderMarkdown(fullResponse+'\n\n*(остановлено)*');decorateCodeBlocks(botBody);chat.messages.push({role:'assistant',content:fullResponse});persistChats();}else botBody.textContent='(остановлено)';}
-    else if(lastError&&!fullResponse.trim()){botBody.innerHTML='<strong>Все провайдеры недоступны.</strong>';}
-    else{botBody.innerHTML=renderMarkdown(fullResponse);decorateCodeBlocks(botBody);chat.messages.push({role:'assistant',content:fullResponse});persistChats();
-      const pn=PROVIDERS[usedProvider]?.name||usedProvider;const mn=PROVIDERS[usedProvider]?.models.find(m=>m.id===usedModel)?.name||usedModel;statusInfo.textContent='Ответ от '+pn+' · '+mn;}
-  }finally{state.generating=false;state.abortController=null;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';scrollToBottom();}
+  let comboIndex=0;
+
+  // Бесконечный цикл: перебираем ВСЕ комбинации, при неудаче возвращаемся к первой
+  while(!signal.aborted && !fullResponse.trim()){
+    const combo = combosToTry[comboIndex % combosToTry.length];
+    comboIndex++;
+    if(!combo) break;
+
+    const p = PROVIDERS[combo.provider];
+    if(!p) continue;
+
+    let timeoutId=null;
+    try {
+      statusInfo.textContent = `Попытка ${comboIndex}: ${combo.providerName} · ${combo.modelName}`;
+      sbStatus.textContent = `${combo.providerName} · ${combo.modelName}`;
+
+      const body = {model:combo.model, messages:apiMessages, temperature:state.settings.temperature, max_tokens:state.settings.maxTokens, stream:true};
+      timeoutId = setTimeout(()=>{ if(!signal.aborted) state.abortController.abort(); }, 45000);
+
+      const res = await fetch(p.url, {method:'POST', headers:p.headers(), body: JSON.stringify(body), signal});
+      if(!res.ok){ const et = await res.text(); throw new Error('HTTP ' + res.status + ': ' + et.slice(0,100)); }
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      fullResponse = '';
+      usedProvider = combo.provider;
+      usedModel = combo.model;
+
+      while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+        if(signal.aborted){ aborted = true; break; }
+        buf += dec.decode(value, {stream:true});
+        const lines = buf.split('\n'); buf = lines.pop();
+        for(const line of lines){
+          const t = line.trim(); if(!t || !t.startsWith('data:')) continue;
+          const d = t.slice(5).trim(); if(d === '[DONE]') continue;
+          try {
+            const j = JSON.parse(d);
+            const delta = j.choices?.[0]?.delta?.content || j.delta || '';
+            if(delta){ fullResponse += delta; botBody.innerHTML = renderMarkdown(fullResponse) + '<span class="cursor-blink"></span>'; scrollToBottom(); }
+          } catch(e){}
+        }
+      }
+
+      if(aborted) break;
+      if(fullResponse.trim()) break;
+
+    } catch(err){
+      if(err.name === 'AbortError' || signal.aborted){ aborted = true; lastError = err; break; }
+      console.warn(`${combo.provider} · ${combo.model}:`, err.message);
+      lastError = err;
+      fullResponse = '';
+      botBody.innerHTML = '<span class="cursor-blink"></span>';
+    } finally {
+      if(timeoutId) clearTimeout(timeoutId);
+    }
+
+    // Небольшая пауза чтобы не спамить
+    if(!fullResponse.trim() && !aborted) await new Promise(r=>setTimeout(r, 500));
+  }
+
+  try {
+    if(aborted){
+      if(fullResponse.trim()){
+        botBody.innerHTML = renderMarkdown(fullResponse + '\n\n*(остановлено)*');
+        decorateCodeBlocks(botBody);
+        chat.messages.push({role:'assistant', content:fullResponse});
+        persistChats();
+      } else botBody.textContent = '(остановлено)';
+    } else if(lastError && !fullResponse.trim()){
+      botBody.innerHTML = '<strong>Все комбинации моделей недоступны.</strong>';
+    } else {
+      botBody.innerHTML = renderMarkdown(fullResponse);
+      decorateCodeBlocks(botBody);
+      chat.messages.push({role:'assistant', content:fullResponse});
+      persistChats();
+      const pn = PROVIDERS[usedProvider]?.name || usedProvider;
+      const mn = PROVIDERS[usedProvider]?.models.find(m=>m.id===usedModel)?.name || usedModel;
+      statusInfo.textContent = 'Ответ от ' + pn + ' · ' + mn;
+    }
+  } finally {
+    state.generating = false; state.abortController = null;
+    sendBtn.disabled = false; stopBtn.classList.add('hidden');
+    sbDot.className = 'dot ready';
+    sbStatus.textContent = 'Готов';
+    scrollToBottom();
+  }
 }
 
 function autoResize(){inputEl.style.height='auto';inputEl.style.height=Math.min(inputEl.scrollHeight,200)+'px';}
@@ -966,7 +1101,7 @@ function init(){
   $('newChatBtn').addEventListener('click',()=>createChat());
   $('clearBtn').addEventListener('click',()=>{const chat=currentChat();if(!chat)return;if(!confirm('Очистить чат?'))return;chat.messages=[];chat.title='Новый чат';persistChats();renderChatList();renderMessages();});
   $('exportBtn').addEventListener('click',exportChat);
-  diagBtn.addEventListener('click',async()=>{diagModal.classList.add('open');diagResults.innerHTML='<p style="color:var(--muted)">Проверка...</p>';await autoDiagnose();diagResults.innerHTML='';Object.keys(PROVIDERS).forEach(k=>{const p=PROVIDERS[k];const el=document.createElement('div');el.className='diag-result '+(state.providerHealth[k]?.ok?'ok':'fail');el.innerHTML='<span class="diag-dot '+(state.providerHealth[k]?.ok?'ok':'fail')+'"></span><div class="diag-info"><div class="diag-name">'+p.name+'</div><div class="diag-detail">'+(state.providerHealth[k]?.ok?'✓ Работает':'✗ Недоступен')+'</div></div>';diagResults.appendChild(el);});});
+  diagBtn.addEventListener('click',async()=>{diagModal.classList.add('open');diagResults.innerHTML='<p style="color:var(--muted)">Проверка всех моделей...</p>';await autoDiagnose();diagResults.innerHTML='';Object.keys(PROVIDERS).forEach(k=>{const p=PROVIDERS[k];const ok=p.models.filter(m=>state.providerHealth[k]?.models?.[m.id]?.ok);const el=document.createElement('div');el.className='diag-result '+(ok.length>0?'ok':'fail');el.innerHTML='<span class="diag-dot '+(ok.length>0?'ok':'fail')+'"></span><div class="diag-info"><div class="diag-name">'+p.name+' ('+ok.length+'/'+p.models.length+')</div><div class="diag-detail">'+p.models.map(m=>state.providerHealth[k]?.models?.[m.id]?.ok?'✓ '+m.name:'✗ '+m.name).join(' · ')+'</div></div>';diagResults.appendChild(el);});});
   $('diagClose').addEventListener('click',()=>diagModal.classList.remove('open'));
   diagModal.addEventListener('click',e=>{if(e.target===diagModal)diagModal.classList.remove('open');});
   document.querySelectorAll('[data-prompt]').forEach(b=>{b.addEventListener('click',()=>{inputEl.value=b.dataset.prompt;autoResize();sendMessage();});});
