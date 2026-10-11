@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>AI Chat</title>
 <meta name="theme-color" content="#0a0a0f">
-<meta name="description" content="Чат, картинки, видео и код — всё в одном">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -173,8 +172,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 .gen-pct{font-family:'SF Mono',Consolas,monospace;font-size:1.6em;font-weight:700;color:var(--accent);margin-top:14px;letter-spacing:1px}
 .gen-hint{font-size:.8em;color:var(--muted);margin-top:8px;line-height:1.4}
+.gen-log{font-family:'SF Mono',Consolas,monospace;font-size:.75em;color:var(--muted);margin-top:10px;padding:8px 12px;background:rgba(0,0,0,.3);border-radius:6px;min-height:2.4em;word-break:break-word;line-height:1.4}
 .gen-time{font-size:.85em;color:var(--green);margin-top:6px;font-weight:600}
-/* PWA install prompt */
 #installPrompt{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:14px;z-index:8000;box-shadow:0 20px 50px rgba(0,0,0,.6),0 0 40px rgba(124,92,255,.3);max-width:calc(100% - 32px);opacity:0;visibility:hidden;transition:all .4s cubic-bezier(.2,.8,.2,1)}
 #installPrompt.show{opacity:1;visibility:visible}
 #installPrompt .ip-icon{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));display:grid;place-items:center;font-size:1.5em;flex-shrink:0}
@@ -207,7 +206,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">PWA</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v16.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -220,7 +219,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">PWA</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v16.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -287,7 +286,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </div>
 </div>
 
-<!-- PWA Install Prompt -->
 <div id="installPrompt">
   <button class="ip-close" id="ipClose">✕</button>
   <div class="ip-icon">◉</div>
@@ -299,61 +297,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 
 <script>
-/* ═══ PWA: MANIFEST (inline через Blob) ═══ */
+/* PWA: Manifest */
 (function(){
   const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#0a0a0f"/><circle cx="256" cy="256" r="140" fill="none" stroke="#7c5cff" stroke-width="24"/><circle cx="256" cy="256" r="70" fill="#7c5cff"/></svg>`;
   const iconUrl = 'data:image/svg+xml,' + encodeURIComponent(svgIcon);
-
-  const manifest = {
-    name: 'AI Chat',
-    short_name: 'AI Chat',
-    description: 'Чат, картинки, видео и код — всё в одном',
-    start_url: './',
-    scope: './',
-    display: 'standalone',
-    orientation: 'portrait',
-    background_color: '#0a0a0f',
-    theme_color: '#0a0a0f',
-    lang: 'ru',
-    categories: ['productivity', 'utilities'],
-    icons: [
-      { src: iconUrl, sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-      { src: iconUrl, sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' }
-    ]
-  };
-
+  const manifest = {name:'AI Chat',short_name:'AI Chat',description:'Чат, картинки, видео и код',start_url:'./',scope:'./',display:'standalone',orientation:'portrait',background_color:'#0a0a0f',theme_color:'#0a0a0f',lang:'ru',categories:['productivity'],icons:[{src:iconUrl,sizes:'any',type:'image/svg+xml',purpose:'any'},{src:iconUrl,sizes:'any',type:'image/svg+xml',purpose:'maskable'}]};
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-  const url = URL.createObjectURL(blob);
   const link = document.createElement('link');
   link.rel = 'manifest';
-  link.href = url;
+  link.href = URL.createObjectURL(blob);
   document.head.appendChild(link);
 })();
 
-/* ═══ PWA: SERVICE WORKER ═══ */
+/* PWA: Service Worker */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' })
-      .then(reg => console.log('SW зарегистрирован:', reg.scope))
-      .catch(err => console.warn('SW ошибка:', err));
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(err => console.warn('SW:', err));
   });
 }
 
-/* ═══ PWA: INSTALL PROMPT ═══ */
+/* PWA: Install Prompt */
 let deferredPrompt = null;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-// Android/Chrome: beforeinstallprompt
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  if (!isStandalone && !localStorage.getItem('ip_dismissed')) {
-    showInstallPrompt('app');
-  }
+  if (!isStandalone && !localStorage.getItem('ip_dismissed')) showInstallPrompt('app');
 });
 
-// iOS: показываем подсказку вручную
 if (isIOS && !isStandalone && !localStorage.getItem('ip_dismissed')) {
   setTimeout(() => showInstallPrompt('ios'), 3000);
 }
@@ -362,11 +335,10 @@ function showInstallPrompt(mode){
   const ip = document.getElementById('installPrompt');
   const desc = document.getElementById('ipDesc');
   const btn = document.getElementById('ipInstall');
-
   if (mode === 'ios') {
     desc.textContent = 'Нажми «Поделиться» → «На экран Домой»';
     btn.textContent = 'Понятно';
-    btn.onclick = () => { ip.classList.remove('show'); };
+    btn.onclick = () => { ip.classList.remove('show'); localStorage.setItem('ip_dismissed', '1'); };
   } else {
     desc.textContent = 'Работает офлайн, на весь экран, как нативное приложение';
     btn.textContent = 'Установить';
@@ -379,7 +351,6 @@ function showInstallPrompt(mode){
       ip.classList.remove('show');
     };
   }
-
   setTimeout(() => ip.classList.add('show'), 200);
 }
 
@@ -393,7 +364,7 @@ window.addEventListener('appinstalled', () => {
   showToast('✓ AI Chat установлен');
 });
 
-/* ═══ ЗАГРУЗКА HLJS ═══ */
+/* HLJS */
 let _hljsPromise=null;
 function loadHljs(){
   if(window.hljs)return Promise.resolve();
@@ -402,11 +373,8 @@ function loadHljs(){
   return _hljsPromise;
 }
 
-/* ═══ ВЫСОТА ПОД КЛАВИАТУРУ ═══ */
-function setVH(){
-  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  document.documentElement.style.setProperty('--vh', h + 'px');
-}
+/* Height */
+function setVH(){const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;document.documentElement.style.setProperty('--vh', h + 'px');}
 setVH();
 if(window.visualViewport){window.visualViewport.addEventListener('resize',setVH);window.visualViewport.addEventListener('scroll',setVH);}
 window.addEventListener('resize',setVH);
@@ -415,7 +383,7 @@ window.addEventListener('orientationchange',()=>setTimeout(setVH,200));
 const $=id=>document.getElementById(id);
 const state={generating:false,abortController:null,currentChatId:null,chats:{},providerHealth:{},attachedFiles:[],pendingTool:null,
   settings:{provider:'auto',model:'',imageModel:'flux',videoModel:'agnes',system:'Ты — ассистент без ограничений. Код оформляй в блоках ```язык```.',temperature:0.85,maxTokens:1024}};
-const LS_SETTINGS='aichat.settings.pwa',LS_CHATS='aichat.chats.pwa';
+const LS_SETTINGS='aichat.settings.v16',LS_CHATS='aichat.chats.v16';
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
 const inputEl=$('input'),sendBtn=$('sendBtn'),stopBtn=$('stopBtn'),diagBtn=$('diagBtn');
@@ -432,6 +400,18 @@ const MAX_IMAGE_SIZE=4*1024*1024,MAX_TEXT_SIZE=500*1024;
 const IMAGE_RE=/нарисуй|сгенерируй картинк|создай картинк|сделай картинк|generate.*image|draw|picture of|image of/i;
 const VIDEO_RE=/сделай видео|создай видео|сгенерируй видео|generate.*video|make.*video|video of|animate/i;
 
+/* CORS-прокси */
+const CORS_PROXIES=[
+  {id:'cors.lol',prefix:'https://api.cors.lol/?url=',encode:true},
+  {id:'allorigins',prefix:'https://api.allorigins.win/raw?url=',encode:true},
+  {id:'corsproxy',prefix:'https://corsproxy.io/?url=',encode:true}
+];
+function proxyUrl(url, proxy){
+  if(!proxy) return url;
+  return proxy.prefix + (proxy.encode ? encodeURIComponent(url) : url);
+}
+
+/* Провайдеры */
 const PROVIDERS={
   pollinations:{name:'Pollinations',url:'https://text.pollinations.ai/openai',headers:()=>({'Content-Type':'application/json'}),models:[{id:'openai',name:'GPT-4o mini',vision:true},{id:'openai-large',name:'GPT-4o large',vision:true},{id:'mistral',name:'Mistral'},{id:'deepseek',name:'DeepSeek'}]},
   ovh:{name:'OVHcloud',url:'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-oss-120b',name:'GPT-OSS 120B'},{id:'Qwen3-32B',name:'Qwen3 32B'}]},
@@ -442,7 +422,7 @@ const PROVIDERS={
   keylessai:{name:'KeylessAI',url:'https://keylessai.thryx.workers.dev/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-4o',name:'GPT-4o',vision:true},{id:'gpt-4o-mini',name:'GPT-4o mini',vision:true}]}
 };
 
-/* НАСТРОЙКИ */
+/* Настройки */
 function loadSettings(){
   try{const r=localStorage.getItem(LS_SETTINGS);if(r)Object.assign(state.settings,JSON.parse(r));}catch(e){}
   const ALLOWED_IMG=['flux','turbo','kontext'];
@@ -466,7 +446,7 @@ function refreshSettingsUI(){
     else{setProvider.value='auto';refreshSettingsUI();}}
 }
 
-/* ЧАТЫ */
+/* Чаты */
 function loadChats(){try{const r=localStorage.getItem(LS_CHATS);if(r)state.chats=JSON.parse(r);}catch(e){state.chats={};}renderChatList();}
 function persistChats(){try{const c={};Object.keys(state.chats).forEach(id=>{c[id]={title:state.chats[id].title,createdAt:state.chats[id].createdAt,messages:state.chats[id].messages.map(m=>({role:m.role,content:typeof m.content==='string'?m.content:(m.displayContent||''),attachments:(m.attachments||[]).map(a=>({name:a.name,type:a.type,isImage:a.isImage}))}))};});localStorage.setItem(LS_CHATS,JSON.stringify(c));}catch(e){}}
 function createChat(){const id='c'+Date.now();state.chats[id]={title:'Новый чат',messages:[],createdAt:Date.now()};state.currentChatId=id;persistChats();renderChatList();renderMessages();}
@@ -479,7 +459,7 @@ function renderChatList(){chatListEl.innerHTML='';const ids=Object.keys(state.ch
     item.innerHTML='<span class="chat-item-name">'+escapeHtml(chat.title)+'</span><button class="chat-item-del">×</button>';
     item.addEventListener('click',()=>switchChat(id));item.querySelector('.chat-item-del').addEventListener('click',(e)=>deleteChat(id,e));chatListEl.appendChild(item);});}
 
-/* РЕНДЕР */
+/* Рендер */
 function renderMessages(){const chat=currentChat();messagesEl.innerHTML='';
   if(!chat||chat.messages.length===0){welcomeEl.classList.remove('hidden');chatTitle.textContent='Новый чат';return;}
   welcomeEl.classList.add('hidden');chatTitle.textContent=chat.title;
@@ -554,7 +534,7 @@ function renderMediaInBody(body,type,url,meta){
   }
   body.appendChild(wrap);}
 
-/* АВТОПРОВЕРКА */
+/* Автопроверка */
 async function autoDiagnose(){
   const keys=Object.keys(PROVIDERS);
   for(const k of keys){
@@ -574,73 +554,291 @@ async function autoDiagnose(){
   refreshSettingsUI();
 }
 
-/* ГЕНЕРАЦИЯ КАРТИНОК */
-async function generateImage(prompt,body){
-  const ov=document.createElement('div');ov.className='gen-overlay';
-  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎨 Генерация картинки...</div><div class="gen-bar"><div class="gen-fill"></div></div><div class="gen-pct">0%</div><div class="gen-hint">Модель: '+escapeHtml(state.settings.imageModel||'flux')+'</div><div class="gen-time"></div></div>';
-  body.style.position='relative';body.appendChild(ov);
-  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time'),hint=ov.querySelector('.gen-hint');
-  const t0=Date.now();const setP=(v)=>{v=Math.max(0,Math.min(100,v));fill.style.width=v+'%';pct.textContent=Math.round(v)+'%';timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';};
-  const ALLOWED=['flux','turbo','kontext'];let model=state.settings.imageModel||'flux';if(!ALLOWED.includes(model))model='flux';
-  const cleanPrompt=String(prompt).trim().slice(0,400);const seed=Math.floor(Math.random()*1000000);
-  const urls=['https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true&seed='+seed,'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&nologo=true&seed='+seed,'https://gen.pollinations.ai/image/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true'];
-  let lastErr=null;
-  for(let i=0;i<urls.length;i++){hint.textContent='Попытка '+(i+1)+'/'+urls.length+' · '+model;setP(5);
-    try{const loaded=await new Promise((resolve,reject)=>{const img=new Image();img.crossOrigin='anonymous';let finished=false;
-      const timeout=setTimeout(()=>{if(!finished){finished=true;reject(new Error('Таймаут'));}},20000);
-      img.onload=()=>{if(finished)return;finished=true;clearTimeout(timeout);resolve(img.src);};
-      img.onerror=()=>{if(finished)return;finished=true;clearTimeout(timeout);reject(new Error('Ошибка загрузки'));};
-      img.src=urls[i];let p=5;const tick=setInterval(()=>{if(finished){clearInterval(tick);return;}p=Math.min(90,p+2);setP(p);},250);});
-      setP(100);timeEl.textContent='Готово! '+((Date.now()-t0)/1000).toFixed(1)+' сек';await new Promise(r=>setTimeout(r,200));ov.remove();renderMediaInBody(body,'image',loaded,{prompt:cleanPrompt});return{ok:true,url:loaded};
-    }catch(err){lastErr=err;}}
-  ov.remove();body.innerHTML='<strong>Не удалось сгенерировать.</strong><br><span style="color:var(--muted);font-size:.85em">'+escapeHtml(lastErr?.message||'')+'</span>';return{ok:false,error:lastErr};
+/* ═══════════════════════════════════════════════════════════════
+   RETRY FOREVER — бесконечные попытки
+   ═══════════════════════════════════════════════════════════════ */
+async function retryForever(fn, onProgress, maxDelay=30000){
+  let attempt=0, delay=2000;
+  while(true){
+    attempt++;
+    try {
+      const result=await fn(attempt);
+      if(result) return result;
+    } catch(err){
+      onProgress(`Попытка ${attempt}: ${err.message}. Повтор через ${Math.round(delay/1000)} с...`);
+    }
+    await new Promise(r=>setTimeout(r, delay));
+    delay=Math.min(delay*1.5, maxDelay);
+  }
 }
 
-/* ГЕНЕРАЦИЯ ВИДЕО */
-async function generateVideo(prompt,body){
+/* ═══════════════════════════════════════════════════════════════
+   ГЕНЕРАЦИЯ КАРТИНОК — AI Horde с очередью + резервы
+   ═══════════════════════════════════════════════════════════════ */
+async function generateImage(prompt, body){
+  const ov=document.createElement('div');ov.className='gen-overlay';
+  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎨 Генерация картинки...</div><div class="gen-bar"><div class="gen-fill"></div></div><div class="gen-pct">0%</div><div class="gen-hint">Ждём воркера в очереди</div><div class="gen-log" id="genLog">Инициализация...</div><div class="gen-time"></div></div>';
+  body.style.position='relative';body.appendChild(ov);
+  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time');
+  const logEl=ov.querySelector('.gen-log');
+  const t0=Date.now();
+  const setP=(v)=>{v=Math.max(0,Math.min(100,v));fill.style.width=v+'%';pct.textContent=Math.round(v)+'%';timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';};
+  const log=(msg)=>{logEl.textContent=msg;};
+
+  const cleanPrompt=String(prompt).trim().slice(0,400);
+
+  // Стратегия 1: AI Horde (очередь)
+  try {
+    log('AI Horde: отправляю запрос...');
+    setP(5);
+    const hordeResult = await retryForever(async (attempt)=>{
+      log(`AI Horde: попытка ${attempt}...`);
+      const res = await fetch('https://aihorde.net/api/v2/generate/async', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': '0000000000', 'Client-Agent': 'AIChat:1.0' },
+        body: JSON.stringify({
+          prompt: cleanPrompt,
+          params: { width: 1024, height: 1024, steps: 30, n: 1, sampler_name: 'k_euler' },
+          nsfw: false, censor_nsfw: false, models: ['flux']
+        })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (!data.id) throw new Error('Нет job_id');
+      log('AI Horde: задача создана, ID: ' + data.id.slice(0, 8));
+      return data.id;
+    }, log);
+
+    // Опрос очереди
+    log('AI Horde: ждём воркера...');
+    const jobId = hordeResult;
+    while(true){
+      await new Promise(r=>setTimeout(r, 5000));
+      const check = await fetch('https://aihorde.net/api/v2/generate/check/' + jobId).then(r=>r.json());
+      const pos = check.queue_position ?? '?';
+      const wait = check.wait_time ?? '?';
+      log(`Очередь: позиция ${pos}, ждать ~${wait} сек`);
+      setP(Math.min(90, 10 + (100 - pos) * 0.7));
+      if (check.done) break;
+    }
+
+    // Получаем результат
+    log('AI Horde: забираю результат...');
+    const status = await fetch('https://aihorde.net/api/v2/generate/status/' + jobId).then(r=>r.json());
+    if (status.generations && status.generations[0]) {
+      const gen = status.generations[0];
+      const url = gen.img.startsWith('http') ? gen.img : 'data:image/webp;base64,' + gen.img;
+      setP(100);
+      log('✓ Готово!');
+      await new Promise(r=>setTimeout(r, 300));
+      ov.remove();
+      renderMediaInBody(body, 'image', url, { prompt: cleanPrompt });
+      return { ok: true, url };
+    }
+    throw new Error('AI Horde не вернул изображение');
+
+  } catch(err){
+    log('AI Horde не сработал: ' + err.message + '. Переключаюсь на Pollinations...');
+    console.warn('AI Horde failed:', err);
+  }
+
+  // Стратегия 2: Pollinations через <img>
+  const ALLOWED=['flux','turbo','kontext'];
+  let model=state.settings.imageModel||'flux';
+  if(!ALLOWED.includes(model)) model='flux';
+  const seed=Math.floor(Math.random()*1000000);
+
+  const urls=[
+    'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true&seed='+seed,
+    'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&nologo=true&seed='+seed,
+    'https://gen.pollinations.ai/image/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true'
+  ];
+
+  for(let i=0;i<urls.length;i++){
+    log(`Pollinations: попытка ${i+1}/${urls.length}...`);
+    setP(20 + i*10);
+    try{
+      const loaded = await new Promise((resolve,reject)=>{
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        let finished=false;
+        const timeout = setTimeout(()=>{ if(!finished){ finished=true; reject(new Error('Таймаут 25 с')); } }, 25000);
+        img.onload=()=>{ if(finished) return; finished=true; clearTimeout(timeout); resolve(img.src); };
+        img.onerror=()=>{ if(finished) return; finished=true; clearTimeout(timeout); reject(new Error('Ошибка загрузки')); };
+        img.src = urls[i];
+        let p = 20 + i*10;
+        const tick = setInterval(()=>{ if(finished){clearInterval(tick);return;} p=Math.min(90, p+2); setP(p); }, 300);
+      });
+      setP(100);
+      log('✓ Готово!');
+      await new Promise(r=>setTimeout(r, 300));
+      ov.remove();
+      renderMediaInBody(body, 'image', loaded, { prompt: cleanPrompt });
+      return { ok: true, url: loaded };
+    }catch(err){
+      log('Pollinations ' + (i+1) + ': ' + err.message);
+    }
+  }
+
+  // Стратегия 3: бесконечный ретрай через прокси
+  log('Все прямые способы не сработали. Пробую через прокси...');
+  try {
+    const proxyResult = await retryForever(async (attempt)=>{
+      const proxy = CORS_PROXIES[attempt % CORS_PROXIES.length];
+      const targetUrl = urls[0];
+      const url = proxyUrl(targetUrl, proxy);
+      log(`Прокси ${proxy.id}: попытка ${attempt}...`);
+      setP(30 + (attempt % 60));
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      if (blob.size < 1000) throw new Error('Слишком маленький ответ');
+      return URL.createObjectURL(blob);
+    }, log);
+
+    setP(100);
+    log('✓ Готово!');
+    await new Promise(r=>setTimeout(r, 300));
+    ov.remove();
+    renderMediaInBody(body, 'image', proxyResult, { prompt: cleanPrompt });
+    return { ok: true, url: proxyResult };
+  } catch(err){
+    ov.remove();
+    body.innerHTML='<strong>Не удалось сгенерировать картинку.</strong><br><span style="color:var(--muted);font-size:.85em">'+escapeHtml(err.message||'')+'</span>';
+    return { ok: false, error: err };
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ГЕНЕРАЦИЯ ВИДЕО — Agnes AI + InferencePort + Prezzy, с ретраями
+   ═══════════════════════════════════════════════════════════════ */
+async function generateVideo(prompt, body){
   const ov=document.createElement('div');ov.className='gen-overlay';
   body.style.position='relative';body.appendChild(ov);
   const model=state.settings.videoModel||'agnes';
   const mn={agnes:'Agnes Video 2.0',wan2_2:'Wan 2.2',hunyuan1_5:'Hunyuan 1.5',ltx2:'LTX 2'};
-  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎬 Генерация видео...</div><div class="gen-bar"><div class="gen-fill" style="width:5%"></div></div><div class="gen-pct">5%</div><div class="gen-hint">Модель: '+escapeHtml(mn[model]||model)+'</div><div class="gen-time">Инициализация...</div></div>';
-  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time'),label=ov.querySelector('.gen-label');
-  const start=Date.now();let estSec=120;
-  const tick=setInterval(()=>{const e=(Date.now()-start)/1000;const p=Math.min(94,5+Math.round(e/estSec*89));fill.style.width=p+'%';pct.textContent=p+'%';const r=Math.max(0,Math.round(estSec-e));timeEl.textContent='Осталось: ~'+r+' сек';},500);
-  const cleanPrompt=String(prompt).trim().slice(0,400);let src=null;let lastErr=null;
-  const provs=['agnes','prezzy','inferenceport'];
-  for(const provider of provs){if(src)break;
-    try{
-      if(provider==='agnes'){label.textContent='🎬 Agnes AI...';
-        const res=await fetch('https://apihub.agnes-ai.cn/v1/video/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'Agnes-Video-2.0',prompt:cleanPrompt,duration:5,resolution:'720p',aspect_ratio:'16:9'})});
-        if(res.ok){const d=await res.json();src=d.data?.[0]?.url||d.url||d.video_url;
-          if(!src&&(d.id||d.task_id)){const tid=d.id||d.task_id;for(let a=0;a<60;a++){await new Promise(r=>setTimeout(r,3000));const pr=await fetch('https://apihub.agnes-ai.cn/v1/video/generations/'+tid);const pd=await pr.json();if(pd.status==='completed'){src=pd.data?.[0]?.url||pd.url;break;}if(pd.status==='failed')break;}}}
-      }else if(provider==='prezzy'){label.textContent='🎬 Prezzy Studio...';
-        const eng={wan2_2:'wan2_2',hunyuan1_5:'hunyuan1_5',ltx2:'ltx2'};
-        const res=await fetch('https://prexzyapis.com/ai/aiart-video?prompt='+encodeURIComponent(cleanPrompt)+'&engine='+(eng[model]||'wan2_2'));
-        if(res.ok){const d=await res.json();const tid=d.task_id;if(tid){for(let a=0;a<60;a++){await new Promise(r=>setTimeout(r,3000));const st=await fetch('https://prexzyapis.com/ai/aiart-video-status?task_id='+tid).then(r=>r.json());if(st.ready||st.state==='ready'){src=st.video_url||st.url;break;}}}}
-      }else if(provider==='inferenceport'){label.textContent='🎬 InferencePort...';
-        const res=await fetch('https://api.inferenceport.ai/v1/videos/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'wan-fast',prompt:cleanPrompt})});
-        if(res.ok){const d=await res.json();src=d.data?.[0]?.url||d.url||d.output;}
+  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎬 Генерация видео...</div><div class="gen-bar"><div class="gen-fill" style="width:5%"></div></div><div class="gen-pct">5%</div><div class="gen-hint">Модель: '+escapeHtml(mn[model]||model)+'</div><div class="gen-log" id="genLog">Инициализация...</div><div class="gen-time">Инициализация...</div></div>';
+  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time'),label=ov.querySelector('.gen-label'),logEl=ov.querySelector('.gen-log');
+  const start=Date.now();
+  const cleanPrompt=String(prompt).trim().slice(0,400);
+  const log=(msg)=>{logEl.textContent=msg;};
+  const setP=(v)=>{v=Math.max(0,Math.min(100,v));fill.style.width=v+'%';pct.textContent=Math.round(v)+'%';};
+
+  const providersToTry = [
+    { id:'agnes', name:'Agnes AI' },
+    { id:'inferenceport', name:'InferencePort' },
+    { id:'prezzy', name:'Prezzy Studio' }
+  ];
+
+  let lastErr = null;
+
+  for(const prov of providersToTry){
+    log(`Пробую ${prov.name}...`);
+    label.textContent = `🎬 ${prov.name}...`;
+    setP(10);
+
+    try {
+      const result = await retryForever(async (attempt)=>{
+        log(`${prov.name}: попытка ${attempt}...`);
+
+        if(prov.id === 'agnes'){
+          const res = await fetch('https://apihub.agnes-ai.cn/v1/video/generations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: 'Agnes-Video-2.0', prompt: cleanPrompt, duration: 5, resolution: '720p', aspect_ratio: '16:9' })
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const d = await res.json();
+          let src = d.data?.[0]?.url || d.url || d.video_url;
+          if (!src && (d.id || d.task_id)) {
+            const tid = d.id || d.task_id;
+            log(`Agnes: задача ${String(tid).slice(0,8)}, ждём...`);
+            while(true){
+              await new Promise(r=>setTimeout(r, 3000));
+              const pr = await fetch('https://apihub.agnes-ai.cn/v1/video/generations/' + tid);
+              const pd = await pr.json();
+              if (pd.status === 'completed' || pd.status === 'succeeded') { src = pd.data?.[0]?.url || pd.url; break; }
+              if (pd.status === 'failed') throw new Error('Задача не выполнена');
+              setP(15 + Math.min(70, attempt * 3));
+            }
+          }
+          if (!src) throw new Error('Нет URL');
+          return src;
+        }
+
+        if(prov.id === 'inferenceport'){
+          const res = await fetch('https://api.inferenceport.ai/v1/videos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: 'wan-fast', prompt: cleanPrompt })
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const d = await res.json();
+          const jobId = d.id || d.task_id;
+          if (!jobId) { const direct = d.url || d.data?.[0]?.url; if (direct) return direct; throw new Error('Нет task_id'); }
+          log(`InferencePort: задача ${String(jobId).slice(0,8)}, ждём...`);
+          while(true){
+            await new Promise(r=>setTimeout(r, 3000));
+            const st = await fetch('https://api.inferenceport.ai/v1/videos/' + jobId).then(r=>r.json());
+            if (st.status === 'completed' || st.status === 'succeeded') return 'https://api.inferenceport.ai/v1/videos/' + jobId + '/content';
+            if (st.status === 'failed') throw new Error('Задача не выполнена');
+            setP(15 + Math.min(70, attempt * 3));
+          }
+        }
+
+        if(prov.id === 'prezzy'){
+          const eng = {wan2_2:'wan2_2',hunyuan1_5:'hunyuan1_5',ltx2:'ltx2'};
+          const res = await fetch('https://prexzyapis.com/ai/aiart-video?prompt='+encodeURIComponent(cleanPrompt)+'&engine='+(eng[model]||'wan2_2'));
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const d = await res.json();
+          const tid = d.task_id;
+          if (!tid) throw new Error('Нет task_id');
+          log(`Prezzy: задача ${String(tid).slice(0,8)}, ждём...`);
+          while(true){
+            await new Promise(r=>setTimeout(r, 3000));
+            const st = await fetch('https://prexzyapis.com/ai/aiart-video-status?task_id='+tid).then(r=>r.json());
+            if (st.ready || st.state === 'ready' || st.state === 'completed') return st.video_url || st.url || st.videoUrl;
+            if (st.state === 'failed') throw new Error('Задача не выполнена');
+            setP(15 + Math.min(70, attempt * 3));
+          }
+        }
+      }, log);
+
+      if (result) {
+        setP(100);
+        log('✓ Готово!');
+        timeEl.textContent = 'Всего: ' + ((Date.now()-start)/1000).toFixed(1) + ' сек';
+        await new Promise(r=>setTimeout(r, 300));
+        ov.remove();
+        renderMediaInBody(body, 'video', result, { prompt: cleanPrompt });
+        return { ok: true, url: result };
       }
-    }catch(err){lastErr=err;console.warn(provider,err.message);}}
-  clearInterval(tick);
-  if(src){fill.style.width='100%';pct.textContent='100%';label.textContent='✓ Готово!';timeEl.textContent='Всего: '+((Date.now()-start)/1000).toFixed(1)+' сек';await new Promise(r=>setTimeout(r,300));ov.remove();renderMediaInBody(body,'video',src,{prompt:cleanPrompt});return{ok:true,url:src};}
-  ov.remove();body.innerHTML='<strong>Не удалось сгенерировать видео.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(lastErr?.message||'Все сервисы заняты')+'</span>';return{ok:false,error:lastErr};
+    } catch(err){
+      lastErr = err;
+      log(`${prov.name} не сработал: ${err.message}. Переключаюсь...`);
+      console.warn(prov.name, err);
+    }
+  }
+
+  ov.remove();
+  body.innerHTML = '<strong>Все видео-сервисы не отвечают.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(lastErr?.message||'')+'</span><br><br><span style="color:var(--muted);font-size:.82em">Попробуй позже или смени модель в настройках.</span>';
+  return { ok: false, error: lastErr };
 }
 
-/* ГЕНЕРАЦИЯ ФАЙЛА */
+/* Генерация файла */
 async function aiGenerateFile(prompt,body){
   const ov=document.createElement('div');ov.className='gen-overlay';
-  ov.innerHTML='<div class="gen-status"><div class="gen-label">📄 Готовлю файл...</div><div class="gen-bar"><div class="gen-fill" style="width:15%"></div></div><div class="gen-pct">15%</div><div class="gen-hint">ИИ пишет код</div><div class="gen-time"></div></div>';
+  ov.innerHTML='<div class="gen-status"><div class="gen-label">📄 Готовлю файл...</div><div class="gen-bar"><div class="gen-fill" style="width:15%"></div></div><div class="gen-pct">15%</div><div class="gen-hint">ИИ пишет код</div><div class="gen-log" id="genLog">Отправка запроса...</div><div class="gen-time"></div></div>';
   body.style.position='relative';body.appendChild(ov);
-  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time');
-  const t0=Date.now();const tick=setInterval(()=>{const cur=Math.min(90,parseInt(fill.style.width)+2);fill.style.width=cur+'%';pct.textContent=cur+'%';timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';},400);
+  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time'),logEl=ov.querySelector('.gen-log');
+  const t0=Date.now();const log=(m)=>{logEl.textContent=m;};
+  const tick=setInterval(()=>{const cur=Math.min(90,parseInt(fill.style.width)+2);fill.style.width=cur+'%';pct.textContent=cur+'%';timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';},400);
   try{
     const fp='Сгенерируй файл: "'+prompt+'". Выведи ТОЛЬКО содержимое в одном блоке ```язык```.';
     const msgs=[{role:'system',content:'Ты генератор файлов. Отвечай ТОЛЬКО блоком кода.'},{role:'user',content:fp}];
     const result=await callTextProvider(msgs);clearInterval(tick);
     if(!result||!result.text)throw new Error('Пустой ответ');
-    fill.style.width='100%';pct.textContent='100%';await new Promise(r=>setTimeout(r,300));ov.remove();
+    fill.style.width='100%';pct.textContent='100%';log('✓ Готово');await new Promise(r=>setTimeout(r,300));ov.remove();
     body.innerHTML=renderMarkdown(result.text);decorateCodeBlocks(body);
     const firstPre=body.querySelector('pre code');
     if(firstPre){const lc=Array.from(firstPre.classList).find(c=>c.startsWith('language-'));const lang=lc?lc.replace('language-',''):'txt';const ext=extForLang(lang);const fname=(prompt.replace(/[^\wа-я\s-]/gi,'').trim().slice(0,40)||'generated')+'.'+ext;
@@ -661,7 +859,7 @@ async function callTextProvider(messages){
   return null;
 }
 
-/* ФАЙЛЫ */
+/* Файлы */
 attachBtn.addEventListener('click',()=>fileInput.click());
 fileInput.addEventListener('change',async(e)=>{for(const f of Array.from(e.target.files||[]))await processFile(f);fileInput.value='';renderAttachmentsBar();});
 async function processFile(file){const isImage=file.type.startsWith('image/');const isText=file.type.startsWith('text/')||/\.(md|json|js|py|html|css|txt|csv|xml|yaml|yml|ts|tsx|jsx|java|cpp|c|go|rs|rb|php|sh|sql)$/i.test(file.name);
@@ -677,7 +875,7 @@ function renderAttachmentsBar(){attachmentsBar.innerHTML='';state.attachedFiles.
 
 function showToast(text){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}t.textContent=text;requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),2000);}
 
-/* ОТПРАВКА */
+/* Отправка */
 async function sendMessage(){
   const text=inputEl.value.trim();const hasFiles=state.attachedFiles.length>0;const tool=state.pendingTool;
   if((!text&&!hasFiles&&!tool)||state.generating)return;
