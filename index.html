@@ -3,36 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LocalChat — LLM в браузере</title>
+<title>AI Chat — Free API</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;
-  --accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;
-  --red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e;
+  --bg:#0a0a0f; --panel:#10101a; --panel-2:#16161f; --border:#1e1e2e;
+  --accent:#7c5cff; --accent-dim:#5a3fd6; --green:#2ecc71; --amber:#f39c12;
+  --red:#e63946; --text:#e8e8f2; --muted:#6a6a85; --muted-2:#4a4a5e;
 }
 html,body{height:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
 .hidden{display:none!important}
-
-#loader{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;transition:opacity .5s,visibility .5s;overflow-y:auto}
-#loader.hide{opacity:0;visibility:hidden}
-.loader-inner{text-align:center;max-width:520px;width:100%}
-.loader-logo{font-size:2.4em;font-weight:800;letter-spacing:2px;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:14px}
-.loader-tagline{color:var(--muted);font-size:.94em;line-height:1.7;margin-bottom:36px}
-.loader-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:32px}
-.ls-item{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 8px}
-.ls-label{display:block;font-size:.68em;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.ls-value{display:block;font-size:.9em;font-weight:600;color:var(--text);word-break:break-word}
-.btn-primary{padding:16px 44px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));border:none;border-radius:12px;color:#fff;font-size:1em;font-weight:700;cursor:pointer;font-family:inherit;transition:all .25s;box-shadow:0 8px 30px rgba(124,92,255,.3)}
-.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 40px rgba(124,92,255,.5)}
-.btn-primary:disabled{opacity:.5;cursor:wait;transform:none}
-.progress-box{margin-top:28px;display:none}
-.progress-box.show{display:block}
-.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#a78bfa);transition:width .3s}
-.progress-text{font-family:'SF Mono',Consolas,monospace;font-size:.78em;color:var(--muted);margin-top:12px;text-align:center;word-break:break-word}
-.loader-note{margin-top:28px;font-size:.82em;padding:14px 18px;background:rgba(243,156,18,.06);border:1px solid rgba(243,156,18,.2);border-radius:10px;color:var(--amber);line-height:1.6}
 
 #app{display:grid;grid-template-columns:260px 1fr;height:100vh}
 .sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
@@ -53,7 +34,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sb-status{display:flex;align-items:center;gap:8px;font-size:.8em;color:var(--muted);margin-bottom:12px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .dot.ready{background:var(--green);box-shadow:0 0 8px var(--green)}
-.dot.loading{background:var(--amber);animation:pulse 1.2s infinite}
 .dot.generating{background:var(--accent);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .sb-settings{width:100%;padding:9px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:inherit;font-size:.82em;cursor:pointer;transition:all .2s}
@@ -123,7 +103,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;z-index:500;padding:24px;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
 .modal.open{opacity:1;visibility:visible}
-.modal-box{width:100%;max-width:500px;background:var(--panel);border:1px solid var(--border);border-radius:16px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .3s}
+.modal-box{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--border);border-radius:16px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .3s}
 .modal.open .modal-box{transform:translateY(0)}
 .modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .modal-head h3{font-size:1.15em}
@@ -132,10 +112,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .modal-body{padding:24px}
 .setting{margin-bottom:22px}
 .setting label{display:block;font-size:.82em;font-weight:600;margin-bottom:8px;color:var(--text)}
-.setting select,.setting textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:.9em;outline:none;transition:border-color .2s;resize:vertical}
-.setting select:focus,.setting textarea:focus{border-color:var(--accent)}
+.setting select,.setting textarea,.setting input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:.9em;outline:none;transition:border-color .2s;resize:vertical}
+.setting select:focus,.setting textarea:focus,.setting input:focus{border-color:var(--accent)}
 .setting input[type=range]{width:100%;accent-color:var(--accent)}
-.setting-hint{font-size:.75em;color:var(--muted);margin-top:6px}
+.setting-hint{font-size:.75em;color:var(--muted);margin-top:6px;line-height:1.5}
+.setting-hint a{color:var(--accent);text-decoration:underline}
 
 @media (max-width:720px){
   #app{grid-template-columns:1fr}
@@ -145,44 +126,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   .suggestions{grid-template-columns:1fr}
   .chat-header{padding:12px 16px}
   .ch-title{max-width:50%;font-size:.85em}
-  .loader-stats{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 
-<div id="loader">
-  <div class="loader-inner">
-    <div class="loader-logo">◉ LocalChat</div>
-    <p class="loader-tagline">Языковая модель работает прямо в браузере.<br>Никаких серверов. Никаких API-ключей.</p>
-    <div class="loader-stats">
-      <div class="ls-item"><span class="ls-label">Модель</span><span class="ls-value" id="lsModel">—</span></div>
-      <div class="ls-item"><span class="ls-label">Размер</span><span class="ls-value">≈90 МБ</span></div>
-      <div class="ls-item"><span class="ls-label">Устройство</span><span class="ls-value" id="lsDevice">—</span></div>
-    </div>
-    <button id="startBtn" class="btn-primary">Загрузить модель</button>
-    <div id="progressBox" class="progress-box">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-text" id="progressText">Подготовка...</div>
-    </div>
-    <div class="loader-note">
-      Первый запуск скачает модель. Файлы кешируются — повторные запуски мгновенны.
-      Если браузер вылетает — модель слишком большая для телефона, попробуй на ПК.
-    </div>
-  </div>
-</div>
-
-<div id="app" class="hidden">
+<div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ LocalChat</div>
+      <div class="sb-logo">◉ AI Chat</div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
     <div class="sb-foot">
       <div class="sb-model" id="sbModel">—</div>
       <div class="sb-status">
-        <span class="dot" id="sbDot"></span>
+        <span class="dot ready" id="sbDot"></span>
         <span id="sbStatus">Готов</span>
       </div>
       <button class="sb-settings" id="settingsBtn">⚙ Настройки</button>
@@ -202,12 +161,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="welcome" id="welcome">
         <div class="welcome-icon">◉</div>
         <h2>Чем помочь?</h2>
-        <p>Модель работает офлайн — твои сообщения никуда не отправляются.</p>
+        <p>Работает через бесплатные AI API. Отвечает за секунды.</p>
         <div class="suggestions">
-          <button data-prompt="What is HTML?">What is HTML?</button>
-          <button data-prompt="Write a JavaScript function to sort an array">Sort array in JS</button>
-          <button data-prompt="Give me a short slogan for a coffee shop">Coffee shop slogan</button>
-          <button data-prompt="List 5 planets of the Solar System">List 5 planets</button>
+          <button data-prompt="Что такое HTML?">Что такое HTML?</button>
+          <button data-prompt="Напиши функцию на JavaScript для сортировки массива">Сортировка в JS</button>
+          <button data-prompt="Придумай короткий слоган для кофейни">Слоган для кофейни</button>
+          <button data-prompt="Перечисли 5 планет Солнечной системы">5 планет</button>
         </div>
       </div>
       <div id="messages"></div>
@@ -215,13 +174,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
     <div class="composer">
       <div class="composer-inner">
-        <textarea id="input" rows="1" placeholder="Напиши сообщение..." disabled></textarea>
-        <button id="sendBtn" disabled title="Отправить">
+        <textarea id="input" rows="1" placeholder="Напиши сообщение... (Enter — отправить)"></textarea>
+        <button id="sendBtn" title="Отправить">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
       </div>
       <div class="composer-hint">
-        <span id="tokenInfo">0 токенов</span>
+        <span id="statusInfo">Готов</span>
         <button id="stopBtn" class="stop-btn hidden">■ Остановить</button>
       </div>
     </div>
@@ -235,112 +194,140 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       </div>
       <div class="modal-body">
         <div class="setting">
+          <label>Провайдер</label>
+          <select id="setProvider">
+            <option value="pollinations">Pollinations AI — без ключа, быстро</option>
+            <option value="openrouter">OpenRouter — нужен бесплатный ключ</option>
+          </select>
+        </div>
+        <div class="setting" id="keyField" style="display:none">
+          <label>API-ключ OpenRouter</label>
+          <input type="text" id="setKey" placeholder="sk-or-v1-...">
+          <div class="setting-hint">Получить бесплатно: <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></div>
+        </div>
+        <div class="setting">
           <label>Модель</label>
           <select id="setModel">
-            <option value="HuggingFaceTB/SmolLM2-135M-Instruct">SmolLM 135M — крошечная (~90 МБ)</option>
-            <option value="HuggingFaceTB/SmolLM2-360M-Instruct">SmolLM 360M — средняя (~230 МБ)</option>
-            <option value="onnx-community/Qwen2.5-0.5B-Instruct">Qwen 0.5B — для ПК (~300 МБ)</option>
+            <option value="openai">OpenAI GPT-4o mini</option>
+            <option value="mistral">Mistral</option>
+            <option value="deepseek">DeepSeek</option>
           </select>
-          <div class="setting-hint">Смена модели требует перезагрузки страницы</div>
+          <div class="setting-hint" id="modelHint">Для OpenRouter — список бесплатных моделей</div>
         </div>
         <div class="setting">
           <label>Системный промпт</label>
-          <textarea id="setSystem" rows="3">You are a helpful assistant. Answer briefly and to the point.</textarea>
+          <textarea id="setSystem" rows="3">Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.</textarea>
         </div>
         <div class="setting">
           <label>Temperature: <span id="tempVal">0.7</span></label>
           <input type="range" id="setTemp" min="0" max="1.5" step="0.05" value="0.7">
-          <div class="setting-hint">Ниже — точнее, выше — креативнее</div>
         </div>
         <div class="setting">
-          <label>Максимум токенов: <span id="tokensVal">64</span></label>
-          <input type="range" id="setTokens" min="32" max="512" step="32" value="64">
-          <div class="setting-hint">Меньше — быстрее и легче для памяти</div>
+          <label>Максимум токенов: <span id="tokensVal">512</span></label>
+          <input type="range" id="setTokens" min="64" max="2048" step="64" value="512">
         </div>
-        <div class="setting">
-          <label>Top-p: <span id="toppVal">0.9</span></label>
-          <input type="range" id="setTopp" min="0.1" max="1" step="0.05" value="0.9">
-        </div>
-        <button class="btn-primary" id="saveSettings" style="width:100%">Сохранить</button>
+        <button class="btn-primary" id="saveSettings" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));border:none;border-radius:10px;color:#fff;font-size:.95em;font-weight:700;cursor:pointer;font-family:inherit">Сохранить</button>
       </div>
     </div>
   </div>
 </div>
 
-<script type="module">
-import { pipeline, TextStreamer, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
-
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-
-const SETTINGS_VERSION = 'v3';
-const LS_SETTINGS = 'localchat.settings.' + SETTINGS_VERSION;
-const LS_CHATS = 'localchat.chats.' + SETTINGS_VERSION;
+<script>
+/* ═══════════════════════════════════════════════════════════
+   AI CHAT — Pollinations AI (без ключа) + OpenRouter (с ключом)
+   ═══════════════════════════════════════════════════════════ */
 
 const state = {
-  generator: null,
-  device: null,
   generating: false,
   abortController: null,
   currentChatId: null,
   chats: {},
   settings: {
-    model: 'HuggingFaceTB/SmolLM2-135M-Instruct',
-    system: 'You are a helpful assistant. Answer briefly and to the point.',
+    provider: 'pollinations',
+    apiKey: '',
+    model: 'openai',
+    system: 'Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.',
     temperature: 0.7,
-    maxTokens: 64,
-    topP: 0.9
+    maxTokens: 512
   }
 };
 
+const LS_SETTINGS = 'aichat.settings.v1';
+const LS_CHATS = 'aichat.chats.v1';
 const $ = id => document.getElementById(id);
 
+/* ── DOM ── */
 const app = $('app');
-const loader = $('loader');
-const startBtn = $('startBtn');
-const progressBox = $('progressBox');
-const progressFill = $('progressFill');
-const progressText = $('progressText');
-const lsModel = $('lsModel');
-const lsDevice = $('lsDevice');
 const chatScroll = $('chatScroll');
 const messagesEl = $('messages');
 const welcomeEl = $('welcome');
 const inputEl = $('input');
 const sendBtn = $('sendBtn');
 const stopBtn = $('stopBtn');
-const tokenInfo = $('tokenInfo');
+const statusInfo = $('statusInfo');
 const chatTitle = $('chatTitle');
 const chatListEl = $('chatList');
-const newChatBtn = $('newChatBtn');
-const clearBtn = $('clearBtn');
-const exportBtn = $('exportBtn');
-const settingsBtn = $('settingsBtn');
 const sbModel = $('sbModel');
 const sbDot = $('sbDot');
 const sbStatus = $('sbStatus');
 const settingsModal = $('settingsModal');
-const modalClose = $('modalClose');
-const saveSettingsBtn = $('saveSettings');
+const setProvider = $('setProvider');
+const setKey = $('setKey');
 const setModel = $('setModel');
 const setSystem = $('setSystem');
 const setTemp = $('setTemp');
 const setTokens = $('setTokens');
-const setTopp = $('setTopp');
 const tempVal = $('tempVal');
 const tokensVal = $('tokensVal');
-const toppVal = $('toppVal');
+const keyField = $('keyField');
+const modelHint = $('modelHint');
 
+/* ═══ МОДЕЛИ ПО ПРОВАЙДЕРАМ ═══ */
+const MODELS = {
+  pollinations: [
+    { id: 'openai', name: 'OpenAI (GPT-4o mini)' },
+    { id: 'mistral', name: 'Mistral' },
+    { id: 'deepseek', name: 'DeepSeek' },
+    { id: 'llama', name: 'Llama 3.3' },
+    { id: 'gemini', name: 'Google Gemini' }
+  ],
+  openrouter: [
+    { id: 'google/gemini-2.5-flash:free', name: 'Gemini 2.5 Flash (free)' },
+    { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 (free)' },
+    { id: 'qwen/qwen3-14b:free', name: 'Qwen 3 14B (free)' },
+    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B (free)' },
+    { id: 'mistralai/mistral-small-3.2-24b-instruct:free', name: 'Mistral Small 3.2 (free)' }
+  ]
+};
+
+/* ═══ ENDPOINTS ═══ */
+const ENDPOINTS = {
+  pollinations: {
+    url: 'https://text.pollinations.ai/openai',
+    headers: () => ({ 'Content-Type': 'application/json' })
+  },
+  openrouter: {
+    url: 'https://openrouter.ai/api/v1/chat/completions',
+    headers: () => ({
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + state.settings.apiKey,
+      'HTTP-Referer': location.origin || 'http://localhost',
+      'X-Title': 'AI Chat'
+    })
+  }
+};
+
+/* ═══ НАСТРОЙКИ ═══ */
 function loadSettings() {
   try {
     const raw = localStorage.getItem(LS_SETTINGS);
     if (raw) Object.assign(state.settings, JSON.parse(raw));
   } catch (e) {}
-  setModel.value = state.settings.model;
+  setProvider.value = state.settings.provider;
+  setKey.value = state.settings.apiKey || '';
   setSystem.value = state.settings.system;
   setTemp.value = state.settings.temperature;
   setTokens.value = state.settings.maxTokens;
-  setTopp.value = state.settings.topP;
   refreshSettingsUI();
 }
 
@@ -351,103 +338,35 @@ function saveSettingsToDisk() {
 function refreshSettingsUI() {
   tempVal.textContent = state.settings.temperature.toFixed(2);
   tokensVal.textContent = state.settings.maxTokens;
-  toppVal.textContent = state.settings.topP.toFixed(2);
-  sbModel.textContent = state.settings.model.split('/').pop().replace('-Instruct', '');
-}
 
-async function loadModel() {
-  startBtn.disabled = true;
-  startBtn.textContent = 'Загрузка...';
-  progressBox.classList.add('show');
-  progressFill.style.width = '0%';
-  progressText.textContent = 'Инициализация...';
-  sbDot.className = 'dot loading';
-  sbStatus.textContent = 'Инициализация...';
+  // Показываем/скрываем поле ключа
+  keyField.style.display = state.settings.provider === 'openrouter' ? 'block' : 'none';
 
-  const model = state.settings.model;
-  lsModel.textContent = model.split('/').pop().replace('-Instruct', '');
+  // Обновляем список моделей под провайдера
+  const models = MODELS[state.settings.provider] || [];
+  setModel.innerHTML = models.map(m =>
+    '<option value="' + m.id + '">' + m.name + '</option>'
+  ).join('');
 
-  const progressCb = (p) => {
-    if (p.status === 'progress') {
-      const pct = Math.round(p.progress || 0);
-      progressFill.style.width = pct + '%';
-      const mb = ((p.loaded || 0) / 1048576).toFixed(1);
-      const total = ((p.total || 0) / 1048576).toFixed(1);
-      progressText.textContent = (p.file || 'файл') + ' — ' + mb + ' / ' + total + ' МБ (' + pct + '%)';
-    } else if (p.status === 'ready') {
-      progressFill.style.width = '100%';
-      progressText.textContent = 'Готово!';
-    } else if (p.status === 'initiate') {
-      progressText.textContent = 'Скачивание ' + (p.file || '...');
-    } else if (p.status === 'download') {
-      progressText.textContent = 'Загрузка ' + (p.file || '...');
-    }
-  };
+  // Выбираем текущую модель или первую
+  const ids = models.map(m => m.id);
+  setModel.value = ids.includes(state.settings.model) ? state.settings.model : ids[0];
+  state.settings.model = setModel.value;
 
-  let generator = null;
-  let device = 'wasm';
-
-  if (navigator.gpu) {
-    try {
-      progressText.textContent = 'Пробуем WebGPU...';
-      const adapter = await navigator.gpu.requestAdapter();
-      if (adapter) {
-        console.log('WebGPU adapter OK');
-        generator = await pipeline('text-generation', model, {
-          device: 'webgpu',
-          dtype: 'q4',
-          progress_callback: progressCb
-        });
-        device = 'webgpu';
-      } else {
-        console.log('adapter = null → WASM');
-      }
-    } catch (e) {
-      console.warn('WebGPU упал, откатываемся на WASM:', e);
-      generator = null;
-      progressFill.style.width = '0%';
-    }
+  // Обновляем подсказку
+  if (state.settings.provider === 'openrouter') {
+    modelHint.innerHTML = 'Бесплатные модели. Ключ: <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>';
   } else {
-    console.log('navigator.gpu отсутствует → WASM');
+    modelHint.textContent = 'Работает без ключа и регистрации';
   }
 
-  if (!generator) {
-    try {
-      progressText.textContent = 'Загрузка на CPU (WASM)... Это медленнее, но работает.';
-      generator = await pipeline('text-generation', model, {
-        device: 'wasm',
-        dtype: 'q4',
-        progress_callback: progressCb
-      });
-      device = 'wasm';
-    } catch (err) {
-      console.error('Фатальная ошибка загрузки:', err);
-      startBtn.disabled = false;
-      startBtn.textContent = 'Повторить';
-      progressText.textContent = 'Ошибка: ' + err.message;
-      sbDot.className = 'dot';
-      sbStatus.textContent = 'Ошибка';
-      return;
-    }
-  }
-
-  state.generator = generator;
-  state.device = device;
-  lsDevice.textContent = device === 'webgpu' ? 'WebGPU (GPU)' : 'WASM (CPU)';
-  sbDot.className = 'dot ready';
-  sbStatus.textContent = device === 'webgpu' ? 'Готов (GPU)' : 'Готов (CPU)';
-  progressFill.style.width = '100%';
-  progressText.textContent = 'Модель загружена!';
-
-  setTimeout(() => {
-    app.classList.remove('hidden');
-    loader.classList.add('hide');
-    inputEl.disabled = false;
-    sendBtn.disabled = false;
-    inputEl.focus();
-  }, 600);
+  // Обновляем сайдбар
+  const modelName = models.find(m => m.id === state.settings.model)?.name || state.settings.model;
+  sbModel.textContent = modelName;
+  sbStatus.textContent = state.settings.provider === 'pollinations' ? 'Pollinations' : 'OpenRouter';
 }
 
+/* ═══ ЧАТЫ ═══ */
 function loadChats() {
   try {
     const raw = localStorage.getItem(LS_CHATS);
@@ -516,6 +435,7 @@ function renderChatList() {
   });
 }
 
+/* ═══ РЕНДЕР СООБЩЕНИЙ ═══ */
 function renderMessages() {
   const chat = currentChat();
   messagesEl.innerHTML = '';
@@ -536,7 +456,7 @@ function renderMessages() {
 function appendMessageEl(role, content) {
   const msg = document.createElement('div');
   msg.className = 'msg ' + role;
-  const roleLabel = role === 'user' ? 'Вы' : 'LocalChat';
+  const roleLabel = role === 'user' ? 'Вы' : 'AI';
   const avatarChar = role === 'user' ? '›' : '◉';
   msg.innerHTML =
     '<div class="msg-role"><span class="avatar">' + avatarChar + '</span><span>' + roleLabel + '</span></div>' +
@@ -561,6 +481,7 @@ function scrollToBottom() {
   requestAnimationFrame(() => { chatScroll.scrollTop = chatScroll.scrollHeight; });
 }
 
+/* ═══ MARKDOWN ═══ */
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -588,18 +509,10 @@ function renderMarkdown(text) {
   return html;
 }
 
-function buildChatPrompt(messages) {
-  let s = '';
-  for (const m of messages) {
-    s += '<|im_start|>' + m.role + '\n' + m.content + '<|im_end|>\n';
-  }
-  s += '<|im_start|>assistant\n';
-  return s;
-}
-
+/* ═══ ОТПРАВКА ═══ */
 async function sendMessage() {
   const text = inputEl.value.trim();
-  if (!text || state.generating || !state.generator) return;
+  if (!text || state.generating) return;
   if (!state.currentChatId) createChat();
   const chat = currentChat();
 
@@ -620,53 +533,91 @@ async function sendMessage() {
   stopBtn.classList.remove('hidden');
   sbDot.className = 'dot generating';
   sbStatus.textContent = 'Генерация...';
+
   state.abortController = new AbortController();
 
-  const prompt = buildChatPrompt([
+  const messages = [
     { role: 'system', content: state.settings.system },
-    ...chat.messages.slice(-10)
-  ]);
+    ...chat.messages.slice(-20).map(m => ({ role: m.role, content: m.content }))
+  ];
 
   let fullResponse = '';
-  let tokenCount = 0;
 
   try {
-    const streamer = new TextStreamer(state.generator.tokenizer, {
-      skip_prompt: true,
-      skip_special_tokens: true,
-      callback_function: (chunk) => {
-        fullResponse += chunk;
-        tokenCount++;
-        botBody.innerHTML = renderMarkdown(fullResponse) + '<span class="cursor-blink"></span>';
-        tokenInfo.textContent = tokenCount + ' токенов';
-        scrollToBottom();
-        if (state.abortController && state.abortController.signal.aborted) throw new Error('aborted');
-      }
-    });
+    const provider = state.settings.provider;
+    const endpoint = ENDPOINTS[provider];
 
-    await state.generator(prompt, {
-      max_new_tokens: state.settings.maxTokens,
+    const body = {
+      model: state.settings.model,
+      messages: messages,
       temperature: state.settings.temperature,
-      top_p: state.settings.topP,
-      do_sample: state.settings.temperature > 0.05,
-      repetition_penalty: 1.1,
-      streamer,
-      return_full_text: false
+      max_tokens: state.settings.maxTokens,
+      stream: true
+    };
+
+    const res = await fetch(endpoint.url, {
+      method: 'POST',
+      headers: endpoint.headers(),
+      body: JSON.stringify(body),
+      signal: state.abortController.signal
     });
 
-    botBody.innerHTML = renderMarkdown(fullResponse.trim());
-    chat.messages.push({ role: 'assistant', content: fullResponse.trim() });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('HTTP ' + res.status + ': ' + errText.slice(0, 200));
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data:')) continue;
+        const data = trimmed.slice(5).trim();
+        if (data === '[DONE]') continue;
+
+        try {
+          const json = JSON.parse(data);
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) {
+            fullResponse += delta;
+            botBody.innerHTML = renderMarkdown(fullResponse) + '<span class="cursor-blink"></span>';
+            scrollToBottom();
+          }
+        } catch (e) { /* игнорируем неполный JSON */ }
+      }
+    }
+
+    if (!fullResponse) {
+      fullResponse = '(пустой ответ — модель не вернула текст)';
+    }
+
+    botBody.innerHTML = renderMarkdown(fullResponse);
+    chat.messages.push({ role: 'assistant', content: fullResponse });
     persistChats();
+
   } catch (err) {
-    if (err.message === 'aborted') {
-      botBody.innerHTML = renderMarkdown(fullResponse.trim() + '\n\n*(остановлено)*');
-      if (fullResponse.trim()) {
-        chat.messages.push({ role: 'assistant', content: fullResponse.trim() });
+    if (err.name === 'AbortError') {
+      if (fullResponse) {
+        botBody.innerHTML = renderMarkdown(fullResponse + '\n\n*(остановлено)*');
+        chat.messages.push({ role: 'assistant', content: fullResponse });
         persistChats();
+      } else {
+        botBody.textContent = '(остановлено)';
       }
     } else {
       console.error(err);
-      botBody.textContent = 'Ошибка: ' + err.message;
+      botBody.innerHTML = '<strong>Ошибка:</strong> ' + escapeHtml(err.message) +
+        '<br><br><span style="color:var(--muted);font-size:.9em">Проверь настройки или попробуй другого провайдера.</span>';
     }
   } finally {
     state.generating = false;
@@ -674,7 +625,7 @@ async function sendMessage() {
     sendBtn.disabled = false;
     stopBtn.classList.add('hidden');
     sbDot.className = 'dot ready';
-    sbStatus.textContent = state.device === 'webgpu' ? 'Готов (GPU)' : 'Готов (CPU)';
+    sbStatus.textContent = state.settings.provider === 'pollinations' ? 'Pollinations' : 'OpenRouter';
     inputEl.focus();
     scrollToBottom();
   }
@@ -685,20 +636,13 @@ function autoResize() {
   inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + 'px';
 }
 
-function showToast(text) {
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:.85em;z-index:9000;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:90%;text-align:center;';
-  t.textContent = text;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2200);
-}
-
+/* ═══ ЭКСПОРТ ═══ */
 function exportChat() {
   const chat = currentChat();
-  if (!chat || chat.messages.length === 0) { showToast('Нечего экспортировать'); return; }
+  if (!chat || chat.messages.length === 0) { alert('Нечего экспортировать'); return; }
   let md = '# ' + chat.title + '\n\n';
   chat.messages.forEach(m => {
-    md += '**' + (m.role === 'user' ? 'Вы' : 'LocalChat') + ':**\n\n' + m.content + '\n\n---\n\n';
+    md += '**' + (m.role === 'user' ? 'Вы' : 'AI') + ':**\n\n' + m.content + '\n\n---\n\n';
   });
   const blob = new Blob([md], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
@@ -707,9 +651,9 @@ function exportChat() {
   a.download = chat.title.replace(/[^\wа-я\s-]/gi, '').trim() + '.md';
   a.click();
   URL.revokeObjectURL(url);
-  showToast('Диалог скачан');
 }
 
+/* ═══ INIT ═══ */
 function init() {
   loadSettings();
   loadChats();
@@ -722,16 +666,15 @@ function init() {
     renderMessages();
   }
 
-  startBtn.addEventListener('click', loadModel);
   inputEl.addEventListener('input', autoResize);
   inputEl.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
   sendBtn.addEventListener('click', sendMessage);
   stopBtn.addEventListener('click', () => state.abortController && state.abortController.abort());
-  newChatBtn.addEventListener('click', () => createChat());
+  $('newChatBtn').addEventListener('click', () => createChat());
 
-  clearBtn.addEventListener('click', () => {
+  $('clearBtn').addEventListener('click', () => {
     const chat = currentChat();
     if (!chat) return;
     if (!confirm('Очистить текущий чат?')) return;
@@ -740,40 +683,54 @@ function init() {
     persistChats();
     renderChatList();
     renderMessages();
-    showToast('Чат очищен');
   });
 
-  exportBtn.addEventListener('click', exportChat);
+  $('exportBtn').addEventListener('click', exportChat);
 
   document.querySelectorAll('[data-prompt]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (!state.generator) { showToast('Сначала загрузите модель'); return; }
       inputEl.value = btn.dataset.prompt;
       autoResize();
       sendMessage();
     });
   });
 
-  settingsBtn.addEventListener('click', () => settingsModal.classList.add('open'));
-  modalClose.addEventListener('click', () => settingsModal.classList.remove('open'));
+  /* ── Модалка ── */
+  $('settingsBtn').addEventListener('click', () => settingsModal.classList.add('open'));
+  $('modalClose').addEventListener('click', () => settingsModal.classList.remove('open'));
   settingsModal.addEventListener('click', e => { if (e.target === settingsModal) settingsModal.classList.remove('open'); });
+
+  setProvider.addEventListener('change', () => {
+    state.settings.provider = setProvider.value;
+    refreshSettingsUI();
+  });
+
+  setModel.addEventListener('change', () => {
+    state.settings.model = setModel.value;
+    const models = MODELS[state.settings.provider] || [];
+    const name = models.find(m => m.id === state.settings.model)?.name || state.settings.model;
+    sbModel.textContent = name;
+  });
 
   setTemp.addEventListener('input', () => { tempVal.textContent = parseFloat(setTemp.value).toFixed(2); });
   setTokens.addEventListener('input', () => { tokensVal.textContent = setTokens.value; });
-  setTopp.addEventListener('input', () => { toppVal.textContent = parseFloat(setTopp.value).toFixed(2); });
 
-  saveSettingsBtn.addEventListener('click', () => {
-    const modelChanged = setModel.value !== state.settings.model;
+  $('saveSettings').addEventListener('click', () => {
+    state.settings.provider = setProvider.value;
+    state.settings.apiKey = setKey.value.trim();
     state.settings.model = setModel.value;
     state.settings.system = setSystem.value;
     state.settings.temperature = parseFloat(setTemp.value);
     state.settings.maxTokens = parseInt(setTokens.value);
-    state.settings.topP = parseFloat(setTopp.value);
+
+    if (state.settings.provider === 'openrouter' && !state.settings.apiKey) {
+      alert('Для OpenRouter нужен бесплатный API-ключ. Получи его на openrouter.ai/keys');
+      return;
+    }
+
     saveSettingsToDisk();
     refreshSettingsUI();
     settingsModal.classList.remove('open');
-    if (modelChanged) showToast('Модель изменена — перезагрузите страницу');
-    else showToast('Настройки сохранены');
   });
 
   document.addEventListener('keydown', e => {
