@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Chat v9.0 — Multi Provider</title>
+<title>AI Chat v9.1 — Multi Provider</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;--accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;--red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e}
@@ -142,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v9.0</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v9.1</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -158,7 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v9.0</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v9.1</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -285,8 +285,8 @@ const state = {
   }
 };
 
-const LS_SETTINGS = 'aichat.settings.v9';
-const LS_CHATS = 'aichat.chats.v9';
+const LS_SETTINGS = 'aichat.settings.v91';
+const LS_CHATS = 'aichat.chats.v91';
 const $ = id => document.getElementById(id);
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
@@ -566,7 +566,7 @@ async function diagnoseAll(){
     }
   }
 
-  try { localStorage.setItem('aichat.health.v9', JSON.stringify(state.providerHealth)); } catch(e){}
+  try { localStorage.setItem('aichat.health.v91', JSON.stringify(state.providerHealth)); } catch(e){}
 
   const working = Object.entries(state.providerHealth).filter(([k,v]) => v.ok).map(([k]) => PROVIDERS[k].name);
   const summary = document.createElement('div');
@@ -577,7 +577,7 @@ async function diagnoseAll(){
   diagResults.appendChild(summary);
 }
 
-/* ═══ ОТПРАВКА ═══ */
+/* ═══ ОТПРАВКА С ИСПРАВЛЕННОЙ КНОПКОЙ СТОП ═══ */
 async function sendMessage(){
   const text = inputEl.value.trim();
   if(!text || state.generating) return;
@@ -592,9 +592,15 @@ async function sendMessage(){
   const botBody = appendMessageEl('bot', '');
   botBody.innerHTML = '<span class="cursor-blink"></span>'; scrollToBottom();
 
-  state.generating = true; sendBtn.disabled = true; stopBtn.classList.remove('hidden');
-  sbDot.className = 'dot generating'; sbStatus.textContent = 'Генерация...';
+  // Создаём ОДИН общий AbortController, к которому привязана кнопка Стоп
   state.abortController = new AbortController();
+  const signal = state.abortController.signal;
+
+  state.generating = true;
+  sendBtn.disabled = true;
+  stopBtn.classList.remove('hidden');
+  sbDot.className = 'dot generating';
+  sbStatus.textContent = 'Генерация...';
 
   const messages = [
     { role: 'system', content: state.settings.system },
@@ -618,24 +624,28 @@ async function sendMessage(){
   let lastError = null;
   let usedProvider = null;
   let usedModel = null;
+  let aborted = false;
 
   for(const providerKey of providersToTry){
+    if(signal.aborted){ aborted = true; break; }
     const p = PROVIDERS[providerKey];
     if(!p) continue;
     try {
       let model = state.settings.model;
       if(!p.models.find(m => m.id === model)) model = p.models[0].id;
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000);
+      // Таймаут через общий signal + отдельный setTimeout
+      const timeoutId = setTimeout(() => {
+        if(!signal.aborted) state.abortController.abort();
+      }, 25000);
 
       const res = await fetch(p.url, {
         method: 'POST',
         headers: p.headers(),
         body: JSON.stringify({ model, messages, temperature: state.settings.temperature, max_tokens: state.settings.maxTokens, stream: true }),
-        signal: controller.signal
+        signal: signal
       });
-      clearTimeout(timeout);
+      clearTimeout(timeoutId);
 
       if(!res.ok){ const errText = await res.text(); throw new Error('HTTP ' + res.status + ': ' + errText.slice(0,150)); }
 
@@ -649,6 +659,8 @@ async function sendMessage(){
       while(true){
         const { done, value } = await reader.read();
         if(done) break;
+        if(signal.aborted){ aborted = true; break; }
+
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n'); buffer = lines.pop();
         for(const line of lines){
@@ -662,10 +674,11 @@ async function sendMessage(){
         }
       }
 
+      if(aborted) break;
       if(fullResponse.trim()) break;
       else throw new Error('Пустой ответ');
     } catch(err){
-      if(err.name === 'AbortError'){ lastError = err; break; }
+      if(err.name === 'AbortError' || signal.aborted){ aborted = true; lastError = err; break; }
       console.warn('Провайдер ' + providerKey + ' не сработал:', err.message);
       lastError = err;
       fullResponse = '';
@@ -674,11 +687,16 @@ async function sendMessage(){
   }
 
   try {
-    if(lastError && !fullResponse.trim()){
-      if(lastError.name === 'AbortError'){ botBody.textContent = '(остановлено)'; }
-      else {
-        botBody.innerHTML = '<strong>Все провайдеры недоступны.</strong><br><br><span style="color:var(--muted);font-size:.9em">Нажми 🔍 Проверить, чтобы узнать какие работают.</span>';
+    if(aborted){
+      if(fullResponse.trim()){
+        botBody.innerHTML = renderMarkdown(fullResponse + '\n\n*(остановлено)*');
+        chat.messages.push({ role: 'assistant', content: fullResponse });
+        persistChats();
+      } else {
+        botBody.textContent = '(остановлено)';
       }
+    } else if(lastError && !fullResponse.trim()){
+      botBody.innerHTML = '<strong>Все провайдеры недоступны.</strong><br><br><span style="color:var(--muted);font-size:.9em">Нажми 🔍 Проверить, чтобы узнать какие работают.</span>';
     } else {
       botBody.innerHTML = renderMarkdown(fullResponse);
       chat.messages.push({ role: 'assistant', content: fullResponse });
@@ -688,8 +706,10 @@ async function sendMessage(){
       statusInfo.textContent = 'Ответ от ' + pName + ' · ' + mName;
     }
   } finally {
-    state.generating = false; state.abortController = null;
-    sendBtn.disabled = false; stopBtn.classList.add('hidden');
+    state.generating = false;
+    state.abortController = null;
+    sendBtn.disabled = false;
+    stopBtn.classList.add('hidden');
     sbDot.className = 'dot ready';
     sbStatus.textContent = state.settings.provider === 'auto' ? 'Авто-режим' : (PROVIDERS[state.settings.provider]?.name || 'Готов');
     scrollToBottom();
@@ -710,7 +730,7 @@ function exportChat(){
 
 function init(){
   loadSettings(); loadChats();
-  try { const h = localStorage.getItem('aichat.health.v9'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
+  try { const h = localStorage.getItem('aichat.health.v91'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
 
   if(Object.keys(state.chats).length === 0) createChat();
   else { const ids = Object.keys(state.chats).sort((a,b) => state.chats[b].createdAt - state.chats[a].createdAt); state.currentChatId = ids[0]; renderChatList(); renderMessages(); }
@@ -719,7 +739,14 @@ function init(){
   inputEl.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
   inputEl.addEventListener('focus', () => { setTimeout(() => { chatScroll.scrollTop = chatScroll.scrollHeight; }, 300); });
   sendBtn.addEventListener('click', sendMessage);
-  stopBtn.addEventListener('click', () => state.abortController && state.abortController.abort());
+
+  // Кнопка Стоп — теперь работает: вызывает abort на общем контроллере
+  stopBtn.addEventListener('click', () => {
+    if(state.abortController){
+      state.abortController.abort();
+    }
+  });
+
   $('newChatBtn').addEventListener('click', () => createChat());
   $('clearBtn').addEventListener('click', () => { const chat = currentChat(); if(!chat) return; if(!confirm('Очистить текущий чат?')) return; chat.messages = []; chat.title = 'Новый чат'; persistChats(); renderChatList(); renderMessages(); });
   $('exportBtn').addEventListener('click', exportChat);
