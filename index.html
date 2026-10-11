@@ -3,207 +3,240 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NOVA — интерфейс будущего</title>
+<title>SecuroServ — приватная безопасность</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- Прелоадер -->
 <div id="loader"><div class="loader-ring"></div></div>
-
-<!-- Прогресс скролла и курсор -->
 <div id="progress"></div>
 <div class="cursor" id="cursor"></div>
 <div class="cursor-dot" id="cursorDot"></div>
 
-<!-- Фон -->
 <canvas id="particles"></canvas>
 <div class="glow a"></div>
 <div class="glow b"></div>
 <div class="glow c"></div>
 
-<!-- Навигация -->
 <nav id="nav">
-  <div class="logo">NOVA</div>
+  <div class="logo">
+    <span class="logo-eye">◉</span> SECUROSERV
+  </div>
   <ul class="nav-links">
-    <li><a href="#features">Возможности</a></li>
+    <li><a href="#services">Услуги</a></li>
+    <li><a href="#fleet">Автопарк</a></li>
     <li><a href="#pricing">Тарифы</a></li>
-    <li><a href="#reviews">Отзывы</a></li>
     <li><a href="#faq">FAQ</a></li>
   </ul>
-  <a href="#start" class="nav-cta">Попробовать</a>
+  <a href="#start" class="nav-cta" data-modal="hire">Нанять охрану</a>
 </nav>
 
-<!-- HERO -->
 <header class="hero">
-  <div class="badge"><span class="pulse"></span> Версия 3.0 уже здесь</div>
-  <h1>Интерфейс<br><span class="grad">будущего</span></h1>
-  <p>Создавай, проектируй и запускай быстрее, чем когда-либо. NOVA объединяет всё в одном элегантном пространстве.</p>
+  <div class="badge"><span class="pulse"></span> Лицензия № 7734- LS</div>
+  <h1>Приватная<br><span class="grad">безопасность</span></h1>
+  <p>Защита активов, сопровождение грузов и элитные телохранители для тех, кто ценит своё время. Работаем по всему Сан-Андреасу.</p>
   <div class="hero-btns">
-    <a href="#start" class="btn btn-primary">Начать бесплатно</a>
-    <a href="#features" class="btn btn-ghost">Узнать больше</a>
+    <a href="#" class="btn btn-primary" data-modal="hire">Заказать защиту</a>
+    <a href="#services" class="btn btn-ghost">Наши услуги</a>
   </div>
   <div class="scroll-hint"></div>
 </header>
 
-<!-- ФИЧИ -->
-<section id="features">
+<section id="services">
   <div class="wrap">
     <div class="reveal">
-      <div class="sec-label">Возможности</div>
-      <h2 class="sec-title">Всё, что нужно.<br>Ничего лишнего.</h2>
-      <p class="sec-sub">Продуманные инструменты, которые не мешают, а помогают думать и создавать.</p>
+      <div class="sec-label">Услуги</div>
+      <h2 class="sec-title">Мы закрываем<br>любые задачи.</h2>
+      <p class="sec-sub">От сопровождения грузов до личной охраны первых лиц. Всё официально, всё конфиденциально.</p>
     </div>
     <div class="grid">
       <div class="card reveal">
-        <div class="ico">⚡</div>
-        <h3>Мгновенный отклик</h3>
-        <p>Нулевые задержки на любом устройстве. Оптимизация на уровне ядра приложения.</p>
+        <div class="ico">🛡</div>
+        <h3>Личная охрана</h3>
+        <p>Профессиональные телохранители с боевым опытом. Незаметно или демонстративно — как вам нужно.</p>
+        <button class="card-btn" data-modal="hire" data-service="Личная охрана">Заказать →</button>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🚛</div>
+        <h3>Сопровождение грузов</h3>
+        <p>Конвой от точки А до точки Б. Бронированный транспорт и полное сопровождение на всём пути.</p>
+        <button class="card-btn" data-modal="hire" data-service="Сопровождение грузов">Заказать →</button>
       </div>
       <div class="card reveal">
         <div class="ico">🔒</div>
-        <h3>Приватность по умолчанию</h3>
-        <p>Сквозное шифрование, локальная обработка и полный контроль над своими данными.</p>
+        <h3>Защита объектов</h3>
+        <p>Охрана складов, офисов и производств. Круглосуточное дежурство и системы контроля доступа.</p>
+        <button class="card-btn" data-modal="hire" data-service="Защита объектов">Заказать →</button>
       </div>
       <div class="card reveal">
-        <div class="ico">🎨</div>
-        <h3>Гибкий дизайн</h3>
-        <p>Настраивай каждую деталь — от цветов до анимаций. Твой стиль, твои правила.</p>
+        <div class="ico">📡</div>
+        <h3>Наблюдение</h3>
+        <p>Установка и обслуживание систем видеонаблюдения. Удалённый мониторинг 24/7 из любой точки.</p>
+        <button class="card-btn" data-modal="hire" data-service="Наблюдение">Заказать →</button>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🚁</div>
+        <h3>Воздушная поддержка</h3>
+        <p>Вертолёты для эвакуации, разведки и сопровождения. Быстрое реагирование в любой точке карты.</p>
+        <button class="card-btn" data-modal="hire" data-service="Воздушная поддержка">Заказать →</button>
       </div>
       <div class="card reveal">
         <div class="ico">🧠</div>
-        <h3>Умные подсказки</h3>
-        <p>Контекстные рекомендации появляются ровно тогда, когда нужны — и исчезают.</p>
-      </div>
-      <div class="card reveal">
-        <div class="ico">☁️</div>
-        <h3>Синхронизация</h3>
-        <p>Работай с любого устройства. Всё сохраняется автоматически и мгновенно.</p>
-      </div>
-      <div class="card reveal">
-        <div class="ico">🚀</div>
-        <h3>Масштаб без границ</h3>
-        <p>От личного проекта до команды из тысяч. Инфраструктура растёт вместе с тобой.</p>
+        <h3>Консалтинг</h3>
+        <p>Оценка рисков, аудит безопасности и разработка стратегий защиты для вашего бизнеса.</p>
+        <button class="card-btn" data-modal="hire" data-service="Консалтинг">Заказать →</button>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ЦИФРЫ -->
+<section id="fleet">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-label">Автопарк</div>
+      <h2 class="sec-title">Техника, которой<br>доверяют.</h2>
+      <p class="sec-sub">Собственный парк бронированных машин, вертолётов и спецтехники.</p>
+    </div>
+    <div class="fleet-grid">
+      <div class="fleet-card reveal">
+        <div class="fleet-img">🚙</div>
+        <h3>Шафтер V12</h3>
+        <p>Бронированный седан для VIP-сопровождения</p>
+        <span class="fleet-tag">Класс A</span>
+      </div>
+      <div class="fleet-card reveal">
+        <div class="fleet-img">🚐</div>
+        <h3>Спидог</h3>
+        <p>Инкассаторский фургон для перевозки ценностей</p>
+        <span class="fleet-tag">Класс A+</span>
+      </div>
+      <div class="fleet-card reveal">
+        <div class="fleet-img">🛻</div>
+        <h3>Пэтриот</h3>
+        <p>Внедорожник для сложных маршрутов</p>
+        <span class="fleet-tag">Класс B</span>
+      </div>
+      <div class="fleet-card reveal">
+        <div class="fleet-img">🚁</div>
+        <h3>Маверик</h3>
+        <p>Вертолёт для воздушного сопровождения</p>
+        <span class="fleet-tag">Класс S</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="numbers">
   <div class="wrap">
     <div class="stats reveal">
       <div>
         <div class="stat-num" data-count="99.9" data-suffix="%">0</div>
-        <div class="stat-label">Аптайм</div>
+        <div class="stat-label">Успешных операций</div>
       </div>
       <div>
         <div class="stat-num" data-count="140" data-suffix="K+">0</div>
-        <div class="stat-label">Пользователей</div>
+        <div class="stat-label">Клиентов защищено</div>
       </div>
       <div>
-        <div class="stat-num" data-count="12" data-suffix="мс">0</div>
-        <div class="stat-label">Отклик</div>
+        <div class="stat-num" data-count="12" data-suffix="мин">0</div>
+        <div class="stat-label">Время реакции</div>
       </div>
       <div>
         <div class="stat-num" data-count="60" data-suffix="+">0</div>
-        <div class="stat-label">Стран</div>
+        <div class="stat-label">Точек в штате</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ТАРИФЫ -->
 <section id="pricing">
   <div class="wrap">
     <div class="reveal" style="text-align:center">
       <div class="sec-label">Тарифы</div>
-      <h2 class="sec-title">Честная цена.<br>Без сюрпризов.</h2>
-      <p class="sec-sub" style="margin:0 auto 60px">Начни бесплатно, плати только за то, что реально используешь.</p>
+      <h2 class="sec-title">Выберите уровень<br>защиты.</h2>
+      <p class="sec-sub" style="margin:0 auto 60px">От базового сопровождения до полного пакета с воздушной поддержкой.</p>
     </div>
     <div class="pricing">
       <div class="price-card reveal">
-        <div class="price-name">Старт</div>
-        <div class="price-val">0<span> ₽/мес</span></div>
-        <div class="price-desc">Для личных проектов и знакомства</div>
+        <div class="price-name">Стандарт</div>
+        <div class="price-val">5 000<span> $/день</span></div>
+        <div class="price-desc">Для разовых задач и поездок</div>
         <ul class="price-list">
-          <li>1 проект</li>
-          <li>Базовые шаблоны</li>
-          <li>1 ГБ хранилища</li>
-          <li>Поддержка сообщества</li>
+          <li>2 телохранителя</li>
+          <li>1 бронированный автомобиль</li>
+          <li>Сопровождение по городу</li>
+          <li>Связь с диспетчером</li>
         </ul>
-        <a href="#" class="btn btn-ghost">Начать</a>
+        <button class="btn btn-ghost price-btn" data-modal="hire" data-plan="Стандарт">Выбрать</button>
       </div>
       <div class="price-card featured reveal">
-        <div class="price-name">Про</div>
-        <div class="price-val">990<span> ₽/мес</span></div>
-        <div class="price-desc">Для профессионалов и небольших команд</div>
+        <div class="price-name">Премиум</div>
+        <div class="price-val">15 000<span> $/день</span></div>
+        <div class="price-desc">Для бизнеса и постоянной защиты</div>
         <ul class="price-list">
-          <li>Неограниченно проектов</li>
-          <li>Все шаблоны и темы</li>
-          <li>100 ГБ хранилища</li>
-          <li>Приоритетная поддержка</li>
-          <li>Командный доступ</li>
+          <li>4 телохранителя</li>
+          <li>2 бронированных автомобиля</li>
+          <li>Сопровождение по штату</li>
+          <li>Воздушная поддержка</li>
+          <li>Персональный координатор</li>
         </ul>
-        <a href="#" class="btn btn-primary">Выбрать Про</a>
+        <button class="btn btn-primary price-btn" data-modal="hire" data-plan="Премиум">Выбрать</button>
       </div>
       <div class="price-card reveal">
-        <div class="price-name">Бизнес</div>
-        <div class="price-val">3 490<span> ₽/мес</span></div>
-        <div class="price-desc">Для компаний с высокими требованиями</div>
+        <div class="price-name">Элит</div>
+        <div class="price-val">50 000<span> $/день</span></div>
+        <div class="price-desc">Максимальный уровень защиты</div>
         <ul class="price-list">
-          <li>Всё из Про</li>
-          <li>Выделенные серверы</li>
-          <li>SSO и аудит</li>
-          <li>SLA 99.99%</li>
+          <li>Всё из Премиум</li>
+          <li>Отряд быстрого реагирования</li>
+          <li>Бронированный вертолёт</li>
+          <li>Эвакуация 24/7</li>
           <li>Персональный менеджер</li>
         </ul>
-        <a href="#" class="btn btn-ghost">Связаться</a>
+        <button class="btn btn-ghost price-btn" data-modal="hire" data-plan="Элит">Выбрать</button>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ОТЗЫВЫ -->
 <section id="reviews">
   <div class="wrap">
     <div class="reveal">
       <div class="sec-label">Отзывы</div>
-      <h2 class="sec-title">Им уже нравится.</h2>
+      <h2 class="sec-title">Клиенты<br>доверяют нам.</h2>
     </div>
     <div class="reviews" style="margin-top:50px">
       <div class="review reveal">
         <div class="stars">★★★★★</div>
-        <p>Перешли всей командой за один день. Скорость и удобство на голову выше того, чем пользовались раньше.</p>
+        <p>Перевёз крупную партию товара через весь штат. Ни одного инцидента. Ребята знают своё дело.</p>
         <div class="who">
           <div class="ava">АК</div>
-          <div><b>Анна Ковалёва</b><small>Product Lead, Orbit</small></div>
+          <div><b>Антон К.</b><small>Предприниматель</small></div>
         </div>
       </div>
       <div class="review reveal">
         <div class="stars">★★★★★</div>
-        <p>Наконец-то инструмент, который не заставляет читать документацию неделю. Всё интуитивно понятно.</p>
+        <p>Пользуюсь Премиум-тарифом уже год. Чувствую себя в безопасности в любой точке города.</p>
         <div class="who">
           <div class="ava">ДС</div>
-          <div><b>Дмитрий Соколов</b><small>Frontend Developer</small></div>
+          <div><b>Дмитрий С.</b><small>Инвестор</small></div>
         </div>
       </div>
       <div class="review reveal">
         <div class="stars">★★★★★</div>
-        <p>Дизайн, скорость, поддержка — всё на уровне. Отдельное спасибо за приватность по умолчанию.</p>
+        <p>Профессионалы. Приехали за 10 минут, сопроводили до офиса. Рекомендую.</p>
         <div class="who">
           <div class="ava">МП</div>
-          <div><b>Мария Петрова</b><small>Founder, Studio 12</small></div>
+          <div><b>Мария П.</b><small>Владелица клуба</small></div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FAQ -->
 <section id="faq">
   <div class="wrap">
     <div class="reveal" style="text-align:center; margin-bottom:50px">
@@ -212,62 +245,60 @@
     </div>
     <div class="faq reveal">
       <div class="faq-item">
-        <div class="faq-q">Можно ли пользоваться бесплатно? <span class="plus">+</span></div>
-        <div class="faq-a">Да. Тариф «Старт» бесплатен навсегда и не требует карты. Он подходит для знакомства и небольших личных проектов.</div>
+        <div class="faq-q">Как быстро вы реагируете? <span class="plus">+</span></div>
+        <div class="faq-a">Среднее время прибытия по городу — 12 минут. По штату — до 30 минут. Для клиентов тарифа Элит доступна воздушная эвакуация.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Как работает оплата и можно ли отменить? <span class="plus">+</span></div>
-        <div class="faq-a">Оплата ежемесячная или годовая. Отменить можно в один клик в личном кабинете — доступ сохранится до конца оплаченного периода.</div>
+        <div class="faq-q">Работаете ли вы с крупными грузами? <span class="plus">+</span></div>
+        <div class="faq-a">Да. Сопровождаем конвои любого размера. Для крупных партий выделяется дополнительный транспорт и воздушное прикрытие.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Где хранятся мои данные? <span class="plus">+</span></div>
-        <div class="faq-a">Данные шифруются и хранятся в дата-центрах на территории ЕС и РФ. Ты всегда можешь выгрузить или удалить их полностью.</div>
+        <div class="faq-q">Насколько это конфиденциально? <span class="plus">+</span></div>
+        <div class="faq-a">Все операции проходят под NDA. Информация о клиентах и маршрутах не разглашается третьим лицам. Полная анонимность по запросу.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Есть ли скидки для команд и образования? <span class="plus">+</span></div>
-        <div class="faq-a">Да, для команд от 10 человек и для образовательных проектов действуют специальные условия. Напиши в поддержку — подберём тариф.</div>
+        <div class="faq-q">Есть ли скидки для постоянных клиентов? <span class="plus">+</span></div>
+        <div class="faq-a">Да. При заказе от 7 дней — скидка 10%, от 30 дней — 20%. Для корпоративных клиентов действуют индивидуальные условия.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Поддерживается ли интеграция с другими сервисами? <span class="plus">+</span></div>
-        <div class="faq-a">Из коробки — да: популярные мессенджеры, облачные хранилища и системы CI/CD. Плюс открытый API для собственных решений.</div>
+        <div class="faq-q">Можно ли заказать охрану на мероприятие? <span class="plus">+</span></div>
+        <div class="faq-a">Конечно. Проводим оценку объекта, разрабатываем план охраны и выделяем необходимое количество сотрудников. Работаем с мероприятиями любого масштаба.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
 <section id="start">
   <div class="wrap">
     <div class="cta-box reveal">
-      <h2>Готов начать?</h2>
-      <p>Присоединяйся к тысячам людей, которые уже создают будущее.</p>
-      <a href="#" class="btn btn-primary">Создать аккаунт</a>
+      <h2>Нужна защита?</h2>
+      <p>Оставьте заявку — координатор свяжется с вами в течение 5 минут.</p>
+      <button class="btn btn-primary" data-modal="hire">Оставить заявку</button>
     </div>
   </div>
 </section>
 
-<!-- ФУТЕР -->
 <footer>
   <div class="foot-grid">
     <div class="foot-brand">
-      <div class="logo">NOVA</div>
-      <p>Интерфейс будущего для тех, кто создаёт сегодня. Работает быстро, выглядит красиво, уважает приватность.</p>
+      <div class="logo"><span class="logo-eye">◉</span> SECUROSERV</div>
+      <p>Приватная охранная организация. Лицензия № 7734-LS. Работаем по всему Сан-Андреасу с 2013 года.</p>
     </div>
     <div>
-      <h4>Продукт</h4>
+      <h4>Услуги</h4>
       <ul>
-        <li><a href="#features">Возможности</a></li>
-        <li><a href="#pricing">Тарифы</a></li>
-        <li><a href="#">Обновления</a></li>
-        <li><a href="#">API</a></li>
+        <li><a href="#services">Личная охрана</a></li>
+        <li><a href="#services">Сопровождение</a></li>
+        <li><a href="#services">Защита объектов</a></li>
+        <li><a href="#services">Наблюдение</a></li>
       </ul>
     </div>
     <div>
       <h4>Компания</h4>
       <ul>
         <li><a href="#">О нас</a></li>
-        <li><a href="#">Блог</a></li>
         <li><a href="#">Карьера</a></li>
+        <li><a href="#">Лицензии</a></li>
         <li><a href="#">Контакты</a></li>
       </ul>
     </div>
@@ -282,14 +313,61 @@
     </div>
   </div>
   <div class="foot-bottom">
-    <div>© 2025 NOVA Labs. Все права защищены.</div>
+    <div>© 2025 SecuroServ. Все права защищены.</div>
     <div class="socials">
-      <a href="#" title="Telegram">✈</a>
-      <a href="#" title="GitHub">◆</a>
-      <a href="#" title="X">✕</a>
+      <a href="#" data-toast="Мы в Telegram — скоро">✈</a>
+      <a href="#" data-toast="GitHub SecuroServ — скоро">◆</a>
+      <a href="#" data-toast="Мы в X — скоро">✕</a>
     </div>
   </div>
 </footer>
+
+<!-- МОДАЛЬНОЕ ОКНО ЗАЯВКИ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-head">
+      <div class="modal-icon">◉</div>
+      <h3>Заявка на защиту</h3>
+      <p id="modalSub">Заполните форму — координатор свяжется с вами</p>
+    </div>
+    <form id="hireForm" novalidate>
+      <div class="field">
+        <label>Ваше имя</label>
+        <input type="text" id="fName" placeholder="Как к вам обращаться?" required>
+        <span class="err" id="errName"></span>
+      </div>
+      <div class="field">
+        <label>Телефон</label>
+        <input type="tel" id="fPhone" placeholder="+7 (___) ___-__-__" required>
+        <span class="err" id="errPhone"></span>
+      </div>
+      <div class="field">
+        <label>Услуга</label>
+        <select id="fService">
+          <option value="Личная охрана">Личная охрана</option>
+          <option value="Сопровождение грузов">Сопровождение грузов</option>
+          <option value="Защита объектов">Защита объектов</option>
+          <option value="Наблюдение">Наблюдение</option>
+          <option value="Воздушная поддержка">Воздушная поддержка</option>
+          <option value="Консалтинг">Консалтинг</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Комментарий</label>
+        <textarea id="fComment" rows="3" placeholder="Детали заказа (необязательно)"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary modal-submit">Отправить заявку</button>
+      <p class="modal-note">Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности.</p>
+    </form>
+    <div class="modal-success" id="modalSuccess">
+      <div class="success-icon">✓</div>
+      <h3>Заявка принята!</h3>
+      <p>Координатор SecuroServ свяжется с вами в течение 5 минут.</p>
+      <button class="btn btn-primary" id="successClose">Отлично</button>
+    </div>
+  </div>
+</div>
 
 <script src="script.js"></script>
 </body>
