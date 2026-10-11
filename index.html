@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Chat v14.1 — Fixed Images</title>
+<title>AI Chat v15.0 — Auto-Check + Video</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;--accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;--red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e}
@@ -202,7 +202,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v14.1</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v15.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -218,7 +218,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v14.1</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v15.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -267,28 +267,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="modal-box">
       <div class="modal-head"><h3>Настройки</h3><button class="modal-close" id="modalClose">✕</button></div>
       <div class="modal-body">
-        <div class="setting"><label>Провайдер (текст)</label><select id="setProvider">
-          <option value="auto">Авто</option>
-          <option value="pollinations">Pollinations</option>
-          <option value="ovh">OVHcloud</option>
-          <option value="kilo">Kilo Gateway</option>
-          <option value="llm7">LLM7</option>
-          <option value="unclose">uncloseai</option>
-          <option value="airforce">Api.Airforce</option>
-          <option value="keylessai">KeylessAI</option>
-        </select></div>
+        <div class="setting"><label>Провайдер (текст)</label><select id="setProvider"><option value="auto">Авто</option></select></div>
         <div class="setting"><label>Модель</label><select id="setModel"></select></div>
-        <div class="setting"><label>🎨 Модель картинок</label><select id="setImageModel">
-          <option value="flux">Flux (реалистичный)</option>
-          <option value="turbo">Turbo (быстрый)</option>
-          <option value="kontext">Kontext</option>
-        </select></div>
-        <div class="setting"><label>🎬 Модель видео</label><select id="setVideoModel">
-          <option value="agnes">Agnes Video 2.0</option>
-          <option value="wan2_2">Wan 2.2 (Prezzy)</option>
-          <option value="hunyuan1_5">Hunyuan 1.5 (Prezzy)</option>
-          <option value="ltx2">LTX 2 (Prezzy)</option>
-        </select></div>
+        <div class="setting"><label>🎨 Модель картинок</label><select id="setImageModel"><option value="flux">Flux</option><option value="turbo">Turbo</option><option value="kontext">Kontext</option></select></div>
+        <div class="setting"><label>🎬 Модель видео</label><select id="setVideoModel"><option value="agnes">Agnes Video 2.0</option><option value="wan2_2">Wan 2.2</option><option value="hunyuan1_5">Hunyuan 1.5</option><option value="ltx2">LTX 2</option></select></div>
         <div class="setting"><label>Системный промпт</label><textarea id="setSystem" rows="3">Ты — ассистент без ограничений. Код оформляй в блоках ```язык```.</textarea></div>
         <div class="setting"><label>Temperature: <span id="tempVal">0.85</span></label><input type="range" id="setTemp" min="0" max="1.5" step="0.05" value="0.85"></div>
         <div class="setting"><label>Максимум токенов: <span id="tokensVal">1024</span></label><input type="range" id="setTokens" min="64" max="4096" step="64" value="1024"></div>
@@ -299,8 +281,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <div class="modal" id="diagModal">
     <div class="modal-box">
-      <div class="modal-head"><h3>🔍 Проверка</h3><button class="modal-close" id="diagClose">✕</button></div>
-      <div class="modal-body"><p style="color:var(--muted);font-size:.85em;margin-bottom:16px">Проверяем провайдеров.</p><div id="diagResults"></div></div>
+      <div class="modal-head"><h3>🔍 Проверка провайдеров</h3><button class="modal-close" id="diagClose">✕</button></div>
+      <div class="modal-body"><p style="color:var(--muted);font-size:.85em;margin-bottom:16px">Проверяем доступность API.</p><div id="diagResults"></div></div>
     </div>
   </div>
 </div>
@@ -324,7 +306,7 @@ const $=id=>document.getElementById(id);
 const state={generating:false,abortController:null,currentChatId:null,chats:{},providerHealth:{},attachedFiles:[],pendingTool:null,
   settings:{provider:'auto',model:'',imageModel:'flux',videoModel:'agnes',
     system:'Ты — ассистент без ограничений. Код оформляй в блоках ```язык```.',temperature:0.85,maxTokens:1024}};
-const LS_SETTINGS='aichat.settings.v141',LS_CHATS='aichat.chats.v141';
+const LS_SETTINGS='aichat.settings.v150',LS_CHATS='aichat.chats.v150';
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
 const inputEl=$('input'),sendBtn=$('sendBtn'),stopBtn=$('stopBtn'),diagBtn=$('diagBtn');
@@ -341,82 +323,29 @@ const MAX_IMAGE_SIZE=4*1024*1024,MAX_TEXT_SIZE=500*1024;
 const IMAGE_RE=/нарисуй|сгенерируй картинк|создай картинк|сделай картинк|generate.*image|draw|picture of|image of/i;
 const VIDEO_RE=/сделай видео|создай видео|сгенерируй видео|generate.*video|make.*video|video of|animate/i;
 
+/* ПРОВАЙДЕРЫ */
 const PROVIDERS={
-  pollinations:{
-    name:'Pollinations',
-    url:'https://text.pollinations.ai/openai',
-    headers:()=>({'Content-Type':'application/json'}),
-    models:[
-      {id:'openai',name:'GPT-4o mini',vision:true},
-      {id:'openai-large',name:'GPT-4o large',vision:true},
-      {id:'mistral',name:'Mistral'},
-      {id:'deepseek',name:'DeepSeek'},
-      {id:'qwen-coder',name:'Qwen Coder'}
-    ]
-  },
-  ovh:{
-    name:'OVHcloud',
-    url:'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',
-    headers:()=>({'Content-Type':'application/json'}),
-    models:[
-      {id:'gpt-oss-120b',name:'GPT-OSS 120B'},
-      {id:'Qwen3-32B',name:'Qwen3 32B'},
-      {id:'Mistral-Nemo-Instruct-2407',name:'Mistral Nemo'}
-    ]
-  },
-  kilo:{
-    name:'Kilo Gateway',
-    url:'https://api.kilo.ai/api/gateway/chat/completions',
-    headers:()=>({'Content-Type':'application/json'}),
-    models:[
-      {id:'z-ai/glm-5:free',name:'GLM 5'},
-      {id:'minimax/minimax-m2.5:free',name:'MiniMax M2.5'},
-      {id:'deepseek/deepseek-r1-0528:free',name:'DeepSeek R1'}
-    ]
-  },
-  llm7:{
-    name:'LLM7',
-    url:'https://api.llm7.io/v1/chat/completions',
-    headers:()=>({'Content-Type':'application/json','Authorization':'Bearer unused'}),
-    models:[
-      {id:'DeepSeek-V4-Flash-0731',name:'DeepSeek V4 Flash'},
-      {id:'GLM-5.3-Flash',name:'GLM 5.3 Flash'},
-      {id:'gemini-2.5-flash-lite',name:'Gemini 2.5 Flash Lite'}
-    ]
-  },
-  unclose:{
-    name:'uncloseai',
-    url:'https://hermes.ai.unturf.com/v1/chat/completions',
-    headers:()=>({'Content-Type':'application/json'}),
-    models:[{id:'turboderp/Qwen3.8-27B-exl3',name:'Qwen 3.8 27B'}]
-  },
-  airforce:{
-    name:'Api.Airforce',
-    url:'https://api.airforce/v1/chat/completions',
-    headers:()=>({'Content-Type':'application/json'}),
-    models:[
-      {id:'grok-3',name:'Grok 3'},
-      {id:'claude-3.7-sonnet',name:'Claude 3.7 Sonnet'},
-      {id:'qwen3-32b',name:'Qwen3 32B'}
-    ]
-  },
-  keylessai:{
-    name:'KeylessAI',
-    url:'https://keylessai.thryx.workers.dev/v1/chat/completions',
-    headers:()=>({'Content-Type':'application/json'}),
-    models:[
-      {id:'gpt-4o',name:'GPT-4o',vision:true},
-      {id:'gpt-4o-mini',name:'GPT-4o mini',vision:true},
-      {id:'deepseek-chat',name:'DeepSeek'}
-    ]
-  }
+  pollinations:{name:'Pollinations',url:'https://text.pollinations.ai/openai',headers:()=>({'Content-Type':'application/json'}),models:[{id:'openai',name:'GPT-4o mini',vision:true},{id:'openai-large',name:'GPT-4o large',vision:true},{id:'mistral',name:'Mistral'},{id:'deepseek',name:'DeepSeek'}]},
+  ovh:{name:'OVHcloud',url:'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-oss-120b',name:'GPT-OSS 120B'},{id:'Qwen3-32B',name:'Qwen3 32B'}]},
+  kilo:{name:'Kilo Gateway',url:'https://api.kilo.ai/api/gateway/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'z-ai/glm-5:free',name:'GLM 5'},{id:'minimax/minimax-m2.5:free',name:'MiniMax M2.5'}]},
+  llm7:{name:'LLM7',url:'https://api.llm7.io/v1/chat/completions',headers:()=>({'Content-Type':'application/json','Authorization':'Bearer unused'}),models:[{id:'DeepSeek-V4-Flash-0731',name:'DeepSeek V4 Flash'},{id:'GLM-5.3-Flash',name:'GLM 5.3 Flash'},{id:'gemini-2.5-flash-lite',name:'Gemini 2.5 Flash Lite'}]},
+  unclose:{name:'uncloseai',url:'https://hermes.ai.unturf.com/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'turboderp/Qwen3.8-27B-exl3',name:'Qwen 3.8 27B'}]},
+  airforce:{name:'Api.Airforce',url:'https://api.airforce/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'grok-3',name:'Grok 3'},{id:'claude-3.7-sonnet',name:'Claude 3.7'}]},
+  keylessai:{name:'KeylessAI',url:'https://keylessai.thryx.workers.dev/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-4o',name:'GPT-4o',vision:true},{id:'gpt-4o-mini',name:'GPT-4o mini',vision:true}]}
 };
 
+/* ВИДЕО-ПРОВАЙДЕРЫ */
+const VIDEO_PROVIDERS={
+  inferenceport:{name:'InferencePort',url:'https://api.inferenceport.ai/v1/videos/generations',models:['wan-fast','wan','kling','vidu','seedance']},
+  agnes:{name:'Agnes AI',url:'https://apihub.agnes-ai.cn/v1/video/generations',models:['Agnes-Video-2.0']},
+  prezzy:{name:'Prezzy Studio',url:'https://prexzyapis.com/ai/aiart-video',models:['wan2_2','hunyuan1_5','ltx2']}
+};
+
+/* НАСТРОЙКИ */
 function loadSettings(){
   try{const r=localStorage.getItem(LS_SETTINGS);if(r)Object.assign(state.settings,JSON.parse(r));}catch(e){}
-  // Принудительно сбрасываем невалидную модель картинок
   const ALLOWED_IMG=['flux','turbo','kontext'];
-  if(!ALLOWED_IMG.includes(state.settings.imageModel)) state.settings.imageModel='flux';
+  if(!ALLOWED_IMG.includes(state.settings.imageModel))state.settings.imageModel='flux';
   setProvider.value=state.settings.provider;setSystem.value=state.settings.system;
   setTemp.value=state.settings.temperature;setTokens.value=state.settings.maxTokens;
   setImageModel.value=state.settings.imageModel;setVideoModel.value=state.settings.videoModel;
@@ -425,13 +354,20 @@ function loadSettings(){
 function saveSettingsToDisk(){localStorage.setItem(LS_SETTINGS,JSON.stringify(state.settings));}
 function refreshSettingsUI(){
   tempVal.textContent=state.settings.temperature.toFixed(2);tokensVal.textContent=state.settings.maxTokens;
+  // Заполняем выпадающий список только рабочими провайдерами
+  const workingProviders=Object.keys(PROVIDERS).filter(k=>state.providerHealth[k]?.ok!==false);
+  setProvider.innerHTML='<option value="auto">Авто</option>'+workingProviders.map(k=>'<option value="'+k+'">'+PROVIDERS[k].name+'</option>').join('');
   if(state.settings.provider==='auto'){setModel.innerHTML='<option value="">Авто</option>';setModel.disabled=true;sbModel.textContent='Авто';sbStatus.textContent='Авто-режим';}
-  else{const p=PROVIDERS[state.settings.provider];if(!p)return;setModel.disabled=false;
-    setModel.innerHTML=p.models.map(m=>'<option value="'+m.id+'">'+m.name+'</option>').join('');
-    const ids=p.models.map(m=>m.id);setModel.value=ids.includes(state.settings.model)?state.settings.model:ids[0];state.settings.model=setModel.value;
-    sbModel.textContent=p.models.find(m=>m.id===state.settings.model)?.name||state.settings.model;sbStatus.textContent=p.name;}
+  else{const p=PROVIDERS[state.settings.provider];if(!p){setProvider.value='auto';refreshSettingsUI();return;}setModel.disabled=false;
+    const workingModels=p.models.filter(m=>state.providerHealth[state.settings.provider]?.models?.[m.id]?.ok!==false);
+    setModel.innerHTML=workingModels.map(m=>'<option value="'+m.id+'">'+m.name+'</option>').join('');
+    if(workingModels.length){const ids=workingModels.map(m=>m.id);setModel.value=ids.includes(state.settings.model)?state.settings.model:ids[0];state.settings.model=setModel.value;
+    sbModel.textContent=workingModels.find(m=>m.id===state.settings.model)?.name||state.settings.model;sbStatus.textContent=p.name;}
+    else{setProvider.value='auto';refreshSettingsUI();}
+  }
 }
 
+/* ЧАТЫ */
 function loadChats(){try{const r=localStorage.getItem(LS_CHATS);if(r)state.chats=JSON.parse(r);}catch(e){state.chats={};}renderChatList();}
 function persistChats(){try{const c={};Object.keys(state.chats).forEach(id=>{c[id]={title:state.chats[id].title,createdAt:state.chats[id].createdAt,messages:state.chats[id].messages.map(m=>({role:m.role,content:typeof m.content==='string'?m.content:(m.displayContent||''),attachments:(m.attachments||[]).map(a=>({name:a.name,type:a.type,isImage:a.isImage}))}))};});localStorage.setItem(LS_CHATS,JSON.stringify(c));}catch(e){}}
 function createChat(){const id='c'+Date.now();state.chats[id]={title:'Новый чат',messages:[],createdAt:Date.now()};state.currentChatId=id;persistChats();renderChatList();renderMessages();}
@@ -444,6 +380,7 @@ function renderChatList(){chatListEl.innerHTML='';const ids=Object.keys(state.ch
     item.innerHTML='<span class="chat-item-name">'+escapeHtml(chat.title)+'</span><button class="chat-item-del">×</button>';
     item.addEventListener('click',()=>switchChat(id));item.querySelector('.chat-item-del').addEventListener('click',(e)=>deleteChat(id,e));chatListEl.appendChild(item);});}
 
+/* РЕНДЕР */
 function renderMessages(){const chat=currentChat();messagesEl.innerHTML='';
   if(!chat||chat.messages.length===0){welcomeEl.classList.remove('hidden');chatTitle.textContent='Новый чат';return;}
   welcomeEl.classList.add('hidden');chatTitle.textContent=chat.title;
@@ -518,7 +455,48 @@ function renderMediaInBody(body,type,url,meta){
   }
   body.appendChild(wrap);}
 
-/* ═══ ИСПРАВЛЕННАЯ ГЕНЕРАЦИЯ КАРТИНОК ═══ */
+/* АВТОПРОВЕРКА ПРИ ЗАГРУЗКЕ */
+async function autoDiagnose(){
+  const keys=Object.keys(PROVIDERS);
+  // Проверяем текстовых провайдеров
+  for(const k of keys){
+    const p=PROVIDERS[k];if(!p)continue;
+    state.providerHealth[k]={ok:false,models:{}};
+    try{
+      const model=p.models[0].id;
+      const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),10000);
+      const res=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify({model,messages:[{role:'user',content:'Say OK'}],max_tokens:10,stream:false}),signal:ctrl.signal});
+      clearTimeout(to);
+      if(res.ok){const d=await res.json();const text=d.choices?.[0]?.message?.content||'';if(text.trim()){state.providerHealth[k].ok=true;state.providerHealth[k].models[model]={ok:true};}}
+      // Проверяем все модели провайдера
+      if(state.providerHealth[k].ok){
+        for(const m of p.models){
+          if(m.id===model)continue;
+          try{
+            const ctrl2=new AbortController();const to2=setTimeout(()=>ctrl2.abort(),8000);
+            const r2=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify({model:m.id,messages:[{role:'user',content:'OK'}],max_tokens:5,stream:false}),signal:ctrl2.signal});
+            clearTimeout(to2);
+            state.providerHealth[k].models[m.id]={ok:r2.ok};
+          }catch(e){state.providerHealth[k].models[m.id]={ok:false};}
+        }
+      }
+    }catch(err){state.providerHealth[k]={ok:false,models:{}};}
+  }
+  // Проверяем видео-провайдеров
+  for(const k of Object.keys(VIDEO_PROVIDERS)){
+    const vp=VIDEO_PROVIDERS[k];
+    try{
+      const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),10000);
+      // Простая проверка — HEAD-запрос или пустой POST
+      const res=await fetch(vp.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:vp.models[0],prompt:'test',duration:1}),signal:ctrl.signal});
+      clearTimeout(to);
+      state.providerHealth['video_'+k]={ok:res.ok};
+    }catch(err){state.providerHealth['video_'+k]={ok:false};}
+  }
+  refreshSettingsUI();
+}
+
+/* ГЕНЕРАЦИЯ КАРТИНОК */
 async function generateImage(prompt,body){
   const ov=document.createElement('div');ov.className='gen-overlay';
   ov.innerHTML='<div class="gen-status"><div class="gen-label">🎨 Генерация картинки...</div><div class="gen-bar"><div class="gen-fill"></div></div><div class="gen-pct">0%</div><div class="gen-hint">Модель: '+escapeHtml(state.settings.imageModel||'flux')+' · 1024×1024</div><div class="gen-time"></div></div>';
@@ -526,257 +504,123 @@ async function generateImage(prompt,body){
   const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time');
   const hint=ov.querySelector('.gen-hint');
   const t0=Date.now();
-  const setP=(v)=>{v=Math.max(0,Math.min(100,v));fill.style.width=v+'%';pct.textContent=Math.round(v)+'%';
-    timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';};
-
-  // Разрешённые модели
-  const ALLOWED=['flux','turbo','kontext'];
-  let model=state.settings.imageModel||'flux';
-  if(!ALLOWED.includes(model)) model='flux';
-
-  const cleanPrompt=String(prompt).trim().slice(0,400);
-  const seed=Math.floor(Math.random()*1000000);
-
+  const setP=(v)=>{v=Math.max(0,Math.min(100,v));fill.style.width=v+'%';pct.textContent=Math.round(v)+'%';timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';};
+  const ALLOWED=['flux','turbo','kontext'];let model=state.settings.imageModel||'flux';if(!ALLOWED.includes(model))model='flux';
+  const cleanPrompt=String(prompt).trim().slice(0,400);const seed=Math.floor(Math.random()*1000000);
   const urls=[
     'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true&seed='+seed,
     'https://image.pollinations.ai/prompt/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&nologo=true&seed='+seed,
     'https://gen.pollinations.ai/image/'+encodeURIComponent(cleanPrompt)+'?width=1024&height=1024&model='+model+'&nologo=true'
   ];
-
   let lastErr=null;
-  for(let i=0;i<urls.length;i++){
-    const url=urls[i];
-    hint.textContent='Попытка '+(i+1)+'/'+urls.length+' · модель: '+model;
-    setP(5);
-
-    try{
-      const loaded=await new Promise((resolve,reject)=>{
-        const img=new Image();
-        img.crossOrigin='anonymous';
-        let finished=false;
-        const timeout=setTimeout(()=>{ if(!finished){ finished=true; reject(new Error('Таймаут 20 секунд')); } },20000);
-
-        img.onload=()=>{ if(finished)return; finished=true; clearTimeout(timeout); resolve(img.src); };
-        img.onerror=()=>{ if(finished)return; finished=true; clearTimeout(timeout); reject(new Error('Ошибка загрузки картинки')); };
-        img.src=url;
-
-        let p=5;
-        const tick=setInterval(()=>{
-          if(finished){clearInterval(tick);return;}
-          p=Math.min(90,p+2);
-          setP(p);
-        },250);
-      });
-
-      setP(100);
-      timeEl.textContent='Готово! Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';
-      await new Promise(r=>setTimeout(r,200));
-      ov.remove();
-      renderMediaInBody(body,'image',loaded,{prompt:cleanPrompt});
-      return {ok:true,url:loaded};
-    }catch(err){
-      lastErr=err;
-      console.warn('Попытка '+(i+1)+' не удалась:',err.message,url);
-    }
-  }
-
-  ov.remove();
-  body.innerHTML='<strong>Не удалось сгенерировать картинку.</strong>'+
-    '<br><br><span style="color:var(--muted);font-size:.85em">Причина: '+escapeHtml(lastErr?.message||'неизвестно')+'</span>'+
-    '<br><br><span style="color:var(--muted);font-size:.82em">Попробуй:</span>'+
-    '<ul style="color:var(--muted);font-size:.82em;margin:8px 0 0 20px">'+
-    '<li>Сменить модель в настройках на «flux» или «turbo»</li>'+
-    '<li>Упростить промпт (убрать лишние слова)</li>'+
-    '<li>Нажать ещё раз через 15 секунд — иногда сервер перегружен</li>'+
-    '</ul>';
-  return {ok:false,error:lastErr};
+  for(let i=0;i<urls.length;i++){hint.textContent='Попытка '+(i+1)+'/'+urls.length+' · модель: '+model;setP(5);
+    try{const loaded=await new Promise((resolve,reject)=>{const img=new Image();img.crossOrigin='anonymous';let finished=false;
+      const timeout=setTimeout(()=>{if(!finished){finished=true;reject(new Error('Таймаут'));}},20000);
+      img.onload=()=>{if(finished)return;finished=true;clearTimeout(timeout);resolve(img.src);};
+      img.onerror=()=>{if(finished)return;finished=true;clearTimeout(timeout);reject(new Error('Ошибка загрузки'));};
+      img.src=urls[i];let p=5;const tick=setInterval(()=>{if(finished){clearInterval(tick);return;}p=Math.min(90,p+2);setP(p);},250);});
+      setP(100);timeEl.textContent='Готово! '+((Date.now()-t0)/1000).toFixed(1)+' сек';
+      await new Promise(r=>setTimeout(r,200));ov.remove();renderMediaInBody(body,'image',loaded,{prompt:cleanPrompt});return{ok:true,url:loaded};
+    }catch(err){lastErr=err;console.warn('Попытка '+(i+1)+':',err.message);}}
+  ov.remove();body.innerHTML='<strong>Не удалось сгенерировать.</strong><br><span style="color:var(--muted);font-size:.85em">'+escapeHtml(lastErr?.message||'')+'</span>';return{ok:false,error:lastErr};
 }
 
-/* ═══ ГЕНЕРАЦИЯ ВИДЕО ═══ */
+/* ГЕНЕРАЦИЯ ВИДЕО */
 async function generateVideo(prompt,body){
   const ov=document.createElement('div');ov.className='gen-overlay';
   body.style.position='relative';body.appendChild(ov);
-
   const model=state.settings.videoModel||'agnes';
-  let estSec=120;
   const modelNames={agnes:'Agnes Video 2.0',wan2_2:'Wan 2.2',hunyuan1_5:'Hunyuan 1.5',ltx2:'LTX 2'};
-
   ov.innerHTML='<div class="gen-status"><div class="gen-label">🎬 Генерация видео...</div><div class="gen-bar"><div class="gen-fill" style="width:5%"></div></div><div class="gen-pct">5%</div><div class="gen-hint">Модель: '+escapeHtml(modelNames[model]||model)+'</div><div class="gen-time">Инициализация...</div></div>';
-  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time');
-  const label=ov.querySelector('.gen-label');
-  const start=Date.now();
+  const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time'),label=ov.querySelector('.gen-label');
+  const start=Date.now();let estSec=120;
+  const tick=setInterval(()=>{const elapsed=(Date.now()-start)/1000;const progress=Math.min(94,5+Math.round(elapsed/estSec*89));fill.style.width=progress+'%';pct.textContent=progress+'%';const remaining=Math.max(0,Math.round(estSec-elapsed));timeEl.textContent='Осталось: ~'+remaining+' сек';},500);
 
-  const tick=setInterval(()=>{
-    const elapsed=(Date.now()-start)/1000;
-    const progress=Math.min(94,5+Math.round(elapsed/estSec*89));
-    fill.style.width=progress+'%';pct.textContent=progress+'%';
-    const remaining=Math.max(0,Math.round(estSec-elapsed));
-    timeEl.textContent='Примерно осталось: '+remaining+' сек';
-  },500);
+  // Список видео-провайдеров для попытки
+  const providersToTry=['inferenceport','agnes','prezzy'];
+  const cleanPrompt=String(prompt).trim().slice(0,400);
+  let lastErr=null;let src=null;
 
-  try{
-    let src=null;
-    const cleanPrompt=String(prompt).trim().slice(0,400);
-
-    if(model==='agnes'){
-      const res=await fetch('https://apihub.agnes-ai.cn/v1/video/generations',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'Agnes-Video-2.0',prompt:cleanPrompt,duration:5,resolution:'720p',aspect_ratio:'16:9'})
-      });
-      if(!res.ok)throw new Error('Agnes HTTP '+res.status);
-      const data=await res.json();
-      src=data.data?.[0]?.url||data.url||data.video_url||data.output;
-      if(!src&&(data.id||data.task_id)){
-        const taskId=data.id||data.task_id;
-        let attempts=0;
-        while(attempts<60){
-          await new Promise(r=>setTimeout(r,3000));
-          const pr=await fetch('https://apihub.agnes-ai.cn/v1/video/generations/'+taskId);
-          const pd=await pr.json();
-          if(pd.status==='completed'||pd.status==='succeeded'){src=pd.data?.[0]?.url||pd.url||pd.video_url;break;}
-          if(pd.status==='failed')throw new Error('Генерация не удалась');
-          attempts++;
-        }
+  for(const provider of providersToTry){
+    if(src)break;
+    try{
+      if(provider==='inferenceport'){
+        label.textContent='🎬 InferencePort...';
+        const res=await fetch('https://api.inferenceport.ai/v1/videos/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'wan-fast',prompt:cleanPrompt})});
+        if(res.ok){const d=await res.json();src=d.data?.[0]?.url||d.url||d.output;}
+      }else if(provider==='agnes'){
+        label.textContent='🎬 Agnes AI...';
+        const res=await fetch('https://apihub.agnes-ai.cn/v1/video/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'Agnes-Video-2.0',prompt:cleanPrompt,duration:5,resolution:'720p',aspect_ratio:'16:9'})});
+        if(res.ok){const d=await res.json();src=d.data?.[0]?.url||d.url||d.video_url;
+          if(!src&&(d.id||d.task_id)){const tid=d.id||d.task_id;for(let a=0;a<60;a++){await new Promise(r=>setTimeout(r,3000));const pr=await fetch('https://apihub.agnes-ai.cn/v1/video/generations/'+tid);const pd=await pr.json();if(pd.status==='completed'){src=pd.data?.[0]?.url||pd.url;break;}if(pd.status==='failed')break;}}}
+      }else if(provider==='prezzy'){
+        label.textContent='🎬 Prezzy Studio...';
+        const engine={wan2_2:'wan2_2',hunyuan1_5:'hunyuan1_5',ltx2:'ltx2'};
+        const res=await fetch('https://prexzyapis.com/ai/aiart-video?prompt='+encodeURIComponent(cleanPrompt)+'&engine='+(engine[model]||'wan2_2'));
+        if(res.ok){const d=await res.json();const tid=d.task_id;if(tid){for(let a=0;a<60;a++){await new Promise(r=>setTimeout(r,3000));const st=await fetch('https://prexzyapis.com/ai/aiart-video-status?task_id='+tid).then(r=>r.json());if(st.ready||st.state==='ready'){src=st.video_url||st.url;break;}}}}
       }
-      if(!src)throw new Error('Agnes не вернул URL видео');
-    } else {
-      const engineMap={wan2_2:'wan2_2',hunyuan1_5:'hunyuan1_5',ltx2:'ltx2'};
-      const baseUrl='https://prexzyapis.com';
-      const submitUrl=baseUrl+'/ai/aiart-video?prompt='+encodeURIComponent(cleanPrompt)+'&engine='+(engineMap[model]||'wan2_2');
-      const submitRes=await fetch(submitUrl,{headers:{'Accept':'application/json'}});
-      const submitData=await submitRes.json();
-      const taskId=submitData.task_id||submitData.taskId;
-      const deviceId=submitData.device_id||submitData.deviceId;
-      if(!taskId)throw new Error('Prezzy не вернул task_id');
+    }catch(err){lastErr=err;console.warn('Видео-провайдер '+provider+' не сработал:',err.message);}
+  }
 
-      let attempts=0;
-      while(attempts<60){
-        await new Promise(r=>setTimeout(r,3000));
-        const st=await fetch(baseUrl+'/ai/aiart-video-status?task_id='+taskId+'&device_id='+(deviceId||'')).then(r=>r.json());
-        if(st.ready||st.state==='ready'||st.state==='completed'){src=st.video_url||st.url||st.videoUrl;break;}
-        if(st.state==='failed')throw new Error('Генерация не удалась');
-        attempts++;
-      }
-      if(!src)throw new Error('Prezzy не вернул URL видео');
-    }
-
-    clearInterval(tick);
-    fill.style.width='99%';pct.textContent='99%';
-    label.textContent='📥 Обработка...';
-    await new Promise(r=>setTimeout(r,300));
-
-    fill.style.width='100%';pct.textContent='100%';
-    label.textContent='✓ Готово!';
-    timeEl.textContent='Всего: '+((Date.now()-start)/1000).toFixed(1)+' сек';
-    await new Promise(r=>setTimeout(r,300));
-    ov.remove();
-    renderMediaInBody(body,'video',src,{prompt:cleanPrompt});
-    return {ok:true,url:src};
-  }catch(err){
-    clearInterval(tick);
-    console.error('Video generation error:',err);
-    ov.remove();
-    body.innerHTML='<strong>Не удалось сгенерировать видео.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(err.message||err)+'</span><br><br><span style="color:var(--muted);font-size:.82em">Попробуй сменить модель видео в настройках или повторить запрос.</span>';
-    return {ok:false,error:err};
+  clearInterval(tick);
+  if(src){
+    fill.style.width='100%';pct.textContent='100%';label.textContent='✓ Готово!';timeEl.textContent='Всего: '+((Date.now()-start)/1000).toFixed(1)+' сек';
+    await new Promise(r=>setTimeout(r,300));ov.remove();renderMediaInBody(body,'video',src,{prompt:cleanPrompt});return{ok:true,url:src};
+  } else {
+    ov.remove();body.innerHTML='<strong>Не удалось сгенерировать видео.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(lastErr?.message||'Все сервисы заняты')+'</span><br><br><span style="color:var(--muted);font-size:.82em">Попробуй сменить модель видео в настройках.</span>';return{ok:false,error:lastErr};
   }
 }
 
-/* ═══ ГЕНЕРАЦИЯ ФАЙЛА ═══ */
+/* ГЕНЕРАЦИЯ ФАЙЛА */
 async function aiGenerateFile(prompt,body){
   const ov=document.createElement('div');ov.className='gen-overlay';
   ov.innerHTML='<div class="gen-status"><div class="gen-label">📄 Готовлю файл...</div><div class="gen-bar"><div class="gen-fill" style="width:15%"></div></div><div class="gen-pct">15%</div><div class="gen-hint">ИИ пишет код</div><div class="gen-time"></div></div>';
   body.style.position='relative';body.appendChild(ov);
   const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time');
-  const t0=Date.now();
-  const tick=setInterval(()=>{
-    const cur=Math.min(90,parseInt(fill.style.width)+2);
-    fill.style.width=cur+'%';pct.textContent=cur+'%';
-    timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';
-  },400);
-
+  const t0=Date.now();const tick=setInterval(()=>{const cur=Math.min(90,parseInt(fill.style.width)+2);fill.style.width=cur+'%';pct.textContent=cur+'%';timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';},400);
   try{
-    const fp='Сгенерируй файл по запросу: "'+prompt+'". Выведи ТОЛЬКО содержимое файла в одном блоке ```язык```. Никаких пояснений.';
-    const msgs=[{role:'system',content:'Ты генератор файлов. Отвечай ТОЛЬКО блоком кода ```язык ... ``` без пояснений.'},{role:'user',content:fp}];
-    const result=await callTextProvider(msgs);
-    clearInterval(tick);
+    const fp='Сгенерируй файл по запросу: "'+prompt+'". Выведи ТОЛЬКО содержимое в одном блоке ```язык```.';
+    const msgs=[{role:'system',content:'Ты генератор файлов. Отвечай ТОЛЬКО блоком кода.'},{role:'user',content:fp}];
+    const result=await callTextProvider(msgs);clearInterval(tick);
     if(!result||!result.text)throw new Error('Пустой ответ');
-    fill.style.width='100%';pct.textContent='100%';
-    await new Promise(r=>setTimeout(r,300));
-    ov.remove();
+    fill.style.width='100%';pct.textContent='100%';await new Promise(r=>setTimeout(r,300));ov.remove();
     body.innerHTML=renderMarkdown(result.text);decorateCodeBlocks(body);
     const firstPre=body.querySelector('pre code');
-    if(firstPre){
-      const langClass=Array.from(firstPre.classList).find(c=>c.startsWith('language-'));
-      const lang=langClass?langClass.replace('language-',''):'txt';const ext=extForLang(lang);
-      const fname=(prompt.replace(/[^\wа-я\s-]/gi,'').trim().slice(0,40)||'generated')+'.'+ext;
-      const acts=document.createElement('div');acts.className='media-actions';
-      const btn=document.createElement('button');btn.className='media-btn';btn.textContent='💾 Скачать '+fname;
-      btn.addEventListener('click',()=>downloadText(firstPre.textContent,fname));acts.appendChild(btn);body.appendChild(acts);return {ok:true,filename:fname};
-    }
-    return {ok:true};
-  }catch(err){
-    clearInterval(tick);ov.remove();
-    body.innerHTML='<strong>Не удалось сгенерировать файл.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(err.message||err)+'</span>';
-    return {ok:false,error:err};
-  }
+    if(firstPre){const lc=Array.from(firstPre.classList).find(c=>c.startsWith('language-'));const lang=lc?lc.replace('language-',''):'txt';const ext=extForLang(lang);const fname=(prompt.replace(/[^\wа-я\s-]/gi,'').trim().slice(0,40)||'generated')+'.'+ext;
+      const acts=document.createElement('div');acts.className='media-actions';const btn=document.createElement('button');btn.className='media-btn';btn.textContent='💾 Скачать '+fname;btn.addEventListener('click',()=>downloadText(firstPre.textContent,fname));acts.appendChild(btn);body.appendChild(acts);return{ok:true,filename:fname};}
+    return{ok:true};
+  }catch(err){clearInterval(tick);ov.remove();body.innerHTML='<strong>Ошибка.</strong> '+escapeHtml(err.message||'');return{ok:false,error:err};}
 }
 
 async function callTextProvider(messages){
-  const keys=state.settings.provider==='auto'?Object.keys(PROVIDERS):[state.settings.provider,...Object.keys(PROVIDERS).filter(k=>k!==state.settings.provider)];
+  const keys=state.settings.provider==='auto'?Object.keys(PROVIDERS).filter(k=>state.providerHealth[k]?.ok!==false):[state.settings.provider,...Object.keys(PROVIDERS).filter(k=>k!==state.settings.provider&&state.providerHealth[k]?.ok!==false)];
   for(const k of keys){const p=PROVIDERS[k];if(!p)continue;
-    try{const model=p.models[0].id;
+    try{const model=state.settings.model||p.models[0].id;
       const res=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify({model,messages,temperature:state.settings.temperature,max_tokens:state.settings.maxTokens,stream:false})});
       if(!res.ok)throw new Error('HTTP '+res.status);
       const data=await res.json();const text=data.choices?.[0]?.message?.content||data.response||'';
-      if(text.trim())return {text,provider:k};
+      if(text.trim())return{text,provider:k};
     }catch(e){console.warn(k,e.message);}}
   return null;
 }
 
+/* ФАЙЛЫ */
 attachBtn.addEventListener('click',()=>fileInput.click());
 fileInput.addEventListener('change',async(e)=>{for(const f of Array.from(e.target.files||[]))await processFile(f);fileInput.value='';renderAttachmentsBar();});
-async function processFile(file){
-  const isImage=file.type.startsWith('image/');
-  const isText=file.type.startsWith('text/')||/\.(md|json|js|py|html|css|txt|csv|xml|yaml|yml|ts|tsx|jsx|java|cpp|c|go|rs|rb|php|sh|sql)$/i.test(file.name);
+async function processFile(file){const isImage=file.type.startsWith('image/');const isText=file.type.startsWith('text/')||/\.(md|json|js|py|html|css|txt|csv|xml|yaml|yml|ts|tsx|jsx|java|cpp|c|go|rs|rb|php|sh|sql)$/i.test(file.name);
   if(isImage){if(file.size>MAX_IMAGE_SIZE){showToast('Картинка > 4 МБ');return;}const du=await readAsDataURL(file);state.attachedFiles.push({name:file.name,type:file.type,size:file.size,dataUrl:du,isImage:true});}
   else if(isText){if(file.size>MAX_TEXT_SIZE){showToast('Файл > 500 КБ');return;}const tx=await readAsText(file);state.attachedFiles.push({name:file.name,type:file.type,size:file.size,textContent:tx,isImage:false});}
-  else showToast('Формат не поддерживается: '+file.name);
-}
+  else showToast('Формат не поддерживается: '+file.name);}
 function readAsDataURL(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});}
 function readAsText(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});}
-function renderAttachmentsBar(){attachmentsBar.innerHTML='';
-  state.attachedFiles.forEach((f,idx)=>{const chip=document.createElement('div');chip.className='attach-chip';
-    if(f.isImage&&f.dataUrl)chip.innerHTML='<img src="'+f.dataUrl+'"><span class="attach-name">'+escapeHtml(f.name)+'</span><button class="attach-remove">✕</button>';
-    else chip.innerHTML='<span style="font-size:1.3em">📄</span><span class="attach-name">'+escapeHtml(f.name)+'</span><button class="attach-remove">✕</button>';
-    chip.querySelector('.attach-remove').addEventListener('click',()=>{state.attachedFiles.splice(idx,1);renderAttachmentsBar();});attachmentsBar.appendChild(chip);});}
+function renderAttachmentsBar(){attachmentsBar.innerHTML='';state.attachedFiles.forEach((f,idx)=>{const chip=document.createElement('div');chip.className='attach-chip';
+  if(f.isImage&&f.dataUrl)chip.innerHTML='<img src="'+f.dataUrl+'"><span class="attach-name">'+escapeHtml(f.name)+'</span><button class="attach-remove">✕</button>';
+  else chip.innerHTML='<span style="font-size:1.3em">📄</span><span class="attach-name">'+escapeHtml(f.name)+'</span><button class="attach-remove">✕</button>';
+  chip.querySelector('.attach-remove').addEventListener('click',()=>{state.attachedFiles.splice(idx,1);renderAttachmentsBar();});attachmentsBar.appendChild(chip);});}
 
 function showToast(text){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}t.textContent=text;requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),2000);}
 
-async function diagnoseAll(){
-  diagModal.classList.add('open');diagResults.innerHTML='';
-  const keys=Object.keys(PROVIDERS);
-  keys.forEach(k=>{const p=PROVIDERS[k];const el=document.createElement('div');el.className='diag-result checking';el.id='diag-'+k;
-    el.innerHTML='<span class="diag-dot checking"></span><div class="diag-info"><div class="diag-name">'+p.name+'</div><div class="diag-detail">Проверка...</div></div>';diagResults.appendChild(el);});
-  for(const k of keys){const p=PROVIDERS[k];const el=document.getElementById('diag-'+k);const t0=Date.now();
-    try{const model=p.models[0].id;const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),12000);
-      const res=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify({model,messages:[{role:'user',content:'Say OK'}],max_tokens:10,stream:false}),signal:ctrl.signal});
-      clearTimeout(to);const dt=Date.now()-t0;
-      if(!res.ok){const et=await res.text();el.className='diag-result fail';el.querySelector('.diag-dot').className='diag-dot fail';
-        el.querySelector('.diag-detail').textContent='HTTP '+res.status+' — '+et.slice(0,60);state.providerHealth[k]={ok:false,error:'HTTP '+res.status,ms:dt};continue;}
-      const d=await res.json();const text=d.choices?.[0]?.message?.content||d.response||'';
-      if(text.trim()){el.className='diag-result ok';el.querySelector('.diag-dot').className='diag-dot ok';
-        el.querySelector('.diag-detail').textContent='✓ Работает — '+dt+' мс';state.providerHealth[k]={ok:true,ms:dt};}
-      else{el.className='diag-result fail';el.querySelector('.diag-dot').className='diag-dot fail';el.querySelector('.diag-detail').textContent='Пустой ответ';state.providerHealth[k]={ok:false,error:'Пустой',ms:dt};}
-    }catch(err){const dt=Date.now()-t0;el.className='diag-result fail';el.querySelector('.diag-dot').className='diag-dot fail';
-      el.querySelector('.diag-detail').textContent=(err.name==='AbortError'?'Таймаут':err.message.slice(0,60));state.providerHealth[k]={ok:false,error:err.message,ms:dt};}}
-  try{localStorage.setItem('aichat.health.v141',JSON.stringify(state.providerHealth));}catch(e){}
-  const working=Object.entries(state.providerHealth).filter(([k,v])=>v.ok).map(([k])=>PROVIDERS[k].name);
-  const sum=document.createElement('div');sum.style.cssText='margin-top:16px;padding:14px;border-radius:8px;background:rgba(124,92,255,.08);border:1px solid rgba(124,92,255,.2);font-size:.85em;';
-  sum.innerHTML=working.length?'<strong style="color:var(--green)">✓ Работают: '+working.join(', ')+'</strong>':'<strong style="color:var(--red)">✗ Ни один не отвечает</strong>';
-  diagResults.appendChild(sum);
-}
-
+/* ОТПРАВКА */
 async function sendMessage(){
   const text=inputEl.value.trim();const hasFiles=state.attachedFiles.length>0;const tool=state.pendingTool;
   if((!text&&!hasFiles&&!tool)||state.generating)return;
@@ -787,8 +631,7 @@ async function sendMessage(){
     chat.messages.push({role:'user',content:'🎨 '+text});welcomeEl.classList.add('hidden');
     appendMessageEl('user','🎨 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Картинка: '+text);
     state.generating=true;sendBtn.disabled=true;stopBtn.classList.remove('hidden');sbDot.className='dot generating';sbStatus.textContent='Генерация...';
-    const botBody=appendMessageEl('bot','');
-    const result=await generateImage(text,botBody);
+    const botBody=appendMessageEl('bot','');const result=await generateImage(text,botBody);
     if(result.ok)chat.messages.push({role:'assistant',content:'Картинка: '+text,mediaType:'image',mediaUrl:result.url,mediaMeta:{prompt:text}});
     persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;
   }
@@ -796,8 +639,7 @@ async function sendMessage(){
     chat.messages.push({role:'user',content:'🎬 '+text});welcomeEl.classList.add('hidden');
     appendMessageEl('user','🎬 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Видео: '+text);
     state.generating=true;sendBtn.disabled=true;stopBtn.classList.remove('hidden');sbDot.className='dot generating';sbStatus.textContent='Генерация...';
-    const botBody=appendMessageEl('bot','');
-    const result=await generateVideo(text,botBody);
+    const botBody=appendMessageEl('bot','');const result=await generateVideo(text,botBody);
     if(result.ok)chat.messages.push({role:'assistant',content:'Видео: '+text,mediaType:'video',mediaUrl:result.url,mediaMeta:{prompt:text}});
     persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;
   }
@@ -805,27 +647,20 @@ async function sendMessage(){
     chat.messages.push({role:'user',content:'💻 '+text});welcomeEl.classList.add('hidden');
     appendMessageEl('user','💻 '+text);scrollToBottom();inputEl.value='';autoResize();updateChatTitle('Файл: '+text);
     state.generating=true;sendBtn.disabled=true;stopBtn.classList.remove('hidden');sbDot.className='dot generating';sbStatus.textContent='Генерация...';
-    const botBody=appendMessageEl('bot','');
-    const result=await aiGenerateFile(text,botBody);
+    const botBody=appendMessageEl('bot','');const result=await aiGenerateFile(text,botBody);
     if(result.ok)chat.messages.push({role:'assistant',content:'Файл: '+text});
     persistChats();state.pendingTool=null;updateToolChips();state.generating=false;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';return;
   }
 
-  if(text&&!hasFiles&&!tool){
-    if(VIDEO_RE.test(text)){state.pendingTool='video';updateToolChips();sendMessage();return;}
-    if(IMAGE_RE.test(text)){state.pendingTool='image';updateToolChips();sendMessage();return;}
-  }
+  if(text&&!hasFiles&&!tool){if(VIDEO_RE.test(text)){state.pendingTool='video';updateToolChips();sendMessage();return;}if(IMAGE_RE.test(text)){state.pendingTool='image';updateToolChips();sendMessage();return;}}
 
-  const filesCopy=JSON.parse(JSON.stringify(state.attachedFiles));
-  let displayContent=text;if(filesCopy.length&&!text)displayContent='';
-  let apiText=text;
-  const textFiles=filesCopy.filter(f=>!f.isImage);
+  const filesCopy=JSON.parse(JSON.stringify(state.attachedFiles));let displayContent=text;if(filesCopy.length&&!text)displayContent='';
+  let apiText=text;const textFiles=filesCopy.filter(f=>!f.isImage);
   if(textFiles.length){let ctx=apiText?apiText+'\n\n':'';textFiles.forEach(f=>{ctx+='=== Файл: '+f.name+' ===\n'+(f.textContent||'')+'\n=== Конец ===\n\n';});apiText=ctx;}
   const imageFiles=filesCopy.filter(f=>f.isImage);
 
   const userMsg={role:'user',content:apiText,displayContent,attachments:filesCopy.map(f=>({name:f.name,type:f.type,isImage:f.isImage,dataUrl:f.dataUrl}))};
-  chat.messages.push(userMsg);
-  welcomeEl.classList.add('hidden');appendMessageEl('user',displayContent,userMsg.attachments);scrollToBottom();
+  chat.messages.push(userMsg);welcomeEl.classList.add('hidden');appendMessageEl('user',displayContent,userMsg.attachments);scrollToBottom();
   inputEl.value='';state.attachedFiles=[];renderAttachmentsBar();autoResize();updateChatTitle(text||filesCopy[0]?.name||'Файл');
 
   const botBody=appendMessageEl('bot','');botBody.innerHTML='<span class="cursor-blink"></span>';scrollToBottom();
@@ -834,26 +669,23 @@ async function sendMessage(){
 
   const apiMessages=[{role:'system',content:state.settings.system}];
   chat.messages.slice(-20).forEach(m=>{if(m.role==='system')return;
-    if(m===userMsg){if(imageFiles.length){const parts=[];if(apiText)parts.push({type:'text',text:apiText});else if(!textFiles.length)parts.push({type:'text',text:'Что на картинках?'});imageFiles.forEach(img=>parts.push({type:'image_url',image_url:{url:img.dataUrl}}));apiMessages.push({role:'user',content:parts});}
+    if(m===userMsg){if(imageFiles.length){const parts=[];if(apiText)parts.push({type:'text',text:apiText});imageFiles.forEach(img=>parts.push({type:'image_url',image_url:{url:img.dataUrl}}));apiMessages.push({role:'user',content:parts});}
       else apiMessages.push({role:'user',content:apiText});}
     else apiMessages.push({role:m.role,content:typeof m.content==='string'?m.content:(m.displayContent||'')});});
 
   let providersToTry=[];
-  if(state.settings.provider==='auto'){let list=Object.keys(PROVIDERS).sort((a,b)=>{const ha=state.providerHealth[a],hb=state.providerHealth[b];if(ha?.ok&&!hb?.ok)return -1;if(!ha?.ok&&hb?.ok)return 1;if(ha?.ok&&hb?.ok)return (ha.ms||9999)-(hb.ms||9999);return 0;});
+  if(state.settings.provider==='auto'){let list=Object.keys(PROVIDERS).filter(k=>state.providerHealth[k]?.ok!==false);
     if(imageFiles.length){const v=list.filter(k=>PROVIDERS[k].models.some(m=>m.vision));const o=list.filter(k=>!v.includes(k));list=[...v,...o];}providersToTry=list;}
-  else providersToTry=[state.settings.provider,...Object.keys(PROVIDERS).filter(p=>p!==state.settings.provider)];
+  else providersToTry=[state.settings.provider,...Object.keys(PROVIDERS).filter(p=>p!==state.settings.provider&&state.providerHealth[p]?.ok!==false)];
 
   let fullResponse='',lastError=null,usedProvider=null,usedModel=null,aborted=false;
-  for(const pk of providersToTry){
-    if(signal.aborted){aborted=true;break;}
-    const p=PROVIDERS[pk];if(!p)continue;
+  for(const pk of providersToTry){if(signal.aborted){aborted=true;break;}const p=PROVIDERS[pk];if(!p)continue;
     if(imageFiles.length&&!p.models.some(m=>m.vision))continue;
     let timeoutId=null;
     try{let model=state.settings.model;let mo=p.models.find(m=>m.id===model);
       if(imageFiles.length&&(!mo||!mo.vision)){mo=p.models.find(m=>m.vision)||p.models[0];model=mo.id;}
       if(!mo)model=p.models[0].id;
       const body={model,messages:apiMessages,temperature:state.settings.temperature,max_tokens:state.settings.maxTokens,stream:true};
-      if(p.extraBody)Object.assign(body,p.extraBody);
       timeoutId=setTimeout(()=>{if(!signal.aborted)state.abortController.abort();},45000);
       const res=await fetch(p.url,{method:'POST',headers:p.headers(),body:JSON.stringify(body),signal});
       if(!res.ok){const et=await res.text();throw new Error('HTTP '+res.status+': '+et.slice(0,150));}
@@ -863,27 +695,21 @@ async function sendMessage(){
         buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();
         for(const line of lines){const t=line.trim();if(!t||!t.startsWith('data:'))continue;const d=t.slice(5).trim();if(d==='[DONE]')continue;
           try{const j=JSON.parse(d);const delta=j.choices?.[0]?.delta?.content||j.delta||'';if(delta){fullResponse+=delta;botBody.innerHTML=renderMarkdown(fullResponse)+'<span class="cursor-blink"></span>';scrollToBottom();}}catch(e){}}}
-      if(aborted)break;
-      if(fullResponse.trim())break;
-      else throw new Error('Пустой ответ');
+      if(aborted)break;if(fullResponse.trim())break;else throw new Error('Пустой ответ');
     }catch(err){if(err.name==='AbortError'||signal.aborted){aborted=true;lastError=err;break;}console.warn(pk,err.message);lastError=err;fullResponse='';botBody.innerHTML='<span class="cursor-blink"></span>';}
-    finally{if(timeoutId)clearTimeout(timeoutId);}
-  }
+    finally{if(timeoutId)clearTimeout(timeoutId);}}
 
   try{
     if(aborted){if(fullResponse.trim()){botBody.innerHTML=renderMarkdown(fullResponse+'\n\n*(остановлено)*');decorateCodeBlocks(botBody);chat.messages.push({role:'assistant',content:fullResponse});persistChats();}else botBody.textContent='(остановлено)';}
-    else if(lastError&&!fullResponse.trim()){botBody.innerHTML='<strong>Все провайдеры недоступны.</strong><br><br><span style="color:var(--muted);font-size:.9em">Нажми 🔍 Проверить, чтобы узнать какие работают.</span>';}
+    else if(lastError&&!fullResponse.trim()){botBody.innerHTML='<strong>Все провайдеры недоступны.</strong>';}
     else{botBody.innerHTML=renderMarkdown(fullResponse);decorateCodeBlocks(botBody);chat.messages.push({role:'assistant',content:fullResponse});persistChats();
       const pn=PROVIDERS[usedProvider]?.name||usedProvider;const mn=PROVIDERS[usedProvider]?.models.find(m=>m.id===usedModel)?.name||usedModel;statusInfo.textContent='Ответ от '+pn+' · '+mn;}
-  }finally{state.generating=false;state.abortController=null;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent=state.settings.provider==='auto'?'Авто-режим':(PROVIDERS[state.settings.provider]?.name||'Готов');scrollToBottom();}
+  }finally{state.generating=false;state.abortController=null;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent='Готов';scrollToBottom();}
 }
 
 function autoResize(){inputEl.style.height='auto';inputEl.style.height=Math.min(inputEl.scrollHeight,200)+'px';}
 function updateToolChips(){toolImage.classList.toggle('active',state.pendingTool==='image');toolVideo.classList.toggle('active',state.pendingTool==='video');toolCode.classList.toggle('active',state.pendingTool==='code');
-  if(state.pendingTool==='image')inputEl.placeholder='Опиши картинку...';
-  else if(state.pendingTool==='video')inputEl.placeholder='Опиши видео...';
-  else if(state.pendingTool==='code')inputEl.placeholder='Что за файл сгенерировать?';
-  else inputEl.placeholder='Напиши сообщение или прикрепи файл...';}
+  if(state.pendingTool==='image')inputEl.placeholder='Опиши картинку...';else if(state.pendingTool==='video')inputEl.placeholder='Опиши видео...';else if(state.pendingTool==='code')inputEl.placeholder='Что за файл сгенерировать?';else inputEl.placeholder='Напиши сообщение или прикрепи файл...';}
 toolImage.addEventListener('click',()=>{state.pendingTool=state.pendingTool==='image'?null:'image';updateToolChips();inputEl.focus();});
 toolVideo.addEventListener('click',()=>{state.pendingTool=state.pendingTool==='video'?null:'video';updateToolChips();inputEl.focus();});
 toolCode.addEventListener('click',()=>{state.pendingTool=state.pendingTool==='code'?null:'code';updateToolChips();inputEl.focus();});
@@ -894,7 +720,6 @@ function exportChat(){const chat=currentChat();if(!chat||chat.messages.length===
 
 function init(){
   loadSettings();loadChats();
-  try{const h=localStorage.getItem('aichat.health.v141');if(h)state.providerHealth=JSON.parse(h);}catch(e){}
   if(Object.keys(state.chats).length===0)createChat();
   else{const ids=Object.keys(state.chats).sort((a,b)=>state.chats[b].createdAt-state.chats[a].createdAt);state.currentChatId=ids[0];renderChatList();renderMessages();}
 
@@ -906,7 +731,7 @@ function init(){
   $('newChatBtn').addEventListener('click',()=>createChat());
   $('clearBtn').addEventListener('click',()=>{const chat=currentChat();if(!chat)return;if(!confirm('Очистить чат?'))return;chat.messages=[];chat.title='Новый чат';persistChats();renderChatList();renderMessages();});
   $('exportBtn').addEventListener('click',exportChat);
-  diagBtn.addEventListener('click',diagnoseAll);
+  diagBtn.addEventListener('click',async()=>{diagModal.classList.add('open');diagResults.innerHTML='<p style="color:var(--muted)">Проверка...</p>';await autoDiagnose();diagResults.innerHTML='';Object.keys(PROVIDERS).forEach(k=>{const p=PROVIDERS[k];const el=document.createElement('div');el.className='diag-result '+(state.providerHealth[k]?.ok?'ok':'fail');el.innerHTML='<span class="diag-dot '+(state.providerHealth[k]?.ok?'ok':'fail')+'"></span><div class="diag-info"><div class="diag-name">'+p.name+'</div><div class="diag-detail">'+(state.providerHealth[k]?.ok?'✓ Работает':'✗ Недоступен')+'</div></div>';diagResults.appendChild(el);});});
   $('diagClose').addEventListener('click',()=>diagModal.classList.remove('open'));
   diagModal.addEventListener('click',e=>{if(e.target===diagModal)diagModal.classList.remove('open');});
   document.querySelectorAll('[data-prompt]').forEach(b=>{b.addEventListener('click',()=>{inputEl.value=b.dataset.prompt;autoResize();sendMessage();});});
@@ -914,53 +739,23 @@ function init(){
   $('modalClose').addEventListener('click',()=>settingsModal.classList.remove('open'));
   settingsModal.addEventListener('click',e=>{if(e.target===settingsModal)settingsModal.classList.remove('open');});
 
-  function applyAndSave(changedKey){
-    saveSettingsToDisk();
-    state.providerHealth={};
-    try{localStorage.removeItem('aichat.health.v141');}catch(e){}
-    refreshSettingsUI();
-    if(changedKey)showToast('✓ Сохранено: '+changedKey);
-  }
-
-  setProvider.addEventListener('change',()=>{
-    state.settings.provider=setProvider.value;
-    const p=PROVIDERS[state.settings.provider];
-    if(p&&p.models.length)state.settings.model=p.models[0].id;
-    applyAndSave('провайдер → '+(p?.name||setProvider.value));
-  });
-  setModel.addEventListener('change',()=>{
-    state.settings.model=setModel.value;
-    applyAndSave('модель → '+setModel.options[setModel.selectedIndex].text);
-  });
-  setImageModel.addEventListener('change',()=>{
-    state.settings.imageModel=setImageModel.value;
-    applyAndSave('картинки → '+setImageModel.options[setImageModel.selectedIndex].text);
-  });
-  setVideoModel.addEventListener('change',()=>{
-    state.settings.videoModel=setVideoModel.value;
-    applyAndSave('видео → '+setVideoModel.options[setVideoModel.selectedIndex].text);
-  });
+  function applyAndSave(changedKey){saveSettingsToDisk();refreshSettingsUI();if(changedKey)showToast('✓ Сохранено: '+changedKey);}
+  setProvider.addEventListener('change',()=>{state.settings.provider=setProvider.value;const p=PROVIDERS[state.settings.provider];if(p&&p.models.length)state.settings.model=p.models[0].id;applyAndSave('провайдер → '+(p?.name||setProvider.value));});
+  setModel.addEventListener('change',()=>{state.settings.model=setModel.value;applyAndSave('модель → '+setModel.options[setModel.selectedIndex].text);});
+  setImageModel.addEventListener('change',()=>{state.settings.imageModel=setImageModel.value;applyAndSave('картинки → '+setImageModel.options[setImageModel.selectedIndex].text);});
+  setVideoModel.addEventListener('change',()=>{state.settings.videoModel=setVideoModel.value;applyAndSave('видео → '+setVideoModel.options[setVideoModel.selectedIndex].text);});
   setTemp.addEventListener('input',()=>{tempVal.textContent=parseFloat(setTemp.value).toFixed(2);});
   setTemp.addEventListener('change',()=>{state.settings.temperature=parseFloat(setTemp.value);applyAndSave('temperature → '+state.settings.temperature.toFixed(2));});
   setTokens.addEventListener('input',()=>{tokensVal.textContent=setTokens.value;});
   setTokens.addEventListener('change',()=>{state.settings.maxTokens=parseInt(setTokens.value);applyAndSave('макс. токенов → '+state.settings.maxTokens);});
   setSystem.addEventListener('change',()=>{state.settings.system=setSystem.value;applyAndSave('системный промпт');});
-
-  $('saveSettings').addEventListener('click',()=>{
-    state.settings.provider=setProvider.value;
-    state.settings.model=setModel.value;
-    state.settings.imageModel=setImageModel.value;
-    state.settings.videoModel=setVideoModel.value;
-    state.settings.system=setSystem.value;
-    state.settings.temperature=parseFloat(setTemp.value);
-    state.settings.maxTokens=parseInt(setTokens.value);
-    applyAndSave();
-    settingsModal.classList.remove('open');
-  });
-
+  $('saveSettings').addEventListener('click',()=>{state.settings.provider=setProvider.value;state.settings.model=setModel.value;state.settings.imageModel=setImageModel.value;state.settings.videoModel=setVideoModel.value;state.settings.system=setSystem.value;state.settings.temperature=parseFloat(setTemp.value);state.settings.maxTokens=parseInt(setTokens.value);applyAndSave();settingsModal.classList.remove('open');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){settingsModal.classList.remove('open');diagModal.classList.remove('open');}});
-  setTimeout(()=>diagBtn.classList.remove('hidden'),1500);
   updateToolChips();
+
+  // Автопроверка при загрузке
+  showToast('Проверяю провайдеров...');
+  setTimeout(async()=>{await autoDiagnose();showToast('Готово! Рабочих: '+Object.keys(PROVIDERS).filter(k=>state.providerHealth[k]?.ok).length);},300);
 }
 init();
 </script>
