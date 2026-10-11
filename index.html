@@ -3,499 +3,163 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Local LLM — Browser Chat</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #0a0a0f;
-    --panel: #12121a;
-    --border: #1e1e2e;
-    --accent: #7c5cff;
-    --accent-dim: #5a3fd6;
-    --green: #2ecc71;
-    --text: #e8e8f2;
-    --muted: #6a6a85;
-  }
-
-  body {
-    font-family: -apple-system, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  /* ── Шапка ── */
-  header {
-    padding: 16px 24px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-  header h1 {
-    font-size: 1.1em;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  header h1::before {
-    content: '◉';
-    color: var(--accent);
-    font-size: 1.3em;
-  }
-  .header-status {
-    font-size: 0.78em;
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: background 0.3s;
-  }
-  .status-dot.ready { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  .status-dot.loading { background: #f39c12; animation: pulse 1s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-
-  /* ── Прогресс загрузки ── */
-  #loadBar {
-    height: 3px;
-    background: var(--border);
-    position: relative;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  #loadFill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent), #a78bfa);
-    transition: width 0.3s ease;
-  }
-
-  /* ── Чат ── */
-  #chat {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    scroll-behavior: smooth;
-  }
-  #chat::-webkit-scrollbar { width: 6px; }
-  #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  .msg {
-    max-width: 78%;
-    padding: 12px 16px;
-    border-radius: 16px;
-    line-height: 1.55;
-    font-size: 0.94em;
-    animation: fadeIn 0.3s ease both;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .msg.user {
-    align-self: flex-end;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-    color: #fff;
-    border-bottom-right-radius: 4px;
-  }
-  .msg.bot {
-    align-self: flex-start;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-bottom-left-radius: 4px;
-  }
-  .msg.bot.thinking {
-    color: var(--muted);
-    font-style: italic;
-  }
-  .msg.bot.thinking::after {
-    content: '';
-    display: inline-block;
-    width: 6px; height: 6px;
-    background: var(--accent);
-    border-radius: 50%;
-    margin-left: 6px;
-    animation: blink 1s infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:0.2;} 50%{opacity:1;} }
-
-  /* ── Панель ввода ── */
-  .input-area {
-    padding: 16px 24px;
-    background: var(--panel);
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-  #input {
-    flex: 1;
-    padding: 14px 18px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 0.95em;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  #input:focus { border-color: var(--accent); }
-  #input:disabled { opacity: 0.5; }
-
-  #sendBtn {
-    padding: 0 28px;
-    background: var(--accent);
-    border: none;
-    border-radius: 12px;
-    color: #fff;
-    font-size: 0.95em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-  }
-  #sendBtn:hover:not(:disabled) { background: var(--accent-dim); }
-  #sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  /* ── Экран инициализации ── */
-  #initScreen {
-    position: fixed;
-    inset: 0;
-    background: var(--bg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    transition: opacity 0.5s ease, visibility 0.5s;
-    text-align: center;
-    padding: 24px;
-  }
-  #initScreen.hide { opacity: 0; visibility: hidden; }
-
-  #initScreen h2 {
-    font-size: 1.8em;
-    margin-bottom: 10px;
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  #initScreen p {
-    color: var(--muted);
-    max-width: 460px;
-    line-height: 1.7;
-    margin-bottom: 32px;
-    font-size: 0.92em;
-  }
-  #initBtn {
-    padding: 16px 44px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-    border: none;
-    border-radius: 14px;
-    color: #fff;
-    font-size: 1.05em;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-family: inherit;
-    box-shadow: 0 8px 30px rgba(124, 92, 255, 0.3);
-  }
-  #initBtn:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(124, 92, 255, 0.5); }
-  #initBtn:disabled { opacity: 0.5; cursor: wait; transform: none; }
-
-  #initProgress {
-    width: 100%;
-    max-width: 400px;
-    margin-top: 28px;
-    display: none;
-  }
-  #initProgress.show { display: block; }
-  #initProgress .bar {
-    height: 6px;
-    background: var(--border);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  #initProgress .fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent), #a78bfa);
-    transition: width 0.3s;
-  }
-  #initProgress .text {
-    font-size: 0.8em;
-    color: var(--muted);
-    margin-top: 10px;
-    font-family: 'SF Mono', monospace;
-  }
-
-  .warning {
-    background: rgba(243, 156, 18, 0.08);
-    border: 1px solid rgba(243, 156, 18, 0.3);
-    border-radius: 10px;
-    padding: 14px 18px;
-    font-size: 0.82em;
-    color: #f39c12;
-    max-width: 460px;
-    margin-top: 24px;
-    line-height: 1.6;
-  }
-</style>
+<title>LocalChat — LLM в браузере</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- Экран инициализации -->
-<div id="initScreen">
-  <h2>◉ Local LLM</h2>
-  <p>
-    Настоящая языковая модель запускается прямо в браузере.<br>
-    Никаких серверов, API-ключей и облаков. Всё работает на твоём устройстве.
-  </p>
-  <button id="initBtn">Загрузить модель</button>
-  <div id="initProgress">
-    <div class="bar"><div class="fill" id="initFill"></div></div>
-    <div class="text" id="initText">Подготовка...</div>
-  </div>
-  <div class="warning">
-    ⚠️ При первой загрузке скачается ≈300 МБ (модель Qwen2.5-0.5B-Instruct).
-    Файлы кешируются браузером — повторные запуски мгновенны. Рекомендуется
-    Chrome/Edge 113+ с включённым WebGPU.
+<!-- ═══ ЭКРАН ЗАГРУЗКИ ═══ -->
+<div id="loader">
+  <div class="loader-inner">
+    <div class="loader-logo">◉ LocalChat</div>
+    <p class="loader-tagline">Языковая модель работает прямо в браузере.<br>Никаких серверов. Никаких API-ключей.</p>
+
+    <div class="loader-stats" id="loaderStats">
+      <div class="ls-item">
+        <span class="ls-label">Модель</span>
+        <span class="ls-value" id="lsModel">—</span>
+      </div>
+      <div class="ls-item">
+        <span class="ls-label">Размер</span>
+        <span class="ls-value" id="lsSize">≈300 МБ</span>
+      </div>
+      <div class="ls-item">
+        <span class="ls-label">Устройство</span>
+        <span class="ls-value" id="lsDevice">—</span>
+      </div>
+    </div>
+
+    <button id="startBtn" class="btn-primary">Загрузить модель</button>
+
+    <div id="progressBox" class="progress-box">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">Подготовка...</div>
+    </div>
+
+    <div class="loader-note">
+      Первый запуск скачает модель. Файлы кешируются — повторные запуски мгновенны.
+      Нужен Chrome/Edge 113+ или Safari 18+.
+    </div>
   </div>
 </div>
 
-<!-- Шапка -->
-<header>
-  <h1>Local LLM</h1>
-  <div class="header-status">
-    <span class="status-dot" id="statusDot"></span>
-    <span id="statusText">Инициализация...</span>
+<!-- ═══ ПРИЛОЖЕНИЕ ═══ -->
+<div id="app" class="hidden">
+
+  <!-- Сайдбар -->
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="sb-logo">◉ LocalChat</div>
+      <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
+    </div>
+
+    <div class="sb-chats" id="chatList"></div>
+
+    <div class="sb-foot">
+      <div class="sb-model" id="sbModel">—</div>
+      <div class="sb-status">
+        <span class="dot ready" id="sbDot"></span>
+        <span id="sbStatus">Готов</span>
+      </div>
+      <button class="sb-settings" id="settingsBtn">⚙ Настройки</button>
+    </div>
+  </aside>
+
+  <!-- Основная часть -->
+  <main class="main">
+    <header class="chat-header">
+      <div class="ch-title" id="chatTitle">Новый чат</div>
+      <div class="ch-actions">
+        <button class="ch-btn" id="clearBtn" title="Очистить">Очистить</button>
+        <button class="ch-btn" id="exportBtn" title="Скачать диалог">Экспорт</button>
+      </div>
+    </header>
+
+    <div class="chat-scroll" id="chatScroll">
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">◉</div>
+        <h2>Чем помочь?</h2>
+        <p>Модель работает офлайн — твои сообщения никуда не отправляются.</p>
+        <div class="suggestions">
+          <button data-prompt="Объясни разницу между TCP и UDP простыми словами">Разница TCP и UDP</button>
+          <button data-prompt="Напиши функцию на JavaScript для сортировки массива объектов по ключу">Сортировка массива в JS</button>
+          <button data-prompt="Придумай короткий слоган для кофейни">Слоган для кофейни</button>
+          <button data-prompt="Составь план тренировки на неделю для новичка">План тренировок</button>
+        </div>
+      </div>
+
+      <div id="messages"></div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <textarea
+          id="input"
+          rows="1"
+          placeholder="Напиши сообщение... (Enter — отправить, Shift+Enter — новая строка)"
+          disabled
+        ></textarea>
+        <button id="sendBtn" disabled title="Отправить">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="composer-hint">
+        <span id="tokenInfo">0 токенов</span>
+        <button id="stopBtn" class="stop-btn hidden">■ Остановить</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══ МОДАЛКА НАСТРОЕК ═══ -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>Настройки</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <div class="setting">
+          <label>Модель</label>
+          <select id="setModel">
+            <option value="onnx-community/Qwen2.5-0.5B-Instruct">Qwen2.5 0.5B — быстрая (~300 МБ)</option>
+            <option value="onnx-community/Qwen2.5-1.5B-Instruct">Qwen2.5 1.5B — умнее (~1.2 ГБ)</option>
+            <option value="onnx-community/Qwen2.5-Coder-1.5B-Instruct">Qwen2.5 Coder 1.5B — для кода (~1.2 ГБ)</option>
+          </select>
+          <div class="setting-hint">Смена модели требует перезагрузки страницы</div>
+        </div>
+
+        <div class="setting">
+          <label>Системный промпт</label>
+          <textarea id="setSystem" rows="3">Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.</textarea>
+        </div>
+
+        <div class="setting">
+          <label>Temperature: <span id="tempVal">0.7</span></label>
+          <input type="range" id="setTemp" min="0" max="1.5" step="0.05" value="0.7">
+          <div class="setting-hint">Ниже — точнее, выше — креативнее</div>
+        </div>
+
+        <div class="setting">
+          <label>Максимум токенов ответа: <span id="tokensVal">256</span></label>
+          <input type="range" id="setTokens" min="64" max="1024" step="64" value="256">
+        </div>
+
+        <div class="setting">
+          <label>Top-p: <span id="toppVal">0.9</span></label>
+          <input type="range" id="setTopp" min="0.1" max="1" step="0.05" value="0.9">
+        </div>
+
+        <button class="btn-primary" id="saveSettings">Сохранить</button>
+      </div>
+    </div>
   </div>
-</header>
 
-<div id="loadBar"><div id="loadFill"></div></div>
-
-<!-- Чат -->
-<div id="chat">
-  <div class="msg bot">Привет! Я работаю полностью в твоём браузере. Спроси что-нибудь.</div>
 </div>
 
-<!-- Ввод -->
-<div class="input-area">
-  <input type="text" id="input" placeholder="Напиши сообщение..." disabled autocomplete="off">
-  <button id="sendBtn" disabled>Отправить</button>
-</div>
-
-<script type="module">
-/* ============================================================
-   LOCAL LLM — реальная нейросеть в браузере
-   Стек: Transformers.js v3 + WebGPU (fallback на WASM)
-   Модель: Qwen2.5-0.5B-Instruct (ONNX, q4)
-   ============================================================ */
-
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
-
-// Отключаем телеметрию и удалённые модели — только то, что скачали
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-
-const MODEL_ID = 'onnx-community/Qwen2.5-0.5B-Instruct';
-
-/* ── DOM ── */
-const initScreen  = document.getElementById('initScreen');
-const initBtn     = document.getElementById('initBtn');
-const initProgress= document.getElementById('initProgress');
-const initFill    = document.getElementById('initFill');
-const initText    = document.getElementById('initText');
-const statusDot   = document.getElementById('statusDot');
-const statusText  = document.getElementById('statusText');
-const loadFill    = document.getElementById('loadFill');
-const chatEl      = document.getElementById('chat');
-const inputEl     = document.getElementById('input');
-const sendBtn     = document.getElementById('sendBtn');
-
-let generator = null;   // пайплайн text-generation
-let isGenerating = false;
-
-/* ============================================================
-   ЗАГРУЗКА МОДЕЛИ
-   ============================================================ */
-
-async function loadModel() {
-  initBtn.disabled = true;
-  initBtn.textContent = 'Загрузка...';
-  initProgress.classList.add('show');
-  statusDot.className = 'status-dot loading';
-  statusText.textContent = 'Скачивание модели...';
-
-  try {
-    const device = navigator.gpu ? 'webgpu' : 'wasm';
-
-    generator = await pipeline(
-      'text-generation',
-      MODEL_ID,
-      {
-        device: device,
-        dtype: 'q4',
-        progress_callback: (p) => {
-          if (p.status === 'progress') {
-            const pct = Math.round(p.progress || 0);
-            initFill.style.width = pct + '%';
-            loadFill.style.width = pct + '%';
-            const mb = ((p.loaded || 0) / 1048576).toFixed(1);
-            const total = ((p.total || 0) / 1048576).toFixed(1);
-            initText.textContent = `${p.file || 'файл'} — ${mb} / ${total} МБ`;
-            statusText.textContent = `Загрузка: ${pct}%`;
-          } else if (p.status === 'ready') {
-            initFill.style.width = '100%';
-            loadFill.style.width = '100%';
-            initText.textContent = 'Готово!';
-          }
-        }
-      }
-    );
-
-    // Модель загружена — прячем экран инициализации
-    statusDot.className = 'status-dot ready';
-    statusText.textContent = `Готово · ${device === 'webgpu' ? 'WebGPU' : 'CPU'}`;
-    setTimeout(() => {
-      initScreen.classList.add('hide');
-      inputEl.disabled = false;
-      sendBtn.disabled = false;
-      inputEl.focus();
-    }, 500);
-
-  } catch (err) {
-    console.error(err);
-    initBtn.disabled = false;
-    initBtn.textContent = 'Повторить';
-    initText.textContent = 'Ошибка: ' + err.message;
-    statusDot.className = 'status-dot';
-    statusText.textContent = 'Ошибка загрузки';
-  }
-}
-
-initBtn.addEventListener('click', loadModel);
-
-/* ============================================================
-   ГЕНЕРАЦИЯ ОТВЕТА
-   ============================================================ */
-
-async function generate(userText) {
-  if (isGenerating || !generator) return;
-  isGenerating = true;
-  sendBtn.disabled = true;
-  inputEl.disabled = true;
-
-  // Сообщение пользователя
-  addMessage(userText, 'user');
-  inputEl.value = '';
-
-  // Заглушка "думает..."
-  const botEl = addMessage('Думаю', 'bot thinking');
-
-  try {
-    // Формируем диалог в формате ChatML (Qwen)
-    const messages = [
-      { role: 'system', content: 'Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.' },
-      { role: 'user', content: userText }
-    ];
-
-    // Пайплайн text-generation принимает текстовый промпт.
-    // Для instruct-моделей применяем chat-шаблон вручную.
-    const prompt = buildChatPrompt(messages);
-
-    const output = await generator(prompt, {
-      max_new_tokens: 256,
-      temperature: 0.7,
-      top_p: 0.9,
-      do_sample: true,
-      repetition_penalty: 1.1,
-      return_full_text: false,
-    });
-
-    // Извлекаем сгенерированный текст
-    let text = output[0].generated_text;
-
-    // Обрезаем возможные служебные токены
-    text = text.replace(/<\|im_end\|>/g, '').replace(/<\|im_start\|>/g, '').trim();
-
-    botEl.classList.remove('thinking');
-    botEl.textContent = text || '(пустой ответ)';
-
-  } catch (err) {
-    console.error(err);
-    botEl.classList.remove('thinking');
-    botEl.textContent = 'Ошибка генерации: ' + err.message;
-  } finally {
-    isGenerating = false;
-    sendBtn.disabled = false;
-    inputEl.disabled = false;
-    inputEl.focus();
-    chatEl.scrollTop = chatEl.scrollHeight;
-  }
-}
-
-/* ── ChatML-шаблон для Qwen ── */
-function buildChatPrompt(messages) {
-  let s = '';
-  for (const m of messages) {
-    s += `<|im_start|>${m.role}\n${m.content}<|im_end|>\n`;
-  }
-  s += '<|im_start|>assistant\n';
-  return s;
-}
-
-/* ── Добавление сообщения в чат ── */
-function addMessage(text, role) {
-  const el = document.createElement('div');
-  el.className = 'msg ' + role;
-  if (role === 'bot thinking') {
-    el.className = 'msg bot thinking';
-    el.textContent = text;
-  } else {
-    el.textContent = text;
-  }
-  chatEl.appendChild(el);
-  chatEl.scrollTop = chatEl.scrollHeight;
-  return el;
-}
-
-/* ── Отправка ── */
-function send() {
-  const text = inputEl.value.trim();
-  if (!text) return;
-  generate(text);
-}
-
-sendBtn.addEventListener('click', send);
-inputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
-});
-</script>
-
+<script type="module" src="app.js"></script>
 </body>
 </html>
