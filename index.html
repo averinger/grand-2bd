@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Chat v10.0 — Uncensored</title>
+<title>AI Chat v11.0 — Ultimate Uncensored</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;--accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;--red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e}
@@ -142,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v10.0</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v11.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -158,7 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v10.0</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v11.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -169,7 +169,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="welcome" id="welcome">
         <div class="welcome-icon">◉</div>
         <h2>Чем помочь?</h2>
-        <p>11 бесплатных AI API. Без цензуры. Автопереключение при сбое.</p>
+        <p>Маршрутизация через KeylessAI. Автовыбор рабочего API. Без цензуры.</p>
         <div class="suggestions">
           <button data-prompt="Что такое HTML?">Что такое HTML?</button>
           <button data-prompt="Напиши функцию на JavaScript для сортировки массива">Сортировка в JS</button>
@@ -205,19 +205,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <div class="setting">
           <label>Провайдер</label>
           <select id="setProvider">
-            <option value="auto">Авто (перебирает всех)</option>
+            <option value="auto">Авто (KeylessAI Router)</option>
+            <option value="keylessai">KeylessAI (маршрутизатор)</option>
+            <option value="dolphin">OpenRouter (Dolphin Venice)</option>
             <option value="pollinations">Pollinations (NSFW)</option>
-            <option value="chatgptoss">ChatGptOss (gpt-oss-120b)</option>
-            <option value="inferenceport">InferencePort</option>
-            <option value="llm7">LLM7</option>
+            <option value="chatgptoss">ChatGptOss (GPT-OSS 120B)</option>
+            <option value="inferenceport">InferencePort (Studio)</option>
+            <option value="llm7">LLM7 (uncensored)</option>
             <option value="ovh">OVHcloud</option>
             <option value="unclose">uncloseai</option>
             <option value="kilo">Kilo Gateway</option>
-            <option value="opencode">OpenCode Zen</option>
-            <option value="blockrun">BlockRun</option>
-            <option value="dahl">Dahl</option>
             <option value="airforce">Api.Airforce</option>
-            <option value="bridgenode">BridgeNode</option>
           </select>
           <div class="setting-hint" id="providerHint">Автоматически переключается при сбое</div>
         </div>
@@ -277,7 +275,6 @@ const state = {
   abortController: null,
   currentChatId: null,
   chats: {},
-  workingProxy: null,
   providerHealth: {},
   settings: {
     provider: 'auto',
@@ -288,8 +285,8 @@ const state = {
   }
 };
 
-const LS_SETTINGS = 'aichat.settings.v10';
-const LS_CHATS = 'aichat.chats.v10';
+const LS_SETTINGS = 'aichat.settings.v11';
+const LS_CHATS = 'aichat.chats.v11';
 const $ = id => document.getElementById(id);
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
@@ -304,6 +301,25 @@ const diagModal=$('diagModal'),diagResults=$('diagResults'),diagClose=$('diagClo
 
 /* ═══ ПРОВАЙДЕРЫ ═══ */
 const PROVIDERS = {
+  keylessai: {
+    name: 'KeylessAI',
+    url: 'https://keylessai.thryx.workers.dev/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'gpt-4o', name: 'GPT-4o (auto-router)' },
+      { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet' },
+      { id: 'deepseek-chat', name: 'DeepSeek' },
+      { id: 'auto', name: 'Auto' }
+    ]
+  },
+  dolphin: {
+    name: 'OpenRouter (Dolphin)',
+    url: 'https://openrouter.ai/api/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free', name: 'Dolphin Mistral 24B Venice (uncensored)' }
+    ]
+  },
   pollinations: {
     name: 'Pollinations (NSFW)',
     url: 'https://text.pollinations.ai/openai',
@@ -320,39 +336,36 @@ const PROVIDERS = {
     url: 'https://chat-gpt-oss.com/api/message',
     headers: () => ({ 'Content-Type': 'application/json' }),
     models: [
-      { id: 'gpt-oss-120b', name: 'gpt-oss-120b' },
-      { id: 'gpt-5-nano', name: 'GPT-5 Nano' }
+      { id: 'gpt-oss-120b', name: 'GPT-OSS 120B' }
     ]
   },
   inferenceport: {
-    name: 'InferencePort',
+    name: 'InferencePort (Studio)',
     url: 'https://sharktide-lightning.hf.space/v1/chat/completions',
     headers: () => ({ 'Content-Type': 'application/json' }),
     models: [
       { id: 'lightning', name: 'Lightning' },
-      { id: 'gpt-oss-120b', name: 'gpt-oss-120b' }
+      { id: 'gpt-oss-120b', name: 'GPT-OSS 120B' }
     ]
   },
   llm7: {
-    name: 'LLM7',
+    name: 'LLM7 (uncensored)',
     url: 'https://api.llm7.io/v1/chat/completions',
     headers: () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer unused' }),
     models: [
       { id: 'DeepSeek-V4-Flash-0731', name: 'DeepSeek V4 Flash' },
       { id: 'GLM-5.3-Flash', name: 'GLM 5.3 Flash' },
-      { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
-      { id: 'Mistral-Nemo-Instruct-2407', name: 'Mistral Nemo' },
-      { id: 'Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B' }
-    ]
+      { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' }
+    ],
+    extraBody: { uncensored: true }
   },
   ovh: {
     name: 'OVHcloud',
     url: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',
     headers: () => ({ 'Content-Type': 'application/json' }),
     models: [
-      { id: 'gpt-oss-120b', name: 'gpt-oss-120b' },
-      { id: 'Qwen3-32B', name: 'Qwen3 32B' },
-      { id: 'Mistral-Nemo-Instruct-2407', name: 'Mistral Nemo' }
+      { id: 'gpt-oss-120b', name: 'GPT-OSS 120B' },
+      { id: 'Qwen3-32B', name: 'Qwen3 32B' }
     ]
   },
   unclose: {
@@ -369,36 +382,7 @@ const PROVIDERS = {
     headers: () => ({ 'Content-Type': 'application/json' }),
     models: [
       { id: 'z-ai/glm-5:free', name: 'GLM 5 (free)' },
-      { id: 'minimax/minimax-m2.5:free', name: 'MiniMax M2.5 (free)' },
-      { id: 'deepseek/deepseek-r1-0528:free', name: 'DeepSeek R1 (free)' }
-    ]
-  },
-  opencode: {
-    name: 'OpenCode Zen',
-    url: 'https://opencode.ai/zen/v1/chat/completions',
-    headers: () => ({ 'Content-Type': 'application/json', 'x-opencode-session': 'public' }),
-    models: [
-      { id: 'ling-3.0-flash-fin-free', name: 'Ling 3.0 Flash' },
-      { id: 'deepseek-v4-flash-free', name: 'DeepSeek V4 Flash' }
-    ]
-  },
-  blockrun: {
-    name: 'BlockRun',
-    url: 'https://blockrun.ai/api/v1/chat/completions',
-    headers: () => ({ 'Content-Type': 'application/json' }),
-    models: [
-      { id: 'nvidia/gpt-oss-120b', name: 'gpt-oss-120b' },
-      { id: 'nvidia/deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
-      { id: 'nvidia/step-3.7-flash', name: 'StepFun Step 3.7 Flash' }
-    ]
-  },
-  dahl: {
-    name: 'Dahl',
-    url: 'https://inference.dahl.global/v1/chat/completions',
-    headers: () => ({ 'Content-Type': 'application/json' }),
-    models: [
-      { id: 'MiniMaxAI/MiniMax-M2.7', name: 'MiniMax M2.7' },
-      { id: 'moonshotai/Kimi-K2.6', name: 'Kimi K2.6' }
+      { id: 'minimax/minimax-m2.5:free', name: 'MiniMax M2.5 (free)' }
     ]
   },
   airforce: {
@@ -407,19 +391,7 @@ const PROVIDERS = {
     headers: () => ({ 'Content-Type': 'application/json' }),
     models: [
       { id: 'grok-3', name: 'Grok 3' },
-      { id: 'claude-3.7-sonnet', name: 'Claude 3.7 Sonnet' },
-      { id: 'qwen3-32b', name: 'Qwen3 32B' },
-      { id: 'kimi-k2.6', name: 'Kimi K2.6' },
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' }
-    ]
-  },
-  bridgenode: {
-    name: 'BridgeNode',
-    url: 'https://api.bridgenode.io/v1/chat/completions',
-    headers: () => ({ 'Content-Type': 'application/json' }),
-    models: [
-      { id: 'gpt-oss-120b', name: 'gpt-oss-120b' },
-      { id: 'deepseek-flash', name: 'DeepSeek Flash' }
+      { id: 'claude-3.7-sonnet', name: 'Claude 3.7 Sonnet' }
     ]
   }
 };
@@ -441,11 +413,11 @@ function refreshSettingsUI(){
   tokensVal.textContent = state.settings.maxTokens;
 
   if(state.settings.provider === 'auto'){
-    providerHint.textContent = 'Автоматически переключается между всеми провайдерами';
-    modelHint.textContent = 'Модель выбирается автоматически';
+    providerHint.textContent = 'KeylessAI сам направит запрос к лучшему доступному API';
+    modelHint.textContent = 'Маршрутизация автоматическая';
     setModel.innerHTML = '<option value="">Авто</option>';
     setModel.disabled = true;
-    sbModel.textContent = 'Авто';
+    sbModel.textContent = 'KeylessAI Auto';
     sbStatus.textContent = 'Авто-режим';
   } else {
     const p = PROVIDERS[state.settings.provider];
@@ -601,7 +573,7 @@ async function diagnoseAll(){
     }
   }
 
-  try { localStorage.setItem('aichat.health.v10', JSON.stringify(state.providerHealth)); } catch(e){}
+  try { localStorage.setItem('aichat.health.v11', JSON.stringify(state.providerHealth)); } catch(e){}
 
   const working = Object.entries(state.providerHealth).filter(([k,v]) => v.ok).map(([k]) => PROVIDERS[k].name);
   const summary = document.createElement('div');
@@ -643,13 +615,13 @@ async function sendMessage(){
 
   let providersToTry = [];
   if(state.settings.provider === 'auto'){
-    providersToTry = Object.keys(PROVIDERS).sort((a, b) => {
+    providersToTry = ['keylessai', ...Object.keys(PROVIDERS).filter(k => k !== 'keylessai').sort((a, b) => {
       const ha = state.providerHealth[a], hb = state.providerHealth[b];
       if(ha?.ok && !hb?.ok) return -1;
       if(!ha?.ok && hb?.ok) return 1;
       if(ha?.ok && hb?.ok) return (ha.ms || 9999) - (hb.ms || 9999);
       return 0;
-    });
+    })];
   } else {
     providersToTry = [state.settings.provider, ...Object.keys(PROVIDERS).filter(p => p !== state.settings.provider)];
   }
@@ -775,7 +747,7 @@ function exportChat(){
 
 function init(){
   loadSettings(); loadChats();
-  try { const h = localStorage.getItem('aichat.health.v10'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
+  try { const h = localStorage.getItem('aichat.health.v11'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
 
   if(Object.keys(state.chats).length === 0) createChat();
   else { const ids = Object.keys(state.chats).sort((a,b) => state.chats[b].createdAt - state.chats[a].createdAt); state.currentChatId = ids[0]; renderChatList(); renderMessages(); }
