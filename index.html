@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Chat v8.0 — Auto Diagnose</title>
+<title>AI Chat v9.0 — Multi Provider</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;--accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;--red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e}
@@ -142,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v8.0</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v9.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -158,7 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v8.0</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v9.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -169,7 +169,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="welcome" id="welcome">
         <div class="welcome-icon">◉</div>
         <h2>Чем помочь?</h2>
-        <p>Множество бесплатных AI API. Автопереключение. Самодиагностика провайдеров.</p>
+        <p>9 бесплатных AI API. Автопереключение. Работает в любой стране.</p>
         <div class="suggestions">
           <button data-prompt="Что такое HTML?">Что такое HTML?</button>
           <button data-prompt="Напиши функцию на JavaScript для сортировки массива">Сортировка в JS</button>
@@ -206,41 +206,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
           <label>Провайдер</label>
           <select id="setProvider">
             <option value="auto">Авто (перебирает всех)</option>
-            <option value="llm7">LLM7 — без ключа, DeepSeek/GLM</option>
-            <option value="unclose">uncloseai — без ключа, Qwen 3.8</option>
-            <option value="kilo">Keyless Kilo — без ключа, StepFun</option>
-            <option value="ovh">OVHcloud — без ключа, gpt-oss-120b</option>
-            <option value="g4f">g4f.dev — без ключа, GPT-4.1 (через прокси)</option>
-            <option value="openrouter">OpenRouter — бесплатный ключ</option>
+            <option value="llm7">LLM7 — без ключа</option>
+            <option value="ovh">OVHcloud — без ключа</option>
+            <option value="unclose">uncloseai — без ключа</option>
+            <option value="kilo">Kilo Gateway — без ключа</option>
+            <option value="opencode">OpenCode Zen — без ключа</option>
+            <option value="blockrun">BlockRun — без ключа</option>
+            <option value="dahl">Dahl — без ключа</option>
+            <option value="airforce">Api.Airforce — без ключа</option>
+            <option value="bridgenode">BridgeNode — без ключа</option>
           </select>
           <div class="setting-hint" id="providerHint">Автоматически переключается при сбое</div>
-        </div>
-        <div class="setting" id="keyField" style="display:none">
-          <label>API-ключ OpenRouter</label>
-          <input type="text" id="setKey" placeholder="sk-or-v1-...">
-          <div class="setting-hint">Получить бесплатно: <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></div>
         </div>
         <div class="setting">
           <label>Модель</label>
           <select id="setModel"></select>
           <div class="setting-hint" id="modelHint"></div>
-        </div>
-        <div class="setting">
-          <label>CORS-прокси</label>
-          <select id="setProxyMode">
-            <option value="auto">Авто (перебирает все)</option>
-            <option value="cors.lol">cors.lol</option>
-            <option value="allorigins">allorigins.win</option>
-            <option value="corsproxy">corsproxy.io</option>
-            <option value="corsfix">corsfix.com</option>
-            <option value="custom">Свой прокси</option>
-          </select>
-          <div class="setting-hint" id="proxyHint">Автоматически подбирает рабочий прокси</div>
-        </div>
-        <div class="setting" id="customProxyField" style="display:none">
-          <label>URL прокси (префикс)</label>
-          <input type="text" id="setCustomProxy" placeholder="https://your-proxy.com/?url=">
-          <div class="setting-hint">Пример: https://my-proxy.workers.dev/?url=</div>
         </div>
         <div class="setting">
           <label>Системный промпт</label>
@@ -297,48 +278,28 @@ const state = {
   providerHealth: {},
   settings: {
     provider: 'auto',
-    apiKey: '',
     model: '',
     system: 'Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.',
     temperature: 0.7,
-    maxTokens: 512,
-    proxyMode: 'auto',
-    customProxy: ''
+    maxTokens: 512
   }
 };
 
-const LS_SETTINGS = 'aichat.settings.v8';
-const LS_CHATS = 'aichat.chats.v8';
-const LS_PROXY = 'aichat.workingProxy.v8';
+const LS_SETTINGS = 'aichat.settings.v9';
+const LS_CHATS = 'aichat.chats.v9';
 const $ = id => document.getElementById(id);
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
 const inputEl=$('input'),sendBtn=$('sendBtn'),stopBtn=$('stopBtn');
 const diagBtn=$('diagBtn'),statusInfo=$('statusInfo'),chatTitle=$('chatTitle'),chatListEl=$('chatList');
 const sbModel=$('sbModel'),sbDot=$('sbDot'),sbStatus=$('sbStatus');
-const settingsModal=$('settingsModal'),setProvider=$('setProvider'),setKey=$('setKey');
+const settingsModal=$('settingsModal'),setProvider=$('setProvider');
 const setModel=$('setModel'),setSystem=$('setSystem'),setTemp=$('setTemp'),setTokens=$('setTokens');
-const tempVal=$('tempVal'),tokensVal=$('tokensVal'),keyField=$('keyField');
+const tempVal=$('tempVal'),tokensVal=$('tokensVal');
 const modelHint=$('modelHint'),providerHint=$('providerHint');
-const setProxyMode=$('setProxyMode'),setCustomProxy=$('setCustomProxy');
-const customProxyField=$('customProxyField'),proxyHint=$('proxyHint');
 const diagModal=$('diagModal'),diagResults=$('diagResults'),diagClose=$('diagClose');
 
-/* ═══ CORS-ПРОКСИ ═══ */
-const CORS_PROXIES = [
-  { id: 'cors.lol', name: 'cors.lol', prefix: 'https://api.cors.lol/?url=', needsEncode: true },
-  { id: 'allorigins', name: 'allorigins.win', prefix: 'https://api.allorigins.win/raw?url=', needsEncode: true },
-  { id: 'corsproxy', name: 'corsproxy.io', prefix: 'https://corsproxy.io/?url=', needsEncode: true },
-  { id: 'corsfix', name: 'corsfix.com', prefix: 'https://api.corsfix.com/?url=', needsEncode: true }
-];
-
-function buildProxiedUrl(originalUrl, proxy){
-  if(!proxy) return originalUrl;
-  const target = proxy.needsEncode ? encodeURIComponent(originalUrl) : originalUrl;
-  return proxy.prefix + target;
-}
-
-/* ═══ ПРОВАЙДЕРЫ (обновлённые) ═══ */
+/* ═══ ПРОВАЙДЕРЫ ═══ */
 const PROVIDERS = {
   llm7: {
     name: 'LLM7',
@@ -347,29 +308,10 @@ const PROVIDERS = {
     models: [
       { id: 'DeepSeek-V4-Flash-0731', name: 'DeepSeek V4 Flash' },
       { id: 'GLM-5.3-Flash', name: 'GLM 5.3 Flash' },
-      { id: 'Inkling', name: 'Inkling' },
-      { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' }
-    ],
-    needsProxy: false
-  },
-  unclose: {
-    name: 'uncloseai',
-    url: 'https://hermes.ai.unturf.com/v1/chat/completions',
-    headers: () => ({ 'Content-Type': 'application/json' }),
-    models: [
-      { id: 'turboderp/Qwen3.8-27B-exl3', name: 'Qwen 3.8 27B' }
-    ],
-    needsProxy: false
-  },
-  kilo: {
-    name: 'Keyless Kilo',
-    url: 'https://api.kilo.ai/api/gateway/chat/completions',
-    headers: () => ({ 'Content-Type': 'application/json' }),
-    models: [
-      { id: 'stepfun/step-5-preview-free', name: 'StepFun Step 5' },
-      { id: 'kilo-auto/free', name: 'Auto Free' }
-    ],
-    needsProxy: false
+      { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
+      { id: 'Mistral-Nemo-Instruct-2407', name: 'Mistral Nemo' },
+      { id: 'Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B' }
+    ]
   },
   ovh: {
     name: 'OVHcloud',
@@ -377,53 +319,86 @@ const PROVIDERS = {
     headers: () => ({ 'Content-Type': 'application/json' }),
     models: [
       { id: 'gpt-oss-120b', name: 'gpt-oss-120b' },
-      { id: 'Mistral-7B-Instruct-v0.3', name: 'Mistral 7B' }
-    ],
-    needsProxy: false
+      { id: 'Qwen3-32B', name: 'Qwen3 32B' },
+      { id: 'Mistral-Nemo-Instruct-2407', name: 'Mistral Nemo' }
+    ]
   },
-  g4f: {
-    name: 'g4f.dev',
-    url: 'https://g4f.dev/api/openai/v1/chat/completions',
+  unclose: {
+    name: 'uncloseai',
+    url: 'https://hermes.ai.unturf.com/v1/chat/completions',
     headers: () => ({ 'Content-Type': 'application/json' }),
     models: [
-      { id: 'gpt-4.1', name: 'GPT-4.1' },
-      { id: 'gpt-4o', name: 'GPT-4o' },
-      { id: 'deepseek-v3', name: 'DeepSeek V3' }
-    ],
-    needsProxy: true,
-    proxyUrl: 'https://g4f.space/api/openai/v1/chat/completions'
+      { id: 'turboderp/Qwen3.8-27B-exl3', name: 'Qwen 3.8 27B' }
+    ]
   },
-  openrouter: {
-    name: 'OpenRouter',
-    url: 'https://openrouter.ai/api/v1/chat/completions',
-    headers: () => ({
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + state.settings.apiKey,
-      'HTTP-Referer': location.origin || 'http://localhost',
-      'X-Title': 'AI Chat'
-    }),
+  kilo: {
+    name: 'Kilo Gateway',
+    url: 'https://api.kilo.ai/api/gateway/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
     models: [
-      { id: 'google/gemini-2.5-flash:free', name: 'Gemini 2.5 Flash (free)' },
-      { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 (free)' },
-      { id: 'qwen/qwen3-14b:free', name: 'Qwen 3 14B (free)' },
-      { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B (free)' }
-    ],
-    needsProxy: false,
-    needsKey: true
+      { id: 'z-ai/glm-5:free', name: 'GLM 5 (free)' },
+      { id: 'minimax/minimax-m2.5:free', name: 'MiniMax M2.5 (free)' },
+      { id: 'deepseek/deepseek-r1-0528:free', name: 'DeepSeek R1 (free)' }
+    ]
+  },
+  opencode: {
+    name: 'OpenCode Zen',
+    url: 'https://opencode.ai/zen/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json', 'x-opencode-session': 'public' }),
+    models: [
+      { id: 'ling-3.0-flash-fin-free', name: 'Ling 3.0 Flash' },
+      { id: 'deepseek-v4-flash-free', name: 'DeepSeek V4 Flash' }
+    ]
+  },
+  blockrun: {
+    name: 'BlockRun',
+    url: 'https://blockrun.ai/api/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'nvidia/gpt-oss-120b', name: 'gpt-oss-120b' },
+      { id: 'nvidia/deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+      { id: 'nvidia/step-3.7-flash', name: 'StepFun Step 3.7 Flash' }
+    ]
+  },
+  dahl: {
+    name: 'Dahl',
+    url: 'https://inference.dahl.global/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'MiniMaxAI/MiniMax-M2.7', name: 'MiniMax M2.7' },
+      { id: 'moonshotai/Kimi-K2.6', name: 'Kimi K2.6' }
+    ]
+  },
+  airforce: {
+    name: 'Api.Airforce',
+    url: 'https://api.airforce/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'grok-3', name: 'Grok 3' },
+      { id: 'claude-3.7-sonnet', name: 'Claude 3.7 Sonnet' },
+      { id: 'qwen3-32b', name: 'Qwen3 32B' },
+      { id: 'kimi-k2.6', name: 'Kimi K2.6' },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' }
+    ]
+  },
+  bridgenode: {
+    name: 'BridgeNode',
+    url: 'https://api.bridgenode.io/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'gpt-oss-120b', name: 'gpt-oss-120b' },
+      { id: 'deepseek-flash', name: 'DeepSeek Flash' }
+    ]
   }
 };
 
 /* ═══ НАСТРОЙКИ ═══ */
 function loadSettings(){
   try { const raw = localStorage.getItem(LS_SETTINGS); if(raw) Object.assign(state.settings, JSON.parse(raw)); } catch(e){}
-  try { const wp = localStorage.getItem(LS_PROXY); if(wp) state.workingProxy = wp; } catch(e){}
   setProvider.value = state.settings.provider;
-  setKey.value = state.settings.apiKey || '';
   setSystem.value = state.settings.system;
   setTemp.value = state.settings.temperature;
   setTokens.value = state.settings.maxTokens;
-  setProxyMode.value = state.settings.proxyMode;
-  setCustomProxy.value = state.settings.customProxy;
   refreshSettingsUI();
 }
 
@@ -433,14 +408,6 @@ function refreshSettingsUI(){
   tempVal.textContent = state.settings.temperature.toFixed(2);
   tokensVal.textContent = state.settings.maxTokens;
 
-  const p = PROVIDERS[state.settings.provider];
-  keyField.style.display = (p && p.needsKey) ? 'block' : 'none';
-  customProxyField.style.display = state.settings.proxyMode === 'custom' ? 'block' : 'none';
-
-  if(state.settings.proxyMode === 'auto') proxyHint.textContent = 'Автоматически подбирает рабочий прокси';
-  else if(state.settings.proxyMode === 'custom') proxyHint.textContent = 'Используется свой прокси';
-  else proxyHint.textContent = 'Используется выбранный прокси';
-
   if(state.settings.provider === 'auto'){
     providerHint.textContent = 'Автоматически переключается между всеми провайдерами';
     modelHint.textContent = 'Модель выбирается автоматически';
@@ -448,14 +415,16 @@ function refreshSettingsUI(){
     setModel.disabled = true;
     sbModel.textContent = 'Авто';
     sbStatus.textContent = 'Авто-режим';
-  } else if(p){
-    providerHint.textContent = p.name + (p.needsKey ? ' — нужен ключ' : ' — без ключа');
+  } else {
+    const p = PROVIDERS[state.settings.provider];
+    if(!p) return;
+    providerHint.textContent = p.name + ' — без ключа';
     setModel.disabled = false;
     setModel.innerHTML = p.models.map(m => '<option value="'+m.id+'">'+m.name+'</option>').join('');
     const ids = p.models.map(m => m.id);
     setModel.value = ids.includes(state.settings.model) ? state.settings.model : ids[0];
     state.settings.model = setModel.value;
-    modelHint.textContent = p.needsKey ? 'Нужен бесплатный ключ' : 'Без ключа и регистрации';
+    modelHint.textContent = 'Модели доступны без регистрации';
     sbModel.textContent = p.models.find(m => m.id === state.settings.model)?.name || state.settings.model;
     sbStatus.textContent = p.name;
   }
@@ -536,13 +505,11 @@ function renderMarkdown(text){
   html = html.replace(/<p>\s*<\/p>/g, ''); return html;
 }
 
-/* ═══ ПРОВЕРКА ПРОВАЙДЕРОВ ═══ */
+/* ═══ ДИАГНОСТИКА ═══ */
 async function diagnoseAll(){
   diagModal.classList.add('open');
   diagResults.innerHTML = '';
-
   const providerKeys = Object.keys(PROVIDERS);
-  const results = [];
 
   providerKeys.forEach(key => {
     const p = PROVIDERS[key];
@@ -557,36 +524,18 @@ async function diagnoseAll(){
     const p = PROVIDERS[key];
     const el = document.getElementById('diag-' + key);
     const startTime = Date.now();
-
     try {
-      if(p.needsKey && !state.settings.apiKey){
-        el.className = 'diag-result fail';
-        el.querySelector('.diag-dot').className = 'diag-dot fail';
-        el.querySelector('.diag-detail').textContent = 'Нет API-ключа';
-        state.providerHealth[key] = { ok: false, error: 'Нет ключа' };
-        continue;
-      }
-
       let model = p.models[0].id;
-      let fetchUrl = p.url;
-      if(p.needsProxy && p.proxyUrl) fetchUrl = p.proxyUrl;
-
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
-
-      const res = await fetch(fetchUrl, {
+      const res = await fetch(p.url, {
         method: 'POST',
         headers: p.headers(),
-        body: JSON.stringify({
-          model, messages: [{ role: 'user', content: 'Say OK' }],
-          max_tokens: 10, stream: false
-        }),
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: 'Say OK' }], max_tokens: 10, stream: false }),
         signal: controller.signal
       });
       clearTimeout(timeout);
-
       const elapsed = Date.now() - startTime;
-
       if(!res.ok){
         const errText = await res.text();
         el.className = 'diag-result fail';
@@ -595,10 +544,8 @@ async function diagnoseAll(){
         state.providerHealth[key] = { ok: false, error: 'HTTP ' + res.status, ms: elapsed };
         continue;
       }
-
       const data = await res.json();
       const content = data.choices?.[0]?.message?.content || '';
-
       if(content.trim()){
         el.className = 'diag-result ok';
         el.querySelector('.diag-dot').className = 'diag-dot ok';
@@ -619,35 +566,18 @@ async function diagnoseAll(){
     }
   }
 
-  try { localStorage.setItem('aichat.health.v8', JSON.stringify(state.providerHealth)); } catch(e){}
+  try { localStorage.setItem('aichat.health.v9', JSON.stringify(state.providerHealth)); } catch(e){}
 
   const working = Object.entries(state.providerHealth).filter(([k,v]) => v.ok).map(([k]) => PROVIDERS[k].name);
   const summary = document.createElement('div');
   summary.style.cssText = 'margin-top:16px;padding:14px;border-radius:8px;background:rgba(124,92,255,.08);border:1px solid rgba(124,92,255,.2);font-size:.85em;';
   summary.innerHTML = working.length
     ? '<strong style="color:var(--green)">✓ Работают: ' + working.join(', ') + '</strong><br><span style="color:var(--muted)">Чат автоматически выберет лучший вариант.</span>'
-    : '<strong style="color:var(--red)">✗ Ни один провайдер не отвечает</strong><br><span style="color:var(--muted)">Проверь интернет или смени CORS-прокси в настройках.</span>';
+    : '<strong style="color:var(--red)">✗ Ни один провайдер не отвечает</strong><br><span style="color:var(--muted)">Проверь интернет.</span>';
   diagResults.appendChild(summary);
 }
 
-/* ═══ ОПРЕДЕЛЕНИЕ РАБОЧЕГО ПРОКСИ ═══ */
-function getProxyList(){
-  if(state.settings.proxyMode === 'custom' && state.settings.customProxy){
-    return [{ id: 'custom', name: 'Свой', prefix: state.settings.customProxy, needsEncode: true }];
-  }
-  if(state.settings.proxyMode !== 'auto'){
-    const found = CORS_PROXIES.find(p => p.id === state.settings.proxyMode);
-    if(found) return [found];
-  }
-  const list = [...CORS_PROXIES];
-  if(state.workingProxy){
-    const idx = list.findIndex(p => p.id === state.workingProxy);
-    if(idx > 0){ const [wp] = list.splice(idx, 1); list.unshift(wp); }
-  }
-  return list;
-}
-
-/* ═══ ОТПРАВКА С ТАЙМАУТОМ ═══ */
+/* ═══ ОТПРАВКА ═══ */
 async function sendMessage(){
   const text = inputEl.value.trim();
   if(!text || state.generating) return;
@@ -688,80 +618,59 @@ async function sendMessage(){
   let lastError = null;
   let usedProvider = null;
   let usedModel = null;
-  let usedProxy = null;
 
   for(const providerKey of providersToTry){
     const p = PROVIDERS[providerKey];
     if(!p) continue;
-    if(p.needsKey && !state.settings.apiKey) continue;
+    try {
+      let model = state.settings.model;
+      if(!p.models.find(m => m.id === model)) model = p.models[0].id;
 
-    const proxyList = p.needsProxy ? getProxyList() : [null];
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
 
-    for(const proxy of proxyList){
-      try {
-        let model = state.settings.model;
-        if(!p.models.find(m => m.id === model)) model = p.models[0].id;
+      const res = await fetch(p.url, {
+        method: 'POST',
+        headers: p.headers(),
+        body: JSON.stringify({ model, messages, temperature: state.settings.temperature, max_tokens: state.settings.maxTokens, stream: true }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
 
-        let fetchUrl = p.url;
-        if(p.needsProxy && p.proxyUrl) fetchUrl = p.proxyUrl;
-        if(p.needsProxy && proxy) fetchUrl = buildProxiedUrl(fetchUrl, proxy);
+      if(!res.ok){ const errText = await res.text(); throw new Error('HTTP ' + res.status + ': ' + errText.slice(0,150)); }
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 25000);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      fullResponse = '';
+      usedProvider = providerKey;
+      usedModel = model;
 
-        const res = await fetch(fetchUrl, {
-          method: 'POST',
-          headers: p.headers(),
-          body: JSON.stringify({ model, messages, temperature: state.settings.temperature, max_tokens: state.settings.maxTokens, stream: true }),
-          signal: controller.signal
-        });
-        clearTimeout(timeout);
-
-        if(!res.ok){ const errText = await res.text(); throw new Error('HTTP ' + res.status + ': ' + errText.slice(0,150)); }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        fullResponse = '';
-        usedProvider = providerKey;
-        usedModel = model;
-        usedProxy = proxy ? proxy.name : null;
-
-        while(true){
-          const { done, value } = await reader.read();
-          if(done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n'); buffer = lines.pop();
-          for(const line of lines){
-            const trimmed = line.trim(); if(!trimmed || !trimmed.startsWith('data:')) continue;
-            const data = trimmed.slice(5).trim(); if(data === '[DONE]') continue;
-            try {
-              const json = JSON.parse(data);
-              const delta = json.choices?.[0]?.delta?.content;
-              if(delta){ fullResponse += delta; botBody.innerHTML = renderMarkdown(fullResponse) + '<span class="cursor-blink"></span>'; scrollToBottom(); }
-            } catch(e){}
-          }
+      while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n'); buffer = lines.pop();
+        for(const line of lines){
+          const trimmed = line.trim(); if(!trimmed || !trimmed.startsWith('data:')) continue;
+          const data = trimmed.slice(5).trim(); if(data === '[DONE]') continue;
+          try {
+            const json = JSON.parse(data);
+            const delta = json.choices?.[0]?.delta?.content;
+            if(delta){ fullResponse += delta; botBody.innerHTML = renderMarkdown(fullResponse) + '<span class="cursor-blink"></span>'; scrollToBottom(); }
+          } catch(e){}
         }
-
-        if(fullResponse.trim()){
-          if(proxy && state.settings.proxyMode === 'auto'){
-            state.workingProxy = proxy.id;
-            localStorage.setItem(LS_PROXY, proxy.id);
-          }
-          break;
-        } else {
-          throw new Error('Пустой ответ');
-        }
-      } catch(err){
-        if(err.name === 'AbortError'){ lastError = err; break; }
-        console.warn('Провайдер ' + providerKey + ' + прокси ' + (proxy?.name || 'direct') + ' не сработал:', err.message);
-        lastError = err;
-        fullResponse = '';
-        botBody.innerHTML = '<span class="cursor-blink"></span>';
       }
+
+      if(fullResponse.trim()) break;
+      else throw new Error('Пустой ответ');
+    } catch(err){
+      if(err.name === 'AbortError'){ lastError = err; break; }
+      console.warn('Провайдер ' + providerKey + ' не сработал:', err.message);
+      lastError = err;
+      fullResponse = '';
+      botBody.innerHTML = '<span class="cursor-blink"></span>';
     }
-    if(fullResponse.trim()) break;
-    if(lastError?.name === 'AbortError') break;
   }
 
   try {
@@ -776,8 +685,7 @@ async function sendMessage(){
       persistChats();
       const pName = PROVIDERS[usedProvider]?.name || usedProvider;
       const mName = PROVIDERS[usedProvider]?.models.find(m => m.id === usedModel)?.name || usedModel;
-      const proxyInfo = usedProxy ? ' · прокси: ' + usedProxy : '';
-      statusInfo.textContent = 'Ответ от ' + pName + ' · ' + mName + proxyInfo;
+      statusInfo.textContent = 'Ответ от ' + pName + ' · ' + mName;
     }
   } finally {
     state.generating = false; state.abortController = null;
@@ -802,7 +710,7 @@ function exportChat(){
 
 function init(){
   loadSettings(); loadChats();
-  try { const h = localStorage.getItem('aichat.health.v8'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
+  try { const h = localStorage.getItem('aichat.health.v9'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
 
   if(Object.keys(state.chats).length === 0) createChat();
   else { const ids = Object.keys(state.chats).sort((a,b) => state.chats[b].createdAt - state.chats[a].createdAt); state.currentChatId = ids[0]; renderChatList(); renderMessages(); }
@@ -830,18 +738,13 @@ function init(){
   setModel.addEventListener('change', () => { state.settings.model = setModel.value; const p = PROVIDERS[state.settings.provider]; if(p) sbModel.textContent = p.models.find(m => m.id === state.settings.model)?.name || state.settings.model; });
   setTemp.addEventListener('input', () => { tempVal.textContent = parseFloat(setTemp.value).toFixed(2); });
   setTokens.addEventListener('input', () => { tokensVal.textContent = setTokens.value; });
-  setProxyMode.addEventListener('change', () => { state.settings.proxyMode = setProxyMode.value; refreshSettingsUI(); });
 
   $('saveSettings').addEventListener('click', () => {
     state.settings.provider = setProvider.value;
-    state.settings.apiKey = setKey.value.trim();
     state.settings.model = setModel.value;
     state.settings.system = setSystem.value;
     state.settings.temperature = parseFloat(setTemp.value);
     state.settings.maxTokens = parseInt(setTokens.value);
-    state.settings.proxyMode = setProxyMode.value;
-    state.settings.customProxy = setCustomProxy.value.trim();
-    if(state.settings.provider === 'openrouter' && !state.settings.apiKey){ alert('Для OpenRouter нужен бесплатный API-ключ. Получи его на openrouter.ai/keys'); return; }
     saveSettingsToDisk(); refreshSettingsUI(); settingsModal.classList.remove('open');
   });
 
