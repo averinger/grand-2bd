@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Chat v7.0 — Auto Diagnose</title>
+<title>AI Chat v8.0 — Auto Diagnose</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;--accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;--red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e}
@@ -142,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v7.0</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v8.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -158,7 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v7.0</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v8.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -169,7 +169,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="welcome" id="welcome">
         <div class="welcome-icon">◉</div>
         <h2>Чем помочь?</h2>
-        <p>6 бесплатных AI API. Автопереключение. Самодиагностика провайдеров.</p>
+        <p>Множество бесплатных AI API. Автопереключение. Самодиагностика провайдеров.</p>
         <div class="suggestions">
           <button data-prompt="Что такое HTML?">Что такое HTML?</button>
           <button data-prompt="Напиши функцию на JavaScript для сортировки массива">Сортировка в JS</button>
@@ -307,9 +307,9 @@ const state = {
   }
 };
 
-const LS_SETTINGS = 'aichat.settings.v7';
-const LS_CHATS = 'aichat.chats.v7';
-const LS_PROXY = 'aichat.workingProxy.v7';
+const LS_SETTINGS = 'aichat.settings.v8';
+const LS_CHATS = 'aichat.chats.v8';
+const LS_PROXY = 'aichat.workingProxy.v8';
 const $ = id => document.getElementById(id);
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
@@ -338,7 +338,7 @@ function buildProxiedUrl(originalUrl, proxy){
   return proxy.prefix + target;
 }
 
-/* ═══ ПРОВАЙДЕРЫ ═══ */
+/* ═══ ПРОВАЙДЕРЫ (обновлённые) ═══ */
 const PROVIDERS = {
   llm7: {
     name: 'LLM7',
@@ -544,7 +544,6 @@ async function diagnoseAll(){
   const providerKeys = Object.keys(PROVIDERS);
   const results = [];
 
-  // Создаём строки для каждого провайдера
   providerKeys.forEach(key => {
     const p = PROVIDERS[key];
     const el = document.createElement('div');
@@ -554,7 +553,6 @@ async function diagnoseAll(){
     diagResults.appendChild(el);
   });
 
-  // Проверяем каждого провайдера
   for(const key of providerKeys){
     const p = PROVIDERS[key];
     const el = document.getElementById('diag-' + key);
@@ -621,10 +619,8 @@ async function diagnoseAll(){
     }
   }
 
-  // Сохраняем здоровье провайдеров
-  try { localStorage.setItem('aichat.health.v7', JSON.stringify(state.providerHealth)); } catch(e){}
+  try { localStorage.setItem('aichat.health.v8', JSON.stringify(state.providerHealth)); } catch(e){}
 
-  // Показываем итог
   const working = Object.entries(state.providerHealth).filter(([k,v]) => v.ok).map(([k]) => PROVIDERS[k].name);
   const summary = document.createElement('div');
   summary.style.cssText = 'margin-top:16px;padding:14px;border-radius:8px;background:rgba(124,92,255,.08);border:1px solid rgba(124,92,255,.2);font-size:.85em;';
@@ -675,7 +671,6 @@ async function sendMessage(){
     ...chat.messages.slice(-20).map(m => ({ role: m.role, content: m.content }))
   ];
 
-  // Сортируем провайдеров: сначала те, что работали в диагностике
   let providersToTry = [];
   if(state.settings.provider === 'auto'){
     providersToTry = Object.keys(PROVIDERS).sort((a, b) => {
@@ -711,7 +706,6 @@ async function sendMessage(){
         if(p.needsProxy && p.proxyUrl) fetchUrl = p.proxyUrl;
         if(p.needsProxy && proxy) fetchUrl = buildProxiedUrl(fetchUrl, proxy);
 
-        // Таймаут 25 секунд
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 25000);
 
@@ -808,8 +802,7 @@ function exportChat(){
 
 function init(){
   loadSettings(); loadChats();
-  // Загружаем сохранённое здоровье провайдеров
-  try { const h = localStorage.getItem('aichat.health.v7'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
+  try { const h = localStorage.getItem('aichat.health.v8'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
 
   if(Object.keys(state.chats).length === 0) createChat();
   else { const ids = Object.keys(state.chats).sort((a,b) => state.chats[b].createdAt - state.chats[a].createdAt); state.currentChatId = ids[0]; renderChatList(); renderMessages(); }
@@ -823,7 +816,6 @@ function init(){
   $('clearBtn').addEventListener('click', () => { const chat = currentChat(); if(!chat) return; if(!confirm('Очистить текущий чат?')) return; chat.messages = []; chat.title = 'Новый чат'; persistChats(); renderChatList(); renderMessages(); });
   $('exportBtn').addEventListener('click', exportChat);
 
-  // Диагностика
   diagBtn.addEventListener('click', diagnoseAll);
   diagClose.addEventListener('click', () => diagModal.classList.remove('open'));
   diagModal.addEventListener('click', e => { if(e.target === diagModal) diagModal.classList.remove('open'); });
@@ -855,7 +847,6 @@ function init(){
 
   document.addEventListener('keydown', e => { if(e.key === 'Escape'){ settingsModal.classList.remove('open'); diagModal.classList.remove('open'); } });
 
-  // Показываем кнопку диагностики через 2 секунды
   setTimeout(() => diagBtn.classList.remove('hidden'), 2000);
 }
 
