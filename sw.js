@@ -1,4 +1,4 @@
-const CACHE = 'aichat-v15';
+const CACHE = 'aichat-v16';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./','./index.html'])));
@@ -16,11 +16,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-
-  // Не кешируем API-запросы и внешние сервисы
   if (url.origin !== location.origin) return;
-
-  // HTML — network-first
   if (e.request.mode === 'navigate' || e.request.destination === 'document') {
     e.respondWith(
       fetch(e.request).then(res => {
@@ -31,8 +27,6 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-
-  // Остальное — cache-first
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       const copy = res.clone();
