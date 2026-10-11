@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Chat v6.0 — CORS Proxy</title>
+<title>AI Chat v7.0 — Auto Diagnose</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;--accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;--red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e}
@@ -92,6 +92,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .composer-hint{max-width:820px;margin:8px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:.75em;color:var(--muted);padding:0 4px}
 .stop-btn{padding:4px 12px;background:rgba(230,57,70,.15);border:1px solid rgba(230,57,70,.4);border-radius:6px;color:var(--red);font-family:inherit;font-size:1em;cursor:pointer;transition:all .2s}
 .stop-btn:hover{background:rgba(230,57,70,.3)}
+.diag-btn{padding:4px 12px;background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.4);border-radius:6px;color:var(--green);font-family:inherit;font-size:1em;cursor:pointer;transition:all .2s}
+.diag-btn:hover{background:rgba(46,204,113,.3)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;z-index:500;padding:24px;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
 .modal.open{opacity:1;visibility:visible}
 .modal-box{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--border);border-radius:16px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .3s}
@@ -108,6 +110,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .setting input[type=range]{width:100%;accent-color:var(--accent)}
 .setting-hint{font-size:.75em;color:var(--muted);margin-top:6px;line-height:1.5}
 .setting-hint a{color:var(--accent);text-decoration:underline}
+.diag-result{padding:12px 16px;border-radius:8px;margin-bottom:8px;font-size:.85em;display:flex;align-items:center;gap:10px}
+.diag-result.ok{background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.25)}
+.diag-result.fail{background:rgba(230,57,70,.08);border:1px solid rgba(230,57,70,.25)}
+.diag-result.checking{background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.25)}
+.diag-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.diag-dot.ok{background:var(--green)}
+.diag-dot.fail{background:var(--red)}
+.diag-dot.checking{background:var(--amber);animation:pulse .6s infinite}
+.diag-info{flex:1}
+.diag-name{font-weight:600;color:var(--text)}
+.diag-detail{font-size:.85em;color:var(--muted);margin-top:2px}
 @media(max-width:720px){
 #app{grid-template-columns:1fr}
 .sidebar{display:none}
@@ -129,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v6.0</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v7.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -145,7 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v6.0</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v7.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -156,7 +169,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="welcome" id="welcome">
         <div class="welcome-icon">◉</div>
         <h2>Чем помочь?</h2>
-        <p>Автоматический подбор CORS-прокси. Работает в любой стране.</p>
+        <p>6 бесплатных AI API. Автопереключение. Самодиагностика провайдеров.</p>
         <div class="suggestions">
           <button data-prompt="Что такое HTML?">Что такое HTML?</button>
           <button data-prompt="Напиши функцию на JavaScript для сортировки массива">Сортировка в JS</button>
@@ -176,6 +189,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       </div>
       <div class="composer-hint">
         <span id="statusInfo">Готов</span>
+        <button id="diagBtn" class="diag-btn hidden">🔍 Проверить</button>
         <button id="stopBtn" class="stop-btn hidden">■ Остановить</button>
       </div>
     </div>
@@ -244,6 +258,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       </div>
     </div>
   </div>
+
+  <div class="modal" id="diagModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>🔍 Проверка провайдеров</h3>
+        <button class="modal-close" id="diagClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--muted);font-size:.85em;margin-bottom:16px">Проверяем скорость и доступность каждого провайдера. Это занимает до 30 секунд.</p>
+        <div id="diagResults"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -267,6 +294,7 @@ const state = {
   currentChatId: null,
   chats: {},
   workingProxy: null,
+  providerHealth: {},
   settings: {
     provider: 'auto',
     apiKey: '',
@@ -279,14 +307,14 @@ const state = {
   }
 };
 
-const LS_SETTINGS = 'aichat.settings.v6';
-const LS_CHATS = 'aichat.chats.v6';
-const LS_PROXY = 'aichat.workingProxy.v6';
+const LS_SETTINGS = 'aichat.settings.v7';
+const LS_CHATS = 'aichat.chats.v7';
+const LS_PROXY = 'aichat.workingProxy.v7';
 const $ = id => document.getElementById(id);
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
 const inputEl=$('input'),sendBtn=$('sendBtn'),stopBtn=$('stopBtn');
-const statusInfo=$('statusInfo'),chatTitle=$('chatTitle'),chatListEl=$('chatList');
+const diagBtn=$('diagBtn'),statusInfo=$('statusInfo'),chatTitle=$('chatTitle'),chatListEl=$('chatList');
 const sbModel=$('sbModel'),sbDot=$('sbDot'),sbStatus=$('sbStatus');
 const settingsModal=$('settingsModal'),setProvider=$('setProvider'),setKey=$('setKey');
 const setModel=$('setModel'),setSystem=$('setSystem'),setTemp=$('setTemp'),setTokens=$('setTokens');
@@ -294,37 +322,14 @@ const tempVal=$('tempVal'),tokensVal=$('tokensVal'),keyField=$('keyField');
 const modelHint=$('modelHint'),providerHint=$('providerHint');
 const setProxyMode=$('setProxyMode'),setCustomProxy=$('setCustomProxy');
 const customProxyField=$('customProxyField'),proxyHint=$('proxyHint');
+const diagModal=$('diagModal'),diagResults=$('diagResults'),diagClose=$('diagClose');
 
 /* ═══ CORS-ПРОКСИ ═══ */
 const CORS_PROXIES = [
-  {
-    id: 'cors.lol',
-    name: 'cors.lol',
-    prefix: 'https://api.cors.lol/?url=',
-    needsEncode: true,
-    note: 'Бесплатный, но низкий лимит'
-  },
-  {
-    id: 'allorigins',
-    name: 'allorigins.win',
-    prefix: 'https://api.allorigins.win/raw?url=',
-    needsEncode: true,
-    note: 'Надёжный, иногда тормозит'
-  },
-  {
-    id: 'corsproxy',
-    name: 'corsproxy.io',
-    prefix: 'https://corsproxy.io/?url=',
-    needsEncode: true,
-    note: 'Бесплатно до 10 000 запросов/мес'
-  },
-  {
-    id: 'corsfix',
-    name: 'corsfix.com',
-    prefix: 'https://api.corsfix.com/?url=',
-    needsEncode: true,
-    note: 'Open-source прокси'
-  }
+  { id: 'cors.lol', name: 'cors.lol', prefix: 'https://api.cors.lol/?url=', needsEncode: true },
+  { id: 'allorigins', name: 'allorigins.win', prefix: 'https://api.allorigins.win/raw?url=', needsEncode: true },
+  { id: 'corsproxy', name: 'corsproxy.io', prefix: 'https://corsproxy.io/?url=', needsEncode: true },
+  { id: 'corsfix', name: 'corsfix.com', prefix: 'https://api.corsfix.com/?url=', needsEncode: true }
 ];
 
 function buildProxiedUrl(originalUrl, proxy){
@@ -531,6 +536,104 @@ function renderMarkdown(text){
   html = html.replace(/<p>\s*<\/p>/g, ''); return html;
 }
 
+/* ═══ ПРОВЕРКА ПРОВАЙДЕРОВ ═══ */
+async function diagnoseAll(){
+  diagModal.classList.add('open');
+  diagResults.innerHTML = '';
+
+  const providerKeys = Object.keys(PROVIDERS);
+  const results = [];
+
+  // Создаём строки для каждого провайдера
+  providerKeys.forEach(key => {
+    const p = PROVIDERS[key];
+    const el = document.createElement('div');
+    el.className = 'diag-result checking';
+    el.id = 'diag-' + key;
+    el.innerHTML = '<span class="diag-dot checking"></span><div class="diag-info"><div class="diag-name">'+p.name+'</div><div class="diag-detail">Проверка...</div></div>';
+    diagResults.appendChild(el);
+  });
+
+  // Проверяем каждого провайдера
+  for(const key of providerKeys){
+    const p = PROVIDERS[key];
+    const el = document.getElementById('diag-' + key);
+    const startTime = Date.now();
+
+    try {
+      if(p.needsKey && !state.settings.apiKey){
+        el.className = 'diag-result fail';
+        el.querySelector('.diag-dot').className = 'diag-dot fail';
+        el.querySelector('.diag-detail').textContent = 'Нет API-ключа';
+        state.providerHealth[key] = { ok: false, error: 'Нет ключа' };
+        continue;
+      }
+
+      let model = p.models[0].id;
+      let fetchUrl = p.url;
+      if(p.needsProxy && p.proxyUrl) fetchUrl = p.proxyUrl;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch(fetchUrl, {
+        method: 'POST',
+        headers: p.headers(),
+        body: JSON.stringify({
+          model, messages: [{ role: 'user', content: 'Say OK' }],
+          max_tokens: 10, stream: false
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      const elapsed = Date.now() - startTime;
+
+      if(!res.ok){
+        const errText = await res.text();
+        el.className = 'diag-result fail';
+        el.querySelector('.diag-dot').className = 'diag-dot fail';
+        el.querySelector('.diag-detail').textContent = 'HTTP ' + res.status + ' — ' + errText.slice(0, 60);
+        state.providerHealth[key] = { ok: false, error: 'HTTP ' + res.status, ms: elapsed };
+        continue;
+      }
+
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content || '';
+
+      if(content.trim()){
+        el.className = 'diag-result ok';
+        el.querySelector('.diag-dot').className = 'diag-dot ok';
+        el.querySelector('.diag-detail').textContent = '✓ Работает — ' + elapsed + ' мс';
+        state.providerHealth[key] = { ok: true, ms: elapsed };
+      } else {
+        el.className = 'diag-result fail';
+        el.querySelector('.diag-dot').className = 'diag-dot fail';
+        el.querySelector('.diag-detail').textContent = 'Пустой ответ';
+        state.providerHealth[key] = { ok: false, error: 'Пустой ответ', ms: elapsed };
+      }
+    } catch(err){
+      const elapsed = Date.now() - startTime;
+      el.className = 'diag-result fail';
+      el.querySelector('.diag-dot').className = 'diag-dot fail';
+      el.querySelector('.diag-detail').textContent = (err.name === 'AbortError' ? 'Таймаут' : err.message.slice(0, 60));
+      state.providerHealth[key] = { ok: false, error: err.message, ms: elapsed };
+    }
+  }
+
+  // Сохраняем здоровье провайдеров
+  try { localStorage.setItem('aichat.health.v7', JSON.stringify(state.providerHealth)); } catch(e){}
+
+  // Показываем итог
+  const working = Object.entries(state.providerHealth).filter(([k,v]) => v.ok).map(([k]) => PROVIDERS[k].name);
+  const summary = document.createElement('div');
+  summary.style.cssText = 'margin-top:16px;padding:14px;border-radius:8px;background:rgba(124,92,255,.08);border:1px solid rgba(124,92,255,.2);font-size:.85em;';
+  summary.innerHTML = working.length
+    ? '<strong style="color:var(--green)">✓ Работают: ' + working.join(', ') + '</strong><br><span style="color:var(--muted)">Чат автоматически выберет лучший вариант.</span>'
+    : '<strong style="color:var(--red)">✗ Ни один провайдер не отвечает</strong><br><span style="color:var(--muted)">Проверь интернет или смени CORS-прокси в настройках.</span>';
+  diagResults.appendChild(summary);
+}
+
 /* ═══ ОПРЕДЕЛЕНИЕ РАБОЧЕГО ПРОКСИ ═══ */
 function getProxyList(){
   if(state.settings.proxyMode === 'custom' && state.settings.customProxy){
@@ -540,7 +643,6 @@ function getProxyList(){
     const found = CORS_PROXIES.find(p => p.id === state.settings.proxyMode);
     if(found) return [found];
   }
-  // Авто: если уже есть рабочий — ставим его первым
   const list = [...CORS_PROXIES];
   if(state.workingProxy){
     const idx = list.findIndex(p => p.id === state.workingProxy);
@@ -549,7 +651,7 @@ function getProxyList(){
   return list;
 }
 
-/* ═══ ОТПРАВКА С АВТОПЕРЕКЛЮЧЕНИЕМ ═══ */
+/* ═══ ОТПРАВКА С ТАЙМАУТОМ ═══ */
 async function sendMessage(){
   const text = inputEl.value.trim();
   if(!text || state.generating) return;
@@ -573,9 +675,16 @@ async function sendMessage(){
     ...chat.messages.slice(-20).map(m => ({ role: m.role, content: m.content }))
   ];
 
+  // Сортируем провайдеров: сначала те, что работали в диагностике
   let providersToTry = [];
   if(state.settings.provider === 'auto'){
-    providersToTry = ['llm7', 'unclose', 'kilo', 'ovh', 'g4f', 'openrouter'];
+    providersToTry = Object.keys(PROVIDERS).sort((a, b) => {
+      const ha = state.providerHealth[a], hb = state.providerHealth[b];
+      if(ha?.ok && !hb?.ok) return -1;
+      if(!ha?.ok && hb?.ok) return 1;
+      if(ha?.ok && hb?.ok) return (ha.ms || 9999) - (hb.ms || 9999);
+      return 0;
+    });
   } else {
     providersToTry = [state.settings.provider, ...Object.keys(PROVIDERS).filter(p => p !== state.settings.provider)];
   }
@@ -591,7 +700,6 @@ async function sendMessage(){
     if(!p) continue;
     if(p.needsKey && !state.settings.apiKey) continue;
 
-    // Пробуем все прокси для этого провайдера (если нужен прокси)
     const proxyList = p.needsProxy ? getProxyList() : [null];
 
     for(const proxy of proxyList){
@@ -600,17 +708,20 @@ async function sendMessage(){
         if(!p.models.find(m => m.id === model)) model = p.models[0].id;
 
         let fetchUrl = p.url;
-        // Для g4f используем специальный прокси-URL
         if(p.needsProxy && p.proxyUrl) fetchUrl = p.proxyUrl;
-        // Если провайдер помечен как needsProxy, оборачиваем в CORS-прокси
         if(p.needsProxy && proxy) fetchUrl = buildProxiedUrl(fetchUrl, proxy);
+
+        // Таймаут 25 секунд
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000);
 
         const res = await fetch(fetchUrl, {
           method: 'POST',
           headers: p.headers(),
           body: JSON.stringify({ model, messages, temperature: state.settings.temperature, max_tokens: state.settings.maxTokens, stream: true }),
-          signal: state.abortController.signal
+          signal: controller.signal
         });
+        clearTimeout(timeout);
 
         if(!res.ok){ const errText = await res.text(); throw new Error('HTTP ' + res.status + ': ' + errText.slice(0,150)); }
 
@@ -639,26 +750,23 @@ async function sendMessage(){
         }
 
         if(fullResponse.trim()){
-          // Запоминаем рабочий прокси
           if(proxy && state.settings.proxyMode === 'auto'){
             state.workingProxy = proxy.id;
             localStorage.setItem(LS_PROXY, proxy.id);
           }
-          break; // Успех — выходим из цикла прокси
+          break;
         } else {
           throw new Error('Пустой ответ');
         }
-
       } catch(err){
         if(err.name === 'AbortError'){ lastError = err; break; }
         console.warn('Провайдер ' + providerKey + ' + прокси ' + (proxy?.name || 'direct') + ' не сработал:', err.message);
         lastError = err;
         fullResponse = '';
         botBody.innerHTML = '<span class="cursor-blink"></span>';
-        // Продолжаем со следующим прокси
       }
     }
-    if(fullResponse.trim()) break; // Если получили ответ — выходим из цикла провайдеров
+    if(fullResponse.trim()) break;
     if(lastError?.name === 'AbortError') break;
   }
 
@@ -666,7 +774,7 @@ async function sendMessage(){
     if(lastError && !fullResponse.trim()){
       if(lastError.name === 'AbortError'){ botBody.textContent = '(остановлено)'; }
       else {
-        botBody.innerHTML = '<strong>Все провайдеры и прокси недоступны.</strong><br><br><span style="color:var(--muted);font-size:.9em">Последняя ошибка: '+escapeHtml(lastError.message)+'<br><br>Попробуй сменить провайдера или прокси в настройках.</span>';
+        botBody.innerHTML = '<strong>Все провайдеры недоступны.</strong><br><br><span style="color:var(--muted);font-size:.9em">Нажми 🔍 Проверить, чтобы узнать какие работают.</span>';
       }
     } else {
       botBody.innerHTML = renderMarkdown(fullResponse);
@@ -700,6 +808,9 @@ function exportChat(){
 
 function init(){
   loadSettings(); loadChats();
+  // Загружаем сохранённое здоровье провайдеров
+  try { const h = localStorage.getItem('aichat.health.v7'); if(h) state.providerHealth = JSON.parse(h); } catch(e){}
+
   if(Object.keys(state.chats).length === 0) createChat();
   else { const ids = Object.keys(state.chats).sort((a,b) => state.chats[b].createdAt - state.chats[a].createdAt); state.currentChatId = ids[0]; renderChatList(); renderMessages(); }
 
@@ -711,6 +822,11 @@ function init(){
   $('newChatBtn').addEventListener('click', () => createChat());
   $('clearBtn').addEventListener('click', () => { const chat = currentChat(); if(!chat) return; if(!confirm('Очистить текущий чат?')) return; chat.messages = []; chat.title = 'Новый чат'; persistChats(); renderChatList(); renderMessages(); });
   $('exportBtn').addEventListener('click', exportChat);
+
+  // Диагностика
+  diagBtn.addEventListener('click', diagnoseAll);
+  diagClose.addEventListener('click', () => diagModal.classList.remove('open'));
+  diagModal.addEventListener('click', e => { if(e.target === diagModal) diagModal.classList.remove('open'); });
 
   document.querySelectorAll('[data-prompt]').forEach(btn => { btn.addEventListener('click', () => { inputEl.value = btn.dataset.prompt; autoResize(); sendMessage(); }); });
 
@@ -737,7 +853,10 @@ function init(){
     saveSettingsToDisk(); refreshSettingsUI(); settingsModal.classList.remove('open');
   });
 
-  document.addEventListener('keydown', e => { if(e.key === 'Escape') settingsModal.classList.remove('open'); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape'){ settingsModal.classList.remove('open'); diagModal.classList.remove('open'); } });
+
+  // Показываем кнопку диагностики через 2 секунды
+  setTimeout(() => diagBtn.classList.remove('hidden'), 2000);
 }
 
 init();
