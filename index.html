@@ -3,370 +3,265 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SecuroServ — приватная безопасность</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>SecuroServ — Executive Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<div id="loader"><div class="loader-ring"></div></div>
-<div id="progress"></div>
-<div class="cursor" id="cursor"></div>
-<div class="cursor-dot" id="cursorDot"></div>
-
-<canvas id="particles"></canvas>
-<div class="glow a"></div>
-<div class="glow b"></div>
-<div class="glow c"></div>
-
-<nav id="nav">
-  <div class="logo">
-    <span class="logo-eye">◉</span> SECUROSERV
+<!-- Boot Screen -->
+<div id="boot">
+  <div class="boot-inner">
+    <div class="boot-logo">SECUROSERV</div>
+    <div class="boot-sub">SECURE · SERVICE · SOLUTIONS</div>
+    <div class="boot-bar"><div class="boot-fill" id="bootFill"></div></div>
+    <div class="boot-log" id="bootLog"></div>
   </div>
-  <ul class="nav-links">
-    <li><a href="#services">Услуги</a></li>
-    <li><a href="#fleet">Автопарк</a></li>
-    <li><a href="#pricing">Тарифы</a></li>
-    <li><a href="#faq">FAQ</a></li>
-  </ul>
-  <a href="#start" class="nav-cta" data-modal="hire">Нанять охрану</a>
-</nav>
+</div>
 
-<header class="hero">
-  <div class="badge"><span class="pulse"></span> Лицензия № 7734- LS</div>
-  <h1>Приватная<br><span class="grad">безопасность</span></h1>
-  <p>Защита активов, сопровождение грузов и элитные телохранители для тех, кто ценит своё время. Работаем по всему Сан-Андреасу.</p>
-  <div class="hero-btns">
-    <a href="#" class="btn btn-primary" data-modal="hire">Заказать защиту</a>
-    <a href="#services" class="btn btn-ghost">Наши услуги</a>
-  </div>
-  <div class="scroll-hint"></div>
-</header>
+<!-- Main App -->
+<div id="app" class="hidden">
 
-<section id="services">
-  <div class="wrap">
-    <div class="reveal">
-      <div class="sec-label">Услуги</div>
-      <h2 class="sec-title">Мы закрываем<br>любые задачи.</h2>
-      <p class="sec-sub">От сопровождения грузов до личной охраны первых лиц. Всё официально, всё конфиденциально.</p>
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="top-left">
+      <span class="logo-eye">◉</span>
+      <span class="top-title">SECUROSERV NETWORK</span>
     </div>
-    <div class="grid">
-      <div class="card reveal">
-        <div class="ico">🛡</div>
-        <h3>Личная охрана</h3>
-        <p>Профессиональные телохранители с боевым опытом. Незаметно или демонстративно — как вам нужно.</p>
-        <button class="card-btn" data-modal="hire" data-service="Личная охрана">Заказать →</button>
-      </div>
-      <div class="card reveal">
-        <div class="ico">🚛</div>
-        <h3>Сопровождение грузов</h3>
-        <p>Конвой от точки А до точки Б. Бронированный транспорт и полное сопровождение на всём пути.</p>
-        <button class="card-btn" data-modal="hire" data-service="Сопровождение грузов">Заказать →</button>
-      </div>
-      <div class="card reveal">
-        <div class="ico">🔒</div>
-        <h3>Защита объектов</h3>
-        <p>Охрана складов, офисов и производств. Круглосуточное дежурство и системы контроля доступа.</p>
-        <button class="card-btn" data-modal="hire" data-service="Защита объектов">Заказать →</button>
-      </div>
-      <div class="card reveal">
-        <div class="ico">📡</div>
-        <h3>Наблюдение</h3>
-        <p>Установка и обслуживание систем видеонаблюдения. Удалённый мониторинг 24/7 из любой точки.</p>
-        <button class="card-btn" data-modal="hire" data-service="Наблюдение">Заказать →</button>
-      </div>
-      <div class="card reveal">
-        <div class="ico">🚁</div>
-        <h3>Воздушная поддержка</h3>
-        <p>Вертолёты для эвакуации, разведки и сопровождения. Быстрое реагирование в любой точке карты.</p>
-        <button class="card-btn" data-modal="hire" data-service="Воздушная поддержка">Заказать →</button>
-      </div>
-      <div class="card reveal">
-        <div class="ico">🧠</div>
-        <h3>Консалтинг</h3>
-        <p>Оценка рисков, аудит безопасности и разработка стратегий защиты для вашего бизнеса.</p>
-        <button class="card-btn" data-modal="hire" data-service="Консалтинг">Заказать →</button>
-      </div>
+    <div class="top-right">
+      <div class="status-dot"></div>
+      <span id="topStatus">ONLINE</span>
+      <span class="sep">|</span>
+      <span id="topUser">GUEST</span>
+      <span class="sep">|</span>
+      <span id="topClock">--:--:--</span>
     </div>
-  </div>
-</section>
+  </header>
 
-<section id="fleet">
-  <div class="wrap">
-    <div class="reveal">
-      <div class="sec-label">Автопарк</div>
-      <h2 class="sec-title">Техника, которой<br>доверяют.</h2>
-      <p class="sec-sub">Собственный парк бронированных машин, вертолётов и спецтехники.</p>
-    </div>
-    <div class="fleet-grid">
-      <div class="fleet-card reveal">
-        <div class="fleet-img">🚙</div>
-        <h3>Шафтер V12</h3>
-        <p>Бронированный седан для VIP-сопровождения</p>
-        <span class="fleet-tag">Класс A</span>
-      </div>
-      <div class="fleet-card reveal">
-        <div class="fleet-img">🚐</div>
-        <h3>Спидог</h3>
-        <p>Инкассаторский фургон для перевозки ценностей</p>
-        <span class="fleet-tag">Класс A+</span>
-      </div>
-      <div class="fleet-card reveal">
-        <div class="fleet-img">🛻</div>
-        <h3>Пэтриот</h3>
-        <p>Внедорожник для сложных маршрутов</p>
-        <span class="fleet-tag">Класс B</span>
-      </div>
-      <div class="fleet-card reveal">
-        <div class="fleet-img">🚁</div>
-        <h3>Маверик</h3>
-        <p>Вертолёт для воздушного сопровождения</p>
-        <span class="fleet-tag">Класс S</span>
+  <!-- Sidebar Nav -->
+  <nav class="sidebar">
+    <button class="nav-btn active" data-page="dashboard">▣ Dashboard</button>
+    <button class="nav-btn" data-page="register">◈ Register CEO</button>
+    <button class="nav-btn" data-page="warehouses">▤ Warehouses</button>
+    <button class="nav-btn" data-page="vehicles">▸ Vehicle Cargo</button>
+    <button class="nav-btn" data-page="bodyguards">◉ Bodyguards</button>
+    <button class="nav-btn" data-page="vipwork">◆ VIP Work</button>
+    <button class="nav-btn" data-page="socialclub">◎ Social Club</button>
+    <div class="sidebar-footer">
+      <div class="balance">
+        <span class="bal-label">BANK BALANCE</span>
+        <span class="bal-value" id="bankBalance">$0</span>
       </div>
     </div>
-  </div>
-</section>
+  </nav>
 
-<section id="numbers">
-  <div class="wrap">
-    <div class="stats reveal">
-      <div>
-        <div class="stat-num" data-count="99.9" data-suffix="%">0</div>
-        <div class="stat-label">Успешных операций</div>
-      </div>
-      <div>
-        <div class="stat-num" data-count="140" data-suffix="K+">0</div>
-        <div class="stat-label">Клиентов защищено</div>
-      </div>
-      <div>
-        <div class="stat-num" data-count="12" data-suffix="мин">0</div>
-        <div class="stat-label">Время реакции</div>
-      </div>
-      <div>
-        <div class="stat-num" data-count="60" data-suffix="+">0</div>
-        <div class="stat-label">Точек в штате</div>
-      </div>
-    </div>
-  </div>
-</section>
+  <!-- Content Area -->
+  <main class="content">
 
-<section id="pricing">
-  <div class="wrap">
-    <div class="reveal" style="text-align:center">
-      <div class="sec-label">Тарифы</div>
-      <h2 class="sec-title">Выберите уровень<br>защиты.</h2>
-      <p class="sec-sub" style="margin:0 auto 60px">От базового сопровождения до полного пакета с воздушной поддержкой.</p>
-    </div>
-    <div class="pricing">
-      <div class="price-card reveal">
-        <div class="price-name">Стандарт</div>
-        <div class="price-val">5 000<span> $/день</span></div>
-        <div class="price-desc">Для разовых задач и поездок</div>
-        <ul class="price-list">
-          <li>2 телохранителя</li>
-          <li>1 бронированный автомобиль</li>
-          <li>Сопровождение по городу</li>
-          <li>Связь с диспетчером</li>
-        </ul>
-        <button class="btn btn-ghost price-btn" data-modal="hire" data-plan="Стандарт">Выбрать</button>
+    <!-- DASHBOARD -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>Executive Dashboard</h1>
+        <p class="page-desc">SecuroServ private security network — your gateway to Los Santos' most lucrative opportunities.</p>
       </div>
-      <div class="price-card featured reveal">
-        <div class="price-name">Премиум</div>
-        <div class="price-val">15 000<span> $/день</span></div>
-        <div class="price-desc">Для бизнеса и постоянной защиты</div>
-        <ul class="price-list">
-          <li>4 телохранителя</li>
-          <li>2 бронированных автомобиля</li>
-          <li>Сопровождение по штату</li>
-          <li>Воздушная поддержка</li>
-          <li>Персональный координатор</li>
-        </ul>
-        <button class="btn btn-primary price-btn" data-modal="hire" data-plan="Премиум">Выбрать</button>
-      </div>
-      <div class="price-card reveal">
-        <div class="price-name">Элит</div>
-        <div class="price-val">50 000<span> $/день</span></div>
-        <div class="price-desc">Максимальный уровень защиты</div>
-        <ul class="price-list">
-          <li>Всё из Премиум</li>
-          <li>Отряд быстрого реагирования</li>
-          <li>Бронированный вертолёт</li>
-          <li>Эвакуация 24/7</li>
-          <li>Персональный менеджер</li>
-        </ul>
-        <button class="btn btn-ghost price-btn" data-modal="hire" data-plan="Элит">Выбрать</button>
-      </div>
-    </div>
-  </div>
-</section>
 
-<section id="reviews">
-  <div class="wrap">
-    <div class="reveal">
-      <div class="sec-label">Отзывы</div>
-      <h2 class="sec-title">Клиенты<br>доверяют нам.</h2>
-    </div>
-    <div class="reviews" style="margin-top:50px">
-      <div class="review reveal">
-        <div class="stars">★★★★★</div>
-        <p>Перевёз крупную партию товара через весь штат. Ни одного инцидента. Ребята знают своё дело.</p>
-        <div class="who">
-          <div class="ava">АК</div>
-          <div><b>Антон К.</b><small>Предприниматель</small></div>
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">CEO STATUS</div>
+          <div class="dash-value" id="dashStatus">NOT REGISTERED</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">ORGANIZATION</div>
+          <div class="dash-value" id="dashOrg">—</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">WAREHOUSES</div>
+          <div class="dash-value" id="dashWarehouses">0 / 5</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">TOTAL EARNINGS</div>
+          <div class="dash-value" id="dashEarnings">$0</div>
         </div>
       </div>
-      <div class="review reveal">
-        <div class="stars">★★★★★</div>
-        <p>Пользуюсь Премиум-тарифом уже год. Чувствую себя в безопасности в любой точке города.</p>
-        <div class="who">
-          <div class="ava">ДС</div>
-          <div><b>Дмитрий С.</b><small>Инвестор</small></div>
+
+      <div class="panel">
+        <div class="panel-head">SYSTEM MESSAGES</div>
+        <div class="panel-body" id="dashboardLog">
+          <div class="log-line">> Welcome to SecuroServ Network. Select an option from the sidebar to begin.</div>
         </div>
       </div>
-      <div class="review reveal">
-        <div class="stars">★★★★★</div>
-        <p>Профессионалы. Приехали за 10 минут, сопроводили до офиса. Рекомендую.</p>
-        <div class="who">
-          <div class="ava">МП</div>
-          <div><b>Мария П.</b><small>Владелица клуба</small></div>
+
+      <div class="panel">
+        <div class="panel-head">QUICK ACTIONS</div>
+        <div class="panel-body quick-actions">
+          <button class="action-btn" onclick="navigateTo('register')">Register as CEO</button>
+          <button class="action-btn" onclick="navigateTo('warehouses')">Buy Warehouse</button>
+          <button class="action-btn" onclick="navigateTo('vipwork')">Start VIP Work</button>
         </div>
       </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<section id="faq">
-  <div class="wrap">
-    <div class="reveal" style="text-align:center; margin-bottom:50px">
-      <div class="sec-label">Вопросы</div>
-      <h2 class="sec-title">Частые вопросы</h2>
-    </div>
-    <div class="faq reveal">
-      <div class="faq-item">
-        <div class="faq-q">Как быстро вы реагируете? <span class="plus">+</span></div>
-        <div class="faq-a">Среднее время прибытия по городу — 12 минут. По штату — до 30 минут. Для клиентов тарифа Элит доступна воздушная эвакуация.</div>
+    <!-- REGISTER CEO -->
+    <section class="page" id="page-register">
+      <div class="page-header">
+        <h1>Register as CEO</h1>
+        <p class="page-desc">Become a VIP and build your criminal empire. Requires at least $50,000 in your bank account.</p>
       </div>
-      <div class="faq-item">
-        <div class="faq-q">Работаете ли вы с крупными грузами? <span class="plus">+</span></div>
-        <div class="faq-a">Да. Сопровождаем конвои любого размера. Для крупных партий выделяется дополнительный транспорт и воздушное прикрытие.</div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">Насколько это конфиденциально? <span class="plus">+</span></div>
-        <div class="faq-a">Все операции проходят под NDA. Информация о клиентах и маршрутах не разглашается третьим лицам. Полная анонимность по запросу.</div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">Есть ли скидки для постоянных клиентов? <span class="plus">+</span></div>
-        <div class="faq-a">Да. При заказе от 7 дней — скидка 10%, от 30 дней — 20%. Для корпоративных клиентов действуют индивидуальные условия.</div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">Можно ли заказать охрану на мероприятие? <span class="plus">+</span></div>
-        <div class="faq-a">Конечно. Проводим оценку объекта, разрабатываем план охраны и выделяем необходимое количество сотрудников. Работаем с мероприятиями любого масштаба.</div>
-      </div>
-    </div>
-  </div>
-</section>
 
-<section id="start">
-  <div class="wrap">
-    <div class="cta-box reveal">
-      <h2>Нужна защита?</h2>
-      <p>Оставьте заявку — координатор свяжется с вами в течение 5 минут.</p>
-      <button class="btn btn-primary" data-modal="hire">Оставить заявку</button>
-    </div>
-  </div>
-</section>
+      <div class="panel">
+        <div class="panel-head">CEO REGISTRATION</div>
+        <div class="panel-body">
+          <div class="form-group">
+            <label>ORGANIZATION NAME</label>
+            <input type="text" id="orgNameInput" maxlength="15" placeholder="Enter org name (max 15 chars)">
+            <div class="hint">This name will be visible to all players in your session.</div>
+          </div>
+          <div class="form-group">
+            <label>BANK ACCOUNT</label>
+            <div class="bank-input">$ <span id="regBalance">0</span></div>
+            <div class="hint">Minimum $50,000 required to register.</div>
+          </div>
+          <button class="action-btn primary" onclick="registerCEO()">REGISTER AS CEO</button>
+          <div id="registerError" class="error-msg hidden"></div>
+        </div>
+      </div>
 
-<footer>
-  <div class="foot-grid">
-    <div class="foot-brand">
-      <div class="logo"><span class="logo-eye">◉</span> SECUROSERV</div>
-      <p>Приватная охранная организация. Лицензия № 7734-LS. Работаем по всему Сан-Андреасу с 2013 года.</p>
-    </div>
-    <div>
-      <h4>Услуги</h4>
-      <ul>
-        <li><a href="#services">Личная охрана</a></li>
-        <li><a href="#services">Сопровождение</a></li>
-        <li><a href="#services">Защита объектов</a></li>
-        <li><a href="#services">Наблюдение</a></li>
-      </ul>
-    </div>
-    <div>
-      <h4>Компания</h4>
-      <ul>
-        <li><a href="#">О нас</a></li>
-        <li><a href="#">Карьера</a></li>
-        <li><a href="#">Лицензии</a></li>
-        <li><a href="#">Контакты</a></li>
-      </ul>
-    </div>
-    <div>
-      <h4>Помощь</h4>
-      <ul>
-        <li><a href="#faq">FAQ</a></li>
-        <li><a href="#">Документация</a></li>
-        <li><a href="#">Статус</a></li>
-        <li><a href="#">Поддержка</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="foot-bottom">
-    <div>© 2025 SecuroServ. Все права защищены.</div>
-    <div class="socials">
-      <a href="#" data-toast="Мы в Telegram — скоро">✈</a>
-      <a href="#" data-toast="GitHub SecuroServ — скоро">◆</a>
-      <a href="#" data-toast="Мы в X — скоро">✕</a>
-    </div>
-  </div>
-</footer>
+      <div class="panel" id="ceoStatusPanel" style="display:none;">
+        <div class="panel-head">ACTIVE CEO SESSION</div>
+        <div class="panel-body">
+          <div class="status-row">
+            <span class="status-label">Organization:</span>
+            <span id="activeOrgName">—</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Status:</span>
+            <span class="status-green">ACTIVE</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Associates:</span>
+            <span id="activeAssociates">0</span>
+          </div>
+          <button class="action-btn" onclick="resignCEO()">RESIGN AS CEO</button>
+        </div>
+      </div>
+    </section>
 
-<!-- МОДАЛЬНОЕ ОКНО ЗАЯВКИ -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <button class="modal-close" id="modalClose">✕</button>
-    <div class="modal-head">
-      <div class="modal-icon">◉</div>
-      <h3>Заявка на защиту</h3>
-      <p id="modalSub">Заполните форму — координатор свяжется с вами</p>
-    </div>
-    <form id="hireForm" novalidate>
-      <div class="field">
-        <label>Ваше имя</label>
-        <input type="text" id="fName" placeholder="Как к вам обращаться?" required>
-        <span class="err" id="errName"></span>
+    <!-- WAREHOUSES -->
+    <section class="page" id="page-warehouses">
+      <div class="page-header">
+        <h1>Warehouse Network</h1>
+        <p class="page-desc">Purchase and manage warehouses for cargo storage. Each warehouse generates passive income.</p>
       </div>
-      <div class="field">
-        <label>Телефон</label>
-        <input type="tel" id="fPhone" placeholder="+7 (___) ___-__-__" required>
-        <span class="err" id="errPhone"></span>
+
+      <div class="warehouse-grid" id="warehouseGrid"></div>
+      <div class="panel">
+        <div class="panel-head">OWNED WAREHOUSES</div>
+        <div class="panel-body" id="ownedWarehouses">
+          <div class="log-line">> No warehouses owned. Purchase one to begin operations.</div>
+        </div>
       </div>
-      <div class="field">
-        <label>Услуга</label>
-        <select id="fService">
-          <option value="Личная охрана">Личная охрана</option>
-          <option value="Сопровождение грузов">Сопровождение грузов</option>
-          <option value="Защита объектов">Защита объектов</option>
-          <option value="Наблюдение">Наблюдение</option>
-          <option value="Воздушная поддержка">Воздушная поддержка</option>
-          <option value="Консалтинг">Консалтинг</option>
-        </select>
+    </section>
+
+    <!-- VEHICLE CARGO -->
+    <section class="page" id="page-vehicles">
+      <div class="page-header">
+        <h1>Vehicle Cargo</h1>
+        <p class="page-desc">Source and export high-end vehicles through the SecuroServ network.</p>
       </div>
-      <div class="field">
-        <label>Комментарий</label>
-        <textarea id="fComment" rows="3" placeholder="Детали заказа (необязательно)"></textarea>
+
+      <div class="panel">
+        <div class="panel-head">AVAILABLE CONTRACTS</div>
+        <div class="panel-body" id="vehicleContracts"></div>
       </div>
-      <button type="submit" class="btn btn-primary modal-submit">Отправить заявку</button>
-      <p class="modal-note">Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности.</p>
-    </form>
-    <div class="modal-success" id="modalSuccess">
-      <div class="success-icon">✓</div>
-      <h3>Заявка принята!</h3>
-      <p>Координатор SecuroServ свяжется с вами в течение 5 минут.</p>
-      <button class="btn btn-primary" id="successClose">Отлично</button>
-    </div>
-  </div>
+
+      <div class="panel">
+        <div class="panel-head">SOURCE VEHICLE</div>
+        <div class="panel-body">
+          <button class="action-btn primary" onclick="sourceVehicle()">START SOURCING MISSION</button>
+          <div id="sourceResult" class="hint" style="margin-top:12px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BODYGUARDS -->
+    <section class="page" id="page-bodyguards">
+      <div class="page-header">
+        <h1>Bodyguards & Associates</h1>
+        <p class="page-desc">Hire bodyguards to protect your operations and expand your organization.</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">RECRUITMENT</div>
+        <div class="panel-body">
+          <div class="form-group">
+            <label>NUMBER OF BODYGUARDS</label>
+            <input type="number" id="bgCount" min="1" max="7" value="2">
+          </div>
+          <button class="action-btn primary" onclick="hireBodyguards()">HIRE BODYGUARDS ($5,000 each)</button>
+          <div id="bgResult" class="hint" style="margin-top:12px;"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">ACTIVE BODYGUARDS</div>
+        <div class="panel-body" id="bodyguardList">
+          <div class="log-line">> No bodyguards hired.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIP WORK -->
+    <section class="page" id="page-vipwork">
+      <div class="page-header">
+        <h1>VIP Work</h1>
+        <p class="page-desc">Launch exclusive missions available only to registered CEOs and VIPs.</p>
+      </div>
+
+      <div class="vip-grid" id="vipWorkGrid"></div>
+    </section>
+
+    <!-- SOCIAL CLUB -->
+    <section class="page" id="page-socialclub">
+      <div class="page-header">
+        <h1>Rockstar Games Social Club</h1>
+        <p class="page-desc">Connect your Social Club account to sync your SecuroServ profile.</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">SOCIAL CLUB INTEGRATION</div>
+        <div class="panel-body">
+          <div class="sc-notice">
+            <strong>IMPORTANT:</strong> Direct API integration with Rockstar Games Social Club is not available to third-party applications. 
+            Rockstar does not provide public developer credentials for Social Club authentication[reference:1].
+          </div>
+          <div class="form-group">
+            <label>SOCIAL CLUB NICKNAME</label>
+            <input type="text" id="scNickname" placeholder="Enter your Social Club name">
+          </div>
+          <div class="form-group">
+            <label>ROCKSTAR ID (RID)</label>
+            <input type="text" id="scRid" placeholder="e.g. 12345678">
+          </div>
+          <button class="action-btn" onclick="saveSocialClub()">SAVE PROFILE (LOCAL)</button>
+          <div id="scResult" class="hint" style="margin-top:12px;"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">LINKED PROFILE</div>
+        <div class="panel-body" id="scProfile">
+          <div class="log-line">> No Social Club profile linked.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Status Bar -->
+  <footer class="statusbar">
+    <span id="statusMsg">SecuroServ Network v4.2.1 — All systems operational</span>
+    <span id="statusTime"></span>
+  </footer>
 </div>
 
 <script src="script.js"></script>
