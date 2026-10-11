@@ -107,6 +107,7 @@ body {
   font-family: 'SF Mono', Consolas, monospace;
   font-size: .78em; color: var(--muted);
   margin-top: 12px; text-align: center;
+  word-break: break-word;
 }
 
 .loader-note {
@@ -469,6 +470,7 @@ body {
   .suggestions { grid-template-columns: 1fr; }
   .chat-header { padding: 12px 16px; }
   .ch-title { max-width: 50%; font-size: .85em; }
+  .loader-stats { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -495,7 +497,7 @@ body {
 
     <div class="loader-note">
       Первый запуск скачает модель. Файлы кешируются — повторные запуски мгновенны.
-      Нужен Chrome/Edge 113+ или Safari 18+.
+      На телефоне без WebGPU используется CPU (медленно).
     </div>
   </div>
 </div>
@@ -534,10 +536,10 @@ body {
         <h2>Чем помочь?</h2>
         <p>Модель работает офлайн — твои сообщения никуда не отправляются.</p>
         <div class="suggestions">
-          <button data-prompt="Объясни разницу между TCP и UDP простыми словами">Разница TCP и UDP</button>
-          <button data-prompt="Напиши функцию на JavaScript для сортировки массива объектов по ключу">Сортировка массива в JS</button>
+          <button data-prompt="Что такое HTML?">Что такое HTML?</button>
+          <button data-prompt="Напиши функцию на JavaScript для сортировки массива">Сортировка в JS</button>
           <button data-prompt="Придумай короткий слоган для кофейни">Слоган для кофейни</button>
-          <button data-prompt="Составь план тренировки на неделю для новичка">План тренировок</button>
+          <button data-prompt="Перечисли 5 планет Солнечной системы">5 планет</button>
         </div>
       </div>
       <div id="messages"></div>
@@ -582,8 +584,9 @@ body {
           <div class="setting-hint">Ниже — точнее, выше — креативнее</div>
         </div>
         <div class="setting">
-          <label>Максимум токенов: <span id="tokensVal">256</span></label>
-          <input type="range" id="setTokens" min="64" max="1024" step="64" value="256">
+          <label>Максимум токенов: <span id="tokensVal">128</span></label>
+          <input type="range" id="setTokens" min="32" max="1024" step="32" value="128">
+          <div class="setting-hint">Меньше — быстрее, больше — длиннее ответы</div>
         </div>
         <div class="setting">
           <label>Top-p: <span id="toppVal">0.9</span></label>
@@ -613,7 +616,7 @@ const state = {
     model: 'onnx-community/Qwen2.5-0.5B-Instruct',
     system: 'Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.',
     temperature: 0.7,
-    maxTokens: 256,
+    maxTokens: 128,
     topP: 0.9
   }
 };
@@ -686,21 +689,53 @@ function refreshSettingsUI() {
   sbModel.textContent = state.settings.model.split('/').pop().replace('-Instruct', '');
 }
 
+/* ═══ ВЫБОР УСТРОЙСТВА (WebGPU → WASM) ═══ */
+async function pickDevice() {
+  if (!navigator.gpu) {
+    console.log('WebGPU API отсутствует → WASM');
+    return 'wasm';
+  }
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      console.log('GPU-адаптер не получен → WASM');
+      return 'wasm';
+    }
+    // Проверяем, что device реально создаётся
+    const device = await adapter.requestDevice();
+    if (!device) {
+      console.log('GPU device не создан → WASM');
+      return 'wasm';
+    }
+    console.log('WebGPU готов');
+    return 'webgpu';
+  } catch (e) {
+    console.warn('WebGPU недоступен:', e);
+    return 'wasm';
+  }
+}
+
 /* ═══ ЗАГРУЗКА МОДЕЛИ ═══ */
 async function loadModel() {
   startBtn.disabled = true;
   startBtn.textContent = 'Загрузка...';
   progressBox.classList.add('show');
+  progressText.textContent = 'Определяем устройство...';
   sbDot.className = 'dot loading';
-  sbStatus.textContent = 'Загрузка...';
+  sbStatus.textContent = 'Инициализация...';
 
-  state.device = navigator.gpu ? 'webgpu' : 'wasm';
-  lsModel.textContent = state.settings.model.split('/').pop();
-  lsDevice.textContent = state.device === 'webgpu' ? 'WebGPU' : 'CPU';
+  const device = await pickDevice();
+  state.device = device;
+  lsModel.textContent = state.settings.model.split('/').pop().replace('-Instruct', '');
+  lsDevice.textContent = device === 'webgpu' ? 'WebGPU (GPU)' : 'WASM (CPU)';
+
+  if (device === 'wasm') {
+    progressText.textContent = 'WebGPU недоступен, работаем на CPU. Это медленно, но работает.';
+  }
 
   try {
     state.generator = await pipeline('text-generation', state.settings.model, {
-      device: state.device,
+      device: device,
       dtype: 'q4',
       progress_callback: (p) => {
         if (p.status === 'progress') {
@@ -712,12 +747,14 @@ async function loadModel() {
         } else if (p.status === 'ready') {
           progressFill.style.width = '100%';
           progressText.textContent = 'Готово!';
+        } else if (p.status === 'initiate') {
+          progressText.textContent = `Скачивание ${p.file || '...'}`;
         }
       }
     });
 
     sbDot.className = 'dot ready';
-    sbStatus.textContent = 'Готов';
+    sbStatus.textContent = device === 'webgpu' ? 'Готов (GPU)' : 'Готов (CPU)';
     setTimeout(() => {
       loader.classList.add('hide');
       inputEl.disabled = false;
@@ -956,7 +993,7 @@ async function sendMessage() {
     sendBtn.disabled = false;
     stopBtn.classList.add('hidden');
     sbDot.className = 'dot ready';
-    sbStatus.textContent = 'Готов';
+    sbStatus.textContent = state.device === 'webgpu' ? 'Готов (GPU)' : 'Готов (CPU)';
     inputEl.focus();
     scrollToBottom();
   }
@@ -977,7 +1014,7 @@ function autoResize() {
 
 function showToast(text) {
   const t = document.createElement('div');
-  t.style.cssText = `position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:.85em;z-index:9000;box-shadow:0 10px 30px rgba(0,0,0,.5);`;
+  t.style.cssText = `position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:.85em;z-index:9000;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:90%;text-align:center;`;
   t.textContent = text;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2200);
