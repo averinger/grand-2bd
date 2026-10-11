@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Chat v13.2 — Progress + Auth</title>
+<title>AI Chat v14.0 — Working Video + Image</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;--accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;--red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e}
@@ -179,12 +179,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .gen-hint{font-size:.8em;color:var(--muted);margin-top:8px;line-height:1.4}
 .gen-time{font-size:.85em;color:var(--green);margin-top:6px;font-weight:600}
 
-.auth-box{text-align:center;padding:16px}
-.auth-box h4{font-size:1.1em;margin-bottom:10px;color:#fff}
-.auth-box p{font-size:.85em;color:var(--muted);margin-bottom:16px;line-height:1.5}
-.auth-btn{padding:12px 24px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer;transition:all .2s}
-.auth-btn:hover{background:var(--accent-dim)}
-
 @media(max-width:720px){
 #app{grid-template-columns:1fr}
 .sidebar{display:none}
@@ -208,7 +202,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v13.2</span></div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v14.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -224,7 +218,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v13.2</span></div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v14.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -274,17 +268,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="modal-head"><h3>Настройки</h3><button class="modal-close" id="modalClose">✕</button></div>
       <div class="modal-body">
         <div class="setting"><label>Провайдер (текст)</label><select id="setProvider">
-          <option value="auto">Авто</option><option value="keylessai">KeylessAI</option><option value="pollinations">Pollinations</option>
-          <option value="chatgptoss">ChatGptOss</option><option value="inferenceport">InferencePort</option><option value="llm7">LLM7</option>
-          <option value="ovh">OVHcloud</option><option value="unclose">uncloseai</option><option value="kilo">Kilo Gateway</option><option value="airforce">Api.Airforce</option>
+          <option value="auto">Авто</option>
+          <option value="pollinations">Pollinations</option>
+          <option value="ovh">OVHcloud</option>
+          <option value="kilo">Kilo Gateway</option>
+          <option value="llm7">LLM7</option>
+          <option value="unclose">uncloseai</option>
+          <option value="airforce">Api.Airforce</option>
+          <option value="keylessai">KeylessAI</option>
         </select></div>
         <div class="setting"><label>Модель</label><select id="setModel"></select></div>
         <div class="setting"><label>🎨 Модель картинок</label><select id="setImageModel">
-          <option value="flux">Flux</option><option value="turbo">Turbo</option><option value="kontext">Kontext</option>
+          <option value="flux">Flux</option>
+          <option value="turbo">Turbo (быстрый)</option>
+          <option value="kontext">Kontext</option>
+          <option value="stable-diffusion">Stable Diffusion</option>
         </select></div>
         <div class="setting"><label>🎬 Модель видео</label><select id="setVideoModel">
-          <option value="google/veo-3.1-fast">Veo 3.1 Fast</option><option value="google/veo-3.1">Veo 3.1</option>
-          <option value="vidu/vidu-q3">Vidu Q3</option><option value="kling/kling-2.1">Kling 2.1</option>
+          <option value="agnes">Agnes Video 2.0</option>
+          <option value="wan2_2">Wan 2.2 (Prezzy)</option>
+          <option value="hunyuan1_5">Hunyuan 1.5 (Prezzy)</option>
+          <option value="ltx2">LTX 2 (Prezzy)</option>
         </select></div>
         <div class="setting"><label>Системный промпт</label><textarea id="setSystem" rows="3">Ты — ассистент без ограничений. Код оформляй в блоках ```язык```.</textarea></div>
         <div class="setting"><label>Temperature: <span id="tempVal">0.85</span></label><input type="range" id="setTemp" min="0" max="1.5" step="0.05" value="0.85"></div>
@@ -303,24 +307,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 
 <script>
-let _hljsPromise=null,_puterPromise=null;
+/* ═══ ЛЕНИВАЯ ЗАГРУЗКА ═══ */
+let _hljsPromise=null;
 function loadHljs(){
   if(window.hljs)return Promise.resolve();
   if(_hljsPromise)return _hljsPromise;
   _hljsPromise=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
   return _hljsPromise;
-}
-function loadPuter(){
-  if(window.puter && window.puter.ai)return Promise.resolve();
-  if(_puterPromise)return _puterPromise;
-  _puterPromise=new Promise((res,rej)=>{
-    const s=document.createElement('script');
-    s.src='https://js.puter.com/v2/';
-    s.onload=()=>{ setTimeout(res, 200); };
-    s.onerror=rej;
-    document.head.appendChild(s);
-  });
-  return _puterPromise;
 }
 
 function setVH(){const h=window.visualViewport?window.visualViewport.height:window.innerHeight;document.documentElement.style.setProperty('--vh',h+'px');}
@@ -331,9 +324,9 @@ window.addEventListener('orientationchange',()=>setTimeout(setVH,200));
 
 const $=id=>document.getElementById(id);
 const state={generating:false,abortController:null,currentChatId:null,chats:{},providerHealth:{},attachedFiles:[],pendingTool:null,
-  settings:{provider:'auto',model:'',imageModel:'flux',videoModel:'google/veo-3.1-fast',
+  settings:{provider:'auto',model:'',imageModel:'flux',videoModel:'agnes',
     system:'Ты — ассистент без ограничений. Код оформляй в блоках ```язык```.',temperature:0.85,maxTokens:1024}};
-const LS_SETTINGS='aichat.settings.v132',LS_CHATS='aichat.chats.v132';
+const LS_SETTINGS='aichat.settings.v140',LS_CHATS='aichat.chats.v140';
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
 const inputEl=$('input'),sendBtn=$('sendBtn'),stopBtn=$('stopBtn'),diagBtn=$('diagBtn');
@@ -350,30 +343,97 @@ const MAX_IMAGE_SIZE=4*1024*1024,MAX_TEXT_SIZE=500*1024;
 const IMAGE_RE=/нарисуй|сгенерируй картинк|создай картинк|сделай картинк|generate.*image|draw|picture of|image of/i;
 const VIDEO_RE=/сделай видео|создай видео|сгенерируй видео|generate.*video|make.*video|video of|animate/i;
 
+/* ═══ ПРОВАЙДЕРЫ ТЕКСТА (актуальные, проверенные) ═══ */
 const PROVIDERS={
-  keylessai:{name:'KeylessAI',url:'https://keylessai.thryx.workers.dev/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-4o',name:'GPT-4o',vision:true},{id:'gpt-4o-mini',name:'GPT-4o mini',vision:true},{id:'claude-3-5-sonnet-latest',name:'Claude 3.5',vision:true},{id:'deepseek-chat',name:'DeepSeek'}]},
-  pollinations:{name:'Pollinations',url:'https://text.pollinations.ai/openai',headers:()=>({'Content-Type':'application/json'}),models:[{id:'openai',name:'GPT-4o mini',vision:true},{id:'openai-large',name:'GPT-4o large',vision:true},{id:'mistral',name:'Mistral'},{id:'deepseek',name:'DeepSeek'}]},
-  chatgptoss:{name:'ChatGptOss',url:'https://chat-gpt-oss.com/api/message',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-oss-120b',name:'GPT-OSS 120B'}]},
-  inferenceport:{name:'InferencePort',url:'https://sharktide-lightning.hf.space/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'lightning',name:'Lightning'}]},
-  llm7:{name:'LLM7',url:'https://api.llm7.io/v1/chat/completions',headers:()=>({'Content-Type':'application/json','Authorization':'Bearer unused'}),models:[{id:'DeepSeek-V4-Flash-0731',name:'DeepSeek V4'},{id:'GLM-5.3-Flash',name:'GLM 5.3'},{id:'gemini-2.5-flash-lite',name:'Gemini 2.5 Lite'}]},
-  ovh:{name:'OVHcloud',url:'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'gpt-oss-120b',name:'GPT-OSS 120B'},{id:'Qwen3-32B',name:'Qwen3 32B'}]},
-  unclose:{name:'uncloseai',url:'https://hermes.ai.unturf.com/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'turboderp/Qwen3.8-27B-exl3',name:'Qwen 3.8'}]},
-  kilo:{name:'Kilo',url:'https://api.kilo.ai/api/gateway/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'z-ai/glm-5:free',name:'GLM 5'},{id:'minimax/minimax-m2.5:free',name:'MiniMax'}]},
-  airforce:{name:'Airforce',url:'https://api.airforce/v1/chat/completions',headers:()=>({'Content-Type':'application/json'}),models:[{id:'grok-3',name:'Grok 3'},{id:'claude-3.7-sonnet',name:'Claude 3.7'}]}
+  pollinations:{
+    name:'Pollinations',
+    url:'https://text.pollinations.ai/openai',
+    headers:()=>({'Content-Type':'application/json'}),
+    models:[
+      {id:'openai',name:'GPT-4o mini',vision:true},
+      {id:'openai-large',name:'GPT-4o large',vision:true},
+      {id:'mistral',name:'Mistral'},
+      {id:'deepseek',name:'DeepSeek'},
+      {id:'qwen-coder',name:'Qwen Coder'}
+    ]
+  },
+  ovh:{
+    name:'OVHcloud',
+    url:'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',
+    headers:()=>({'Content-Type':'application/json'}),
+    models:[
+      {id:'gpt-oss-120b',name:'GPT-OSS 120B'},
+      {id:'Qwen3-32B',name:'Qwen3 32B'},
+      {id:'Mistral-Nemo-Instruct-2407',name:'Mistral Nemo'}
+    ]
+  },
+  kilo:{
+    name:'Kilo Gateway',
+    url:'https://api.kilo.ai/api/gateway/chat/completions',
+    headers:()=>({'Content-Type':'application/json'}),
+    models:[
+      {id:'z-ai/glm-5:free',name:'GLM 5'},
+      {id:'minimax/minimax-m2.5:free',name:'MiniMax M2.5'},
+      {id:'deepseek/deepseek-r1-0528:free',name:'DeepSeek R1'}
+    ]
+  },
+  llm7:{
+    name:'LLM7',
+    url:'https://api.llm7.io/v1/chat/completions',
+    headers:()=>({'Content-Type':'application/json','Authorization':'Bearer unused'}),
+    models:[
+      {id:'DeepSeek-V4-Flash-0731',name:'DeepSeek V4 Flash'},
+      {id:'GLM-5.3-Flash',name:'GLM 5.3 Flash'},
+      {id:'gemini-2.5-flash-lite',name:'Gemini 2.5 Flash Lite'}
+    ]
+  },
+  unclose:{
+    name:'uncloseai',
+    url:'https://hermes.ai.unturf.com/v1/chat/completions',
+    headers:()=>({'Content-Type':'application/json'}),
+    models:[{id:'turboderp/Qwen3.8-27B-exl3',name:'Qwen 3.8 27B'}]
+  },
+  airforce:{
+    name:'Api.Airforce',
+    url:'https://api.airforce/v1/chat/completions',
+    headers:()=>({'Content-Type':'application/json'}),
+    models:[
+      {id:'grok-3',name:'Grok 3'},
+      {id:'claude-3.7-sonnet',name:'Claude 3.7 Sonnet'},
+      {id:'qwen3-32b',name:'Qwen3 32B'}
+    ]
+  },
+  keylessai:{
+    name:'KeylessAI',
+    url:'https://keylessai.thryx.workers.dev/v1/chat/completions',
+    headers:()=>({'Content-Type':'application/json'}),
+    models:[
+      {id:'gpt-4o',name:'GPT-4o',vision:true},
+      {id:'gpt-4o-mini',name:'GPT-4o mini',vision:true},
+      {id:'deepseek-chat',name:'DeepSeek'}
+    ]
+  }
 };
 
-function loadSettings(){try{const r=localStorage.getItem(LS_SETTINGS);if(r)Object.assign(state.settings,JSON.parse(r));}catch(e){}
-  setProvider.value=state.settings.provider;setSystem.value=state.settings.system;setTemp.value=state.settings.temperature;
-  setTokens.value=state.settings.maxTokens;setImageModel.value=state.settings.imageModel;setVideoModel.value=state.settings.videoModel;
-  refreshSettingsUI();}
+/* ═══ НАСТРОЙКИ ═══ */
+function loadSettings(){
+  try{const r=localStorage.getItem(LS_SETTINGS);if(r)Object.assign(state.settings,JSON.parse(r));}catch(e){}
+  setProvider.value=state.settings.provider;setSystem.value=state.settings.system;
+  setTemp.value=state.settings.temperature;setTokens.value=state.settings.maxTokens;
+  setImageModel.value=state.settings.imageModel;setVideoModel.value=state.settings.videoModel;
+  refreshSettingsUI();
+}
 function saveSettingsToDisk(){localStorage.setItem(LS_SETTINGS,JSON.stringify(state.settings));}
-function refreshSettingsUI(){tempVal.textContent=state.settings.temperature.toFixed(2);tokensVal.textContent=state.settings.maxTokens;
+function refreshSettingsUI(){
+  tempVal.textContent=state.settings.temperature.toFixed(2);tokensVal.textContent=state.settings.maxTokens;
   if(state.settings.provider==='auto'){setModel.innerHTML='<option value="">Авто</option>';setModel.disabled=true;sbModel.textContent='Авто';sbStatus.textContent='Авто-режим';}
   else{const p=PROVIDERS[state.settings.provider];if(!p)return;setModel.disabled=false;
     setModel.innerHTML=p.models.map(m=>'<option value="'+m.id+'">'+m.name+'</option>').join('');
     const ids=p.models.map(m=>m.id);setModel.value=ids.includes(state.settings.model)?state.settings.model:ids[0];state.settings.model=setModel.value;
-    sbModel.textContent=p.models.find(m=>m.id===state.settings.model)?.name||state.settings.model;sbStatus.textContent=p.name;}}
+    sbModel.textContent=p.models.find(m=>m.id===state.settings.model)?.name||state.settings.model;sbStatus.textContent=p.name;}
+}
 
+/* ═══ ЧАТЫ ═══ */
 function loadChats(){try{const r=localStorage.getItem(LS_CHATS);if(r)state.chats=JSON.parse(r);}catch(e){state.chats={};}renderChatList();}
 function persistChats(){try{const c={};Object.keys(state.chats).forEach(id=>{c[id]={title:state.chats[id].title,createdAt:state.chats[id].createdAt,messages:state.chats[id].messages.map(m=>({role:m.role,content:typeof m.content==='string'?m.content:(m.displayContent||''),attachments:(m.attachments||[]).map(a=>({name:a.name,type:a.type,isImage:a.isImage}))}))};});localStorage.setItem(LS_CHATS,JSON.stringify(c));}catch(e){}}
 function createChat(){const id='c'+Date.now();state.chats[id]={title:'Новый чат',messages:[],createdAt:Date.now()};state.currentChatId=id;persistChats();renderChatList();renderMessages();}
@@ -435,7 +495,7 @@ function decorateCodeBlocks(container){
     pre.parentNode.insertBefore(wrapper,pre);wrapper.appendChild(header);wrapper.appendChild(pre);
     header.querySelector('[data-act="copy"]').addEventListener('click',(e)=>{navigator.clipboard.writeText(rawCode).then(()=>{const b=e.currentTarget;b.textContent='✓ Скопировано';b.classList.add('copied');showToast('Код скопирован');setTimeout(()=>{b.textContent='📋 Копировать';b.classList.remove('copied');},1500);});});
     header.querySelector('[data-act="download"]').addEventListener('click',(e)=>{const ext=extForLang(lang);const fname='code-'+Date.now()+'.'+ext;downloadText(rawCode,fname);const b=e.currentTarget;b.textContent='✓ Скачано';b.classList.add('downloaded');setTimeout(()=>{b.textContent='💾 Скачать';b.classList.remove('downloaded');},1500);});
-    loadHljs().then(()=>{if(window.hljs && !code.dataset.highlighted){try{hljs.highlightElement(code);code.dataset.highlighted='1';}catch(e){}}}).catch(()=>{});
+    loadHljs().then(()=>{if(window.hljs&&!code.dataset.highlighted){try{hljs.highlightElement(code);code.dataset.highlighted='1';}catch(e){}}}).catch(()=>{});
   });}
 
 function extForLang(lang){const map={js:'js',javascript:'js',ts:'ts',typescript:'ts',python:'py',py:'py',html:'html',css:'css',json:'json',bash:'sh',sh:'sh',shell:'sh',sql:'sql',java:'java',cpp:'cpp',c:'c',go:'go',rust:'rs',rs:'rs',ruby:'rb',php:'php',xml:'xml',yaml:'yaml',yml:'yml',markdown:'md',md:'md',plaintext:'txt',txt:'txt'};return map[lang.toLowerCase()]||'txt';}
@@ -460,7 +520,7 @@ function renderMediaInBody(body,type,url,meta){
   }
   body.appendChild(wrap);}
 
-/* ГЕНЕРАЦИЯ КАРТИНОК С ПРОГРЕССОМ */
+/* ═══ ГЕНЕРАЦИЯ КАРТИНОК ═══ */
 async function generateImage(prompt,body){
   const ov=document.createElement('div');ov.className='gen-overlay';
   ov.innerHTML='<div class="gen-status"><div class="gen-label">🎨 Генерация картинки...</div><div class="gen-bar"><div class="gen-fill"></div></div><div class="gen-pct">0%</div><div class="gen-hint">Модель: '+escapeHtml(state.settings.imageModel||'flux')+' · 1024×1024</div><div class="gen-time"></div></div>';
@@ -468,202 +528,147 @@ async function generateImage(prompt,body){
   const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time');
   const t0=Date.now();
   const setP=(v)=>{v=Math.max(0,Math.min(100,v));fill.style.width=v+'%';pct.textContent=Math.round(v)+'%';
-    const s=((Date.now()-t0)/1000).toFixed(1);timeEl.textContent='Время: '+s+' сек';};
+    timeEl.textContent='Время: '+((Date.now()-t0)/1000).toFixed(1)+' сек';};
 
   try{
     const model=state.settings.imageModel||'flux';
     const url='https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+'?width=1024&height=1024&model='+model+'&nologo=true&seed='+Date.now();
-    setP(2);
-    const res=await fetch(url);
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const total=parseInt(res.headers.get('content-length')||'0');
-    const reader=res.body.getReader();
-    const chunks=[];let received=0;
-    setP(5);
-    while(true){
-      const {done,value}=await reader.read();
-      if(done)break;
-      chunks.push(value);received+=value.length;
-      if(total>0){setP(5+Math.round(received/total*90));}
-      else{setP(5+Math.min(90,received/1500));}
-    }
-    setP(99);
-    const blob=new Blob(chunks,{type:res.headers.get('content-type')||'image/jpeg'});
-    const objUrl=URL.createObjectURL(blob);
-    setP(100);
-    await new Promise(r=>setTimeout(r,250));
+    setP(3);
+    // Загружаем как Image, чтобы избежать CORS-проблем с fetch
+    const src=await new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=()=>{ setP(100); resolve(img.src); };
+      img.onerror=()=>reject(new Error('Картинка не загрузилась'));
+      img.src=url;
+      // Псевдо-прогресс, пока картинка грузится
+      let p=3;
+      const tick=setInterval(()=>{p=Math.min(95,p+3);setP(p);if(p>=95)clearInterval(tick);},400);
+      img._tick=tick;
+    });
+    await new Promise(r=>setTimeout(r,200));
     ov.remove();
-    renderMediaInBody(body,'image',objUrl,{prompt});
-    return {ok:true,url:objUrl};
+    renderMediaInBody(body,'image',src,{prompt});
+    return {ok:true,url:src};
   }catch(err){
-    console.warn('Pollinations failed:',err);
-    ov.remove();
-    body.innerHTML='<strong>Не удалось сгенерировать картинку.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(err.message||err)+'</span>';
-    return {ok:false,error:err};
+    console.warn('Pollinations image failed:',err);
+    // Резерв — gen.pollinations.ai
+    try{
+      const url2='https://gen.pollinations.ai/image/'+encodeURIComponent(prompt)+'?width=1024&height=1024&model='+model+'&nologo=true';
+      setP(80);
+      await new Promise(r=>setTimeout(r,500));
+      setP(100);
+      await new Promise(r=>setTimeout(r,200));
+      ov.remove();
+      renderMediaInBody(body,'image',url2,{prompt});
+      return {ok:true,url:url2};
+    }catch(err2){
+      ov.remove();
+      body.innerHTML='<strong>Не удалось сгенерировать картинку.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(err2.message||err2)+'</span>';
+      return {ok:false,error:err2};
+    }
   }
 }
 
-/* ГЕНЕРАЦИЯ ВИДЕО С АВТОРИЗАЦИЕЙ И ПРОГРЕССОМ */
+/* ═══ ГЕНЕРАЦИЯ ВИДЕО (Agnes AI + Prezzy) ═══ */
 async function generateVideo(prompt,body){
   const ov=document.createElement('div');ov.className='gen-overlay';
   body.style.position='relative';body.appendChild(ov);
 
-  const model=state.settings.videoModel||'google/veo-3.1-fast';
-  let estSec=90;
-  if(model.includes('veo-3.1-fast'))estSec=60;
-  else if(model.includes('veo-3.1'))estSec=120;
-  else if(model.includes('vidu'))estSec=150;
-  else if(model.includes('kling'))estSec=180;
+  const model=state.settings.videoModel||'agnes';
+  let estSec=120;
+  const modelNames={agnes:'Agnes Video 2.0',wan2_2:'Wan 2.2',hunyuan1_5:'Hunyuan 1.5',ltx2:'LTX 2'};
 
-  // Шаг 1: загружаем Puter
-  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎬 Подготовка...</div><div class="gen-bar"><div class="gen-fill" style="width:5%"></div></div><div class="gen-pct">5%</div><div class="gen-hint">Загружаем библиотеку Puter.js</div><div class="gen-time"></div></div>';
+  ov.innerHTML='<div class="gen-status"><div class="gen-label">🎬 Генерация видео...</div><div class="gen-bar"><div class="gen-fill" style="width:5%"></div></div><div class="gen-pct">5%</div><div class="gen-hint">Модель: '+escapeHtml(modelNames[model]||model)+'</div><div class="gen-time">Инициализация...</div></div>';
   const fill=ov.querySelector('.gen-fill'),pct=ov.querySelector('.gen-pct'),timeEl=ov.querySelector('.gen-time');
-  const label=ov.querySelector('.gen-label');
-  const hint=ov.querySelector('.gen-hint');
+  const label=ov.querySelector('.gen-label'),hint=ov.querySelector('.gen-hint');
   const start=Date.now();
-
-  try {
-    await loadPuter();
-  } catch(e) {
-    ov.remove();
-    body.innerHTML='<strong>Библиотека Puter.js не загрузилась.</strong><br><span style="color:var(--muted);font-size:.9em">Проверь интернет.</span>';
-    return {ok:false,error:e};
-  }
-
-  if(!window.puter || !window.puter.ai){
-    ov.remove();
-    body.innerHTML='<strong>Puter.js загрузился, но API недоступен.</strong>';
-    return {ok:false};
-  }
-
-  // Шаг 2: проверяем авторизацию, если нужно — предлагаем войти
-  const isSignedIn = puter.auth && typeof puter.auth.isSignedIn === 'function' ? puter.auth.isSignedIn() : false;
-  if(!isSignedIn){
-    fill.style.width='10%';pct.textContent='10%';
-    label.textContent='🔐 Нужна авторизация';
-    hint.textContent='Puter требует вход для генерации видео. Нажми кнопку ниже.';
-    timeEl.textContent='';
-
-    // Показываем кнопку входа
-    return await new Promise((resolve)=>{
-      const authBox=document.createElement('div');authBox.className='auth-box';
-      authBox.innerHTML='<h4>Вход в Puter</h4><p>Это бесплатно и нужно только один раз. Логин через Google или email.</p><button class="auth-btn">🔐 Войти в Puter</button>';
-      ov.querySelector('.gen-status').appendChild(authBox);
-
-      authBox.querySelector('.auth-btn').addEventListener('click', async()=>{
-        try{
-          await puter.auth.signIn();
-          authBox.remove();
-          // Продолжаем генерацию
-          const result = await actuallyGenerateVideo(prompt, body, ov, fill, pct, label, hint, timeEl, start, estSec, model);
-          resolve(result);
-        }catch(e){
-          ov.remove();
-          body.innerHTML='<strong>Авторизация не удалась:</strong> '+escapeHtml(e.message||e);
-          resolve({ok:false,error:e});
-        }
-      });
-    });
-  }
-
-  // Уже авторизован — сразу генерируем
-  return await actuallyGenerateVideo(prompt, body, ov, fill, pct, label, hint, timeEl, start, estSec, model);
-}
-
-async function actuallyGenerateVideo(prompt, body, ov, fill, pct, label, hint, timeEl, start, estSec, model){
-  label.textContent='🎬 Генерация видео...';
-  hint.textContent='Модель: '+escapeHtml(model);
-  fill.style.width='15%';pct.textContent='15%';
 
   const tick=setInterval(()=>{
     const elapsed=(Date.now()-start)/1000;
-    const progress=Math.min(94,15+Math.round(elapsed/estSec*79));
+    const progress=Math.min(94,5+Math.round(elapsed/estSec*89));
     fill.style.width=progress+'%';pct.textContent=progress+'%';
     const remaining=Math.max(0,Math.round(estSec-elapsed));
     timeEl.textContent='Примерно осталось: '+remaining+' сек';
   },500);
 
   try{
-    // Пробуем разные варианты вызова
-    let result=null;
     let src=null;
 
-    try {
-      result = await puter.ai.txt2vid(prompt, { model: model });
-    } catch(apiErr) {
-      console.warn('txt2vid with options failed, trying simple:', apiErr);
-      try {
-        result = await puter.ai.txt2vid(prompt);
-      } catch(e2) {
-        throw new Error('Ошибка API: '+(e2.message||e2));
+    if(model==='agnes'){
+      // Agnes AI — бесплатно, без ключа
+      const res=await fetch('https://apihub.agnes-ai.cn/v1/video/generations',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'Agnes-Video-2.0',
+          prompt:prompt,
+          duration:5,
+          resolution:'720p',
+          aspect_ratio:'16:9'
+        })
+      });
+      if(!res.ok)throw new Error('Agnes HTTP '+res.status);
+      const data=await res.json();
+      src=data.data?.[0]?.url||data.url||data.video_url||data.output;
+      // Если вернулась задача — поллим
+      if(!src&&data.id||data.task_id){
+        const taskId=data.id||data.task_id;
+        let attempts=0;
+        while(attempts<60){
+          await new Promise(r=>setTimeout(r,3000));
+          const pr=await fetch('https://apihub.agnes-ai.cn/v1/video/generations/'+taskId);
+          const pd=await pr.json();
+          if(pd.status==='completed'||pd.status==='succeeded'){src=pd.data?.[0]?.url||pd.url||pd.video_url;break;}
+          if(pd.status==='failed')throw new Error('Генерация не удалась');
+          attempts++;
+        }
       }
+      if(!src)throw new Error('Agnes не вернул URL видео');
+    } else {
+      // Prezzy через прокси (wan2_2 / hunyuan1_5 / ltx2)
+      const engineMap={wan2_2:'wan2_2',hunyuan1_5:'hunyuan1_5',ltx2:'ltx2'};
+      const baseUrl='https://prexzyapis.com';
+      const submitUrl=baseUrl+'/ai/aiart-video?prompt='+encodeURIComponent(prompt)+'&engine='+(engineMap[model]||'wan2_2');
+      const submitRes=await fetch(submitUrl,{headers:{'Accept':'application/json'}});
+      const submitData=await submitRes.json();
+      const taskId=submitData.task_id||submitData.taskId;
+      const deviceId=submitData.device_id||submitData.deviceId;
+      if(!taskId)throw new Error('Prezzy не вернул task_id');
+
+      let attempts=0;
+      while(attempts<60){
+        await new Promise(r=>setTimeout(r,3000));
+        const st=await fetch(baseUrl+'/ai/aiart-video-status?task_id='+taskId+'&device_id='+(deviceId||'')).then(r=>r.json());
+        if(st.ready||st.state==='ready'||st.state==='completed'){src=st.video_url||st.url||st.videoUrl;break;}
+        if(st.state==='failed')throw new Error('Генерация не удалась');
+        attempts++;
+      }
+      if(!src)throw new Error('Prezzy не вернул URL видео');
     }
 
     clearInterval(tick);
-    fill.style.width='98%';pct.textContent='98%';
-    label.textContent='📥 Обработка результата...';
-    timeEl.textContent='';
-
-    // Разбор возможных вариантов ответа
-    if(!result){
-      throw new Error('Пустой ответ от Puter');
-    }
-
-    // Вариант 1: строка URL
-    if(typeof result === 'string'){
-      src = result;
-    }
-    // Вариант 2: Blob
-    else if(result instanceof Blob){
-      src = URL.createObjectURL(result);
-    }
-    // Вариант 3: HTMLVideoElement или содержит video
-    else if(result instanceof HTMLVideoElement){
-      src = result.src || (result.querySelector && result.querySelector('source')?.src);
-    }
-    // Вариант 4: DOM-элемент с src или вложенным тегом
-    else if(result.nodeType === 1){
-      src = result.src || result.href;
-      if(!src && result.querySelector){
-        const v = result.querySelector('video, source');
-        if(v) src = v.src || v.getAttribute('src');
-      }
-    }
-    // Вариант 5: объект с полями
-    else if(typeof result === 'object'){
-      // Ошибка Event (частая проблема)
-      if(result instanceof Event){
-        throw new Error('Puter вернул Event вместо видео (вероятно, ошибка загрузки). Попробуй ещё раз.');
-      }
-      src = result.url || result.src || result.videoUrl || result.video_url || result.link;
-      if(!src && result.data){
-        if(typeof result.data === 'string') src = result.data;
-      }
-    }
-
-    if(!src){
-      console.error('Unexpected Puter response:', result);
-      throw new Error('Не удалось извлечь URL видео из ответа. Тип: '+(typeof result));
-    }
+    fill.style.width='99%';pct.textContent='99%';
+    label.textContent='📥 Обработка...';
+    await new Promise(r=>setTimeout(r,300));
 
     fill.style.width='100%';pct.textContent='100%';
     label.textContent='✓ Готово!';
     timeEl.textContent='Всего: '+((Date.now()-start)/1000).toFixed(1)+' сек';
-
-    await new Promise(r=>setTimeout(r,400));
+    await new Promise(r=>setTimeout(r,300));
     ov.remove();
     renderMediaInBody(body,'video',src,{prompt});
     return {ok:true,url:src};
   }catch(err){
     clearInterval(tick);
-    console.error('Video generation error:', err);
+    console.error('Video generation error:',err);
     ov.remove();
     body.innerHTML='<strong>Не удалось сгенерировать видео.</strong><br><span style="color:var(--muted);font-size:.9em">'+escapeHtml(err.message||err)+'</span><br><br><span style="color:var(--muted);font-size:.82em">Попробуй сменить модель видео в настройках или повторить запрос.</span>';
     return {ok:false,error:err};
   }
 }
 
-/* ГЕНЕРАЦИЯ ФАЙЛА */
+/* ═══ ГЕНЕРАЦИЯ ФАЙЛА ═══ */
 async function aiGenerateFile(prompt,body){
   const ov=document.createElement('div');ov.className='gen-overlay';
   ov.innerHTML='<div class="gen-status"><div class="gen-label">📄 Готовлю файл...</div><div class="gen-bar"><div class="gen-fill" style="width:15%"></div></div><div class="gen-pct">15%</div><div class="gen-hint">ИИ пишет код</div><div class="gen-time"></div></div>';
@@ -751,7 +756,7 @@ async function diagnoseAll(){
       else{el.className='diag-result fail';el.querySelector('.diag-dot').className='diag-dot fail';el.querySelector('.diag-detail').textContent='Пустой ответ';state.providerHealth[k]={ok:false,error:'Пустой',ms:dt};}
     }catch(err){const dt=Date.now()-t0;el.className='diag-result fail';el.querySelector('.diag-dot').className='diag-dot fail';
       el.querySelector('.diag-detail').textContent=(err.name==='AbortError'?'Таймаут':err.message.slice(0,60));state.providerHealth[k]={ok:false,error:err.message,ms:dt};}}
-  try{localStorage.setItem('aichat.health.v132',JSON.stringify(state.providerHealth));}catch(e){}
+  try{localStorage.setItem('aichat.health.v140',JSON.stringify(state.providerHealth));}catch(e){}
   const working=Object.entries(state.providerHealth).filter(([k,v])=>v.ok).map(([k])=>PROVIDERS[k].name);
   const sum=document.createElement('div');sum.style.cssText='margin-top:16px;padding:14px;border-radius:8px;background:rgba(124,92,255,.08);border:1px solid rgba(124,92,255,.2);font-size:.85em;';
   sum.innerHTML=working.length?'<strong style="color:var(--green)">✓ Работают: '+working.join(', ')+'</strong>':'<strong style="color:var(--red)">✗ Ни один не отвечает</strong>';
@@ -853,7 +858,7 @@ async function sendMessage(){
 
   try{
     if(aborted){if(fullResponse.trim()){botBody.innerHTML=renderMarkdown(fullResponse+'\n\n*(остановлено)*');decorateCodeBlocks(botBody);chat.messages.push({role:'assistant',content:fullResponse});persistChats();}else botBody.textContent='(остановлено)';}
-    else if(lastError&&!fullResponse.trim()){botBody.innerHTML='<strong>Все провайдеры недоступны.</strong>';}
+    else if(lastError&&!fullResponse.trim()){botBody.innerHTML='<strong>Все провайдеры недоступны.</strong><br><br><span style="color:var(--muted);font-size:.9em">Нажми 🔍 Проверить, чтобы узнать какие работают.</span>';}
     else{botBody.innerHTML=renderMarkdown(fullResponse);decorateCodeBlocks(botBody);chat.messages.push({role:'assistant',content:fullResponse});persistChats();
       const pn=PROVIDERS[usedProvider]?.name||usedProvider;const mn=PROVIDERS[usedProvider]?.models.find(m=>m.id===usedModel)?.name||usedModel;statusInfo.textContent='Ответ от '+pn+' · '+mn;}
   }finally{state.generating=false;state.abortController=null;sendBtn.disabled=false;stopBtn.classList.add('hidden');sbDot.className='dot ready';sbStatus.textContent=state.settings.provider==='auto'?'Авто-режим':(PROVIDERS[state.settings.provider]?.name||'Готов');scrollToBottom();}
@@ -875,7 +880,7 @@ function exportChat(){const chat=currentChat();if(!chat||chat.messages.length===
 
 function init(){
   loadSettings();loadChats();
-  try{const h=localStorage.getItem('aichat.health.v132');if(h)state.providerHealth=JSON.parse(h);}catch(e){}
+  try{const h=localStorage.getItem('aichat.health.v140');if(h)state.providerHealth=JSON.parse(h);}catch(e){}
   if(Object.keys(state.chats).length===0)createChat();
   else{const ids=Object.keys(state.chats).sort((a,b)=>state.chats[b].createdAt-state.chats[a].createdAt);state.currentChatId=ids[0];renderChatList();renderMessages();}
 
@@ -898,7 +903,7 @@ function init(){
   function applyAndSave(changedKey){
     saveSettingsToDisk();
     state.providerHealth={};
-    try{localStorage.removeItem('aichat.health.v132');}catch(e){}
+    try{localStorage.removeItem('aichat.health.v140');}catch(e){}
     refreshSettingsUI();
     if(changedKey)showToast('✓ Сохранено: '+changedKey);
   }
