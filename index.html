@@ -3,267 +3,482 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SecuroServ — Executive Terminal</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<title>Neural Network — Live Training</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'SF Mono', Consolas, monospace;
+    background: #0a0d14; color: #c8d6e5;
+    min-height: 100vh; padding: 24px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 { font-size: 1.4em; letter-spacing: 2px; color: #e63946; margin-bottom: 6px; }
+  .sub { color: #5a6a80; font-size: .8em; margin-bottom: 24px; letter-spacing: 1px; }
+
+  .app { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .left { display: flex; flex-direction: column; gap: 16px; }
+  canvas { background: #0f1520; border: 1px solid #1e2a3a; border-radius: 6px; display: block; }
+  #net { width: 480px; height: 480px; }
+  #chart { width: 480px; height: 90px; }
+
+  .panel {
+    background: #11161e; border: 1px solid #1e2a3a; border-radius: 6px;
+    padding: 18px; width: 300px;
+  }
+  .panel h3 {
+    font-size: .72em; letter-spacing: 2px; color: #e63946;
+    text-transform: uppercase; margin-bottom: 14px;
+  }
+  .stat {
+    display: flex; justify-content: space-between;
+    padding: 7px 0; border-bottom: 1px solid #1a2230;
+    font-size: .82em;
+  }
+  .stat:last-child { border-bottom: none; }
+  .stat span:first-child { color: #5a6a80; }
+  .stat span:last-child { color: #fff; font-weight: 600; }
+  .stat .good { color: #2ecc71 !important; }
+
+  button {
+    width: 100%; padding: 11px; margin-top: 8px;
+    background: #1a2230; border: 1px solid #2a3a50;
+    color: #c8d6e5; font-family: inherit; font-size: .82em;
+    letter-spacing: 1px; cursor: pointer; border-radius: 4px;
+    transition: all .2s;
+  }
+  button:hover:not(:disabled) { background: #e63946; border-color: #e63946; color: #fff; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: #e63946; border-color: #e63946; color: #fff; }
+  button.primary:hover:not(:disabled) { background: #ff4a58; }
+
+  .slider-row { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .slider-row label { font-size: .72em; color: #5a6a80; letter-spacing: 1px; }
+  input[type=range] { width: 100%; accent-color: #e63946; }
+</style>
 </head>
 <body>
 
-<!-- Boot Screen -->
-<div id="boot">
-  <div class="boot-inner">
-    <div class="boot-logo">SECUROSERV</div>
-    <div class="boot-sub">SECURE · SERVICE · SOLUTIONS</div>
-    <div class="boot-bar"><div class="boot-fill" id="bootFill"></div></div>
-    <div class="boot-log" id="bootLog"></div>
+<h1>◉ LIVE NEURAL NETWORK</h1>
+<p class="sub">Обучение в браузере · чистый JS · без библиотек</p>
+
+<div class="app">
+  <div class="left">
+    <canvas id="net" width="480" height="480"></canvas>
+    <canvas id="chart" width="480" height="90"></canvas>
+  </div>
+
+  <div class="panel">
+    <h3>Training Status</h3>
+    <div class="stat"><span>Epoch</span><span id="sEpoch">0</span></div>
+    <div class="stat"><span>Loss</span><span id="sLoss">—</span></div>
+    <div class="stat"><span>Accuracy</span><span id="sAcc" class="good">—</span></div>
+    <div class="stat"><span>Speed</span><span id="sSpeed">—</span></div>
+    <div class="stat"><span>Parameters</span><span id="sParams">—</span></div>
+    <div class="stat"><span>Hidden layers</span><span id="sLayers">—</span></div>
+
+    <div class="slider-row">
+      <label>LEARNING RATE: <span id="lrVal">0.06</span></label>
+      <input type="range" id="lr" min="0.005" max="0.3" step="0.005" value="0.06">
+    </div>
+    <div class="slider-row">
+      <label>NEURONS PER LAYER: <span id="nVal">16</span></label>
+      <input type="range" id="neu" min="4" max="32" step="2" value="16">
+    </div>
+
+    <button class="primary" id="btnStart">▶ START TRAINING</button>
+    <button id="btnReset">↻ NEW DATASET</button>
   </div>
 </div>
 
-<!-- Main App -->
-<div id="app" class="hidden">
+<script>
+/* ============================================================
+   1. МАТРИЧНЫЕ УТИЛИТЫ
+   ============================================================ */
 
-  <!-- Top Bar -->
-  <header class="topbar">
-    <div class="top-left">
-      <span class="logo-eye">◉</span>
-      <span class="top-title">SECUROSERV NETWORK</span>
-    </div>
-    <div class="top-right">
-      <div class="status-dot"></div>
-      <span id="topStatus">ONLINE</span>
-      <span class="sep">|</span>
-      <span id="topUser">GUEST</span>
-      <span class="sep">|</span>
-      <span id="topClock">--:--:--</span>
-    </div>
-  </header>
+function gauss() {
+  // Box-Muller для нормального распределения
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
 
-  <!-- Sidebar Nav -->
-  <nav class="sidebar">
-    <button class="nav-btn active" data-page="dashboard">▣ Dashboard</button>
-    <button class="nav-btn" data-page="register">◈ Register CEO</button>
-    <button class="nav-btn" data-page="warehouses">▤ Warehouses</button>
-    <button class="nav-btn" data-page="vehicles">▸ Vehicle Cargo</button>
-    <button class="nav-btn" data-page="bodyguards">◉ Bodyguards</button>
-    <button class="nav-btn" data-page="vipwork">◆ VIP Work</button>
-    <button class="nav-btn" data-page="socialclub">◎ Social Club</button>
-    <div class="sidebar-footer">
-      <div class="balance">
-        <span class="bal-label">BANK BALANCE</span>
-        <span class="bal-value" id="bankBalance">$0</span>
-      </div>
-    </div>
-  </nav>
+/* ============================================================
+   2. НЕЙРОСЕТЬ
+   Полносвязный MLP: вход -> [ReLU hidden...] -> softmax
+   Обучение: mini-batch SGD + кросс-энтропия
+   ============================================================ */
 
-  <!-- Content Area -->
-  <main class="content">
+class NeuralNetwork {
+  constructor(sizes) {
+    this.sizes = sizes;
+    this.L = sizes.length - 1;   // число слоёв весов
+    this.W = [];                 // W[l][i][j] : слой l, нейрон i, вес j
+    this.b = [];                 // b[l][i]
 
-    <!-- DASHBOARD -->
-    <section class="page active" id="page-dashboard">
-      <div class="page-header">
-        <h1>Executive Dashboard</h1>
-        <p class="page-desc">SecuroServ private security network — your gateway to Los Santos' most lucrative opportunities.</p>
-      </div>
+    for (let l = 0; l < this.L; l++) {
+      const nin = sizes[l], nout = sizes[l + 1];
+      const std = Math.sqrt(2 / nin); // He init
+      const W = [];
+      for (let i = 0; i < nout; i++) {
+        const row = new Float32Array(nin);
+        for (let j = 0; j < nin; j++) row[j] = gauss() * std;
+        W.push(row);
+      }
+      this.W.push(W);
+      this.b.push(new Float32Array(nout));
+    }
+  }
 
-      <div class="dashboard-grid">
-        <div class="dash-card">
-          <div class="dash-label">CEO STATUS</div>
-          <div class="dash-value" id="dashStatus">NOT REGISTERED</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-label">ORGANIZATION</div>
-          <div class="dash-value" id="dashOrg">—</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-label">WAREHOUSES</div>
-          <div class="dash-value" id="dashWarehouses">0 / 5</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-label">TOTAL EARNINGS</div>
-          <div class="dash-value" id="dashEarnings">$0</div>
-        </div>
-      </div>
+  // Прямой проход. Возвращает массив активаций слоёв (нужен для backprop).
+  forward(x) {
+    const a = [Float32Array.from(x)];
+    for (let l = 0; l < this.L; l++) {
+      const nin = this.sizes[l], nout = this.sizes[l + 1];
+      const prev = a[l];
+      const cur = new Float32Array(nout);
+      const isLast = (l === this.L - 1);
 
-      <div class="panel">
-        <div class="panel-head">SYSTEM MESSAGES</div>
-        <div class="panel-body" id="dashboardLog">
-          <div class="log-line">> Welcome to SecuroServ Network. Select an option from the sidebar to begin.</div>
-        </div>
-      </div>
+      for (let i = 0; i < nout; i++) {
+        let sum = this.b[l][i];
+        const w = this.W[l][i];
+        for (let j = 0; j < nin; j++) sum += w[j] * prev[j];
+        cur[i] = isLast ? sum : (sum > 0 ? sum : 0); // ReLU на скрытых
+      }
+      a.push(cur);
+    }
+    // softmax на выходе
+    const out = a[this.L];
+    let max = -Infinity;
+    for (let i = 0; i < out.length; i++) if (out[i] > max) max = out[i];
+    let sum = 0;
+    for (let i = 0; i < out.length; i++) { out[i] = Math.exp(out[i] - max); sum += out[i]; }
+    for (let i = 0; i < out.length; i++) out[i] /= sum;
 
-      <div class="panel">
-        <div class="panel-head">QUICK ACTIONS</div>
-        <div class="panel-body quick-actions">
-          <button class="action-btn" onclick="navigateTo('register')">Register as CEO</button>
-          <button class="action-btn" onclick="navigateTo('warehouses')">Buy Warehouse</button>
-          <button class="action-btn" onclick="navigateTo('vipwork')">Start VIP Work</button>
-        </div>
-      </div>
-    </section>
+    this.a = a;
+    return out;
+  }
 
-    <!-- REGISTER CEO -->
-    <section class="page" id="page-register">
-      <div class="page-header">
-        <h1>Register as CEO</h1>
-        <p class="page-desc">Become a VIP and build your criminal empire. Requires at least $50,000 in your bank account.</p>
-      </div>
+  // Обратный проход. Возвращает softmax вероятности.
+  backward(x, label, gradW, gradB) {
+    const probs = this.forward(x);
+    let delta = new Float32Array(probs.length);
+    for (let i = 0; i < probs.length; i++) {
+      delta[i] = probs[i] - (i === label ? 1 : 0); // dL/dz для softmax+CE
+    }
 
-      <div class="panel">
-        <div class="panel-head">CEO REGISTRATION</div>
-        <div class="panel-body">
-          <div class="form-group">
-            <label>ORGANIZATION NAME</label>
-            <input type="text" id="orgNameInput" maxlength="15" placeholder="Enter org name (max 15 chars)">
-            <div class="hint">This name will be visible to all players in your session.</div>
-          </div>
-          <div class="form-group">
-            <label>BANK ACCOUNT</label>
-            <div class="bank-input">$ <span id="regBalance">0</span></div>
-            <div class="hint">Minimum $50,000 required to register.</div>
-          </div>
-          <button class="action-btn primary" onclick="registerCEO()">REGISTER AS CEO</button>
-          <div id="registerError" class="error-msg hidden"></div>
-        </div>
-      </div>
+    for (let l = this.L - 1; l >= 0; l--) {
+      const aPrev = this.a[l];         // = a[l]  (вход слоя l)
+      const nin = this.sizes[l], nout = this.sizes[l + 1];
 
-      <div class="panel" id="ceoStatusPanel" style="display:none;">
-        <div class="panel-head">ACTIVE CEO SESSION</div>
-        <div class="panel-body">
-          <div class="status-row">
-            <span class="status-label">Organization:</span>
-            <span id="activeOrgName">—</span>
-          </div>
-          <div class="status-row">
-            <span class="status-label">Status:</span>
-            <span class="status-green">ACTIVE</span>
-          </div>
-          <div class="status-row">
-            <span class="status-label">Associates:</span>
-            <span id="activeAssociates">0</span>
-          </div>
-          <button class="action-btn" onclick="resignCEO()">RESIGN AS CEO</button>
-        </div>
-      </div>
-    </section>
+      const dW = gradW[l], db = gradB[l];
+      for (let i = 0; i < nout; i++) {
+        const d = delta[i];
+        db[i] += d;
+        const dWi = dW[i];
+        for (let j = 0; j < nin; j++) dWi[j] += d * aPrev[j];
+      }
 
-    <!-- WAREHOUSES -->
-    <section class="page" id="page-warehouses">
-      <div class="page-header">
-        <h1>Warehouse Network</h1>
-        <p class="page-desc">Purchase and manage warehouses for cargo storage. Each warehouse generates passive income.</p>
-      </div>
+      if (l > 0) {
+        const W = this.W[l];
+        const prevDelta = new Float32Array(nin);
+        for (let j = 0; j < nin; j++) {
+          let s = 0;
+          for (let i = 0; i < nout; i++) s += W[i][j] * delta[i];
+          // производная ReLU: a[l][j] > 0 ? 1 : 0
+          prevDelta[j] = aPrev[j] > 0 ? s : 0;
+        }
+        delta = prevDelta;
+      }
+    }
+    return probs;
+  }
 
-      <div class="warehouse-grid" id="warehouseGrid"></div>
-      <div class="panel">
-        <div class="panel-head">OWNED WAREHOUSES</div>
-        <div class="panel-body" id="ownedWarehouses">
-          <div class="log-line">> No warehouses owned. Purchase one to begin operations.</div>
-        </div>
-      </div>
-    </section>
+  predict(x) {
+    const probs = this.forward(x);
+    let best = 0;
+    for (let i = 1; i < probs.length; i++) if (probs[i] > probs[best]) best = i;
+    return { probs, label: best };
+  }
 
-    <!-- VEHICLE CARGO -->
-    <section class="page" id="page-vehicles">
-      <div class="page-header">
-        <h1>Vehicle Cargo</h1>
-        <p class="page-desc">Source and export high-end vehicles through the SecuroServ network.</p>
-      </div>
+  countParams() {
+    let n = 0;
+    for (let l = 0; l < this.L; l++) {
+      n += this.W[l].length * this.W[l][0].length + this.b[l].length;
+    }
+    return n;
+  }
+}
 
-      <div class="panel">
-        <div class="panel-head">AVAILABLE CONTRACTS</div>
-        <div class="panel-body" id="vehicleContracts"></div>
-      </div>
+/* ============================================================
+   3. ДАТАСЕТ — СПИРАЛЬ (3 класса)
+   ============================================================ */
 
-      <div class="panel">
-        <div class="panel-head">SOURCE VEHICLE</div>
-        <div class="panel-body">
-          <button class="action-btn primary" onclick="sourceVehicle()">START SOURCING MISSION</button>
-          <div id="sourceResult" class="hint" style="margin-top:12px;"></div>
-        </div>
-      </div>
-    </section>
+function makeSpiral(pointsPerClass, classes, noise = 0.06) {
+  const data = [];
+  for (let c = 0; c < classes; c++) {
+    for (let i = 0; i < pointsPerClass; i++) {
+      const r = (i / pointsPerClass) * 1.0 + 0.05;
+      const t = (c / classes) * Math.PI * 2 + (i / pointsPerClass) * 3.2 + gauss() * noise;
+      const x = r * Math.cos(t) + gauss() * noise * 0.5;
+      const y = r * Math.sin(t) + gauss() * noise * 0.5;
+      data.push({ x, y, label: c });
+    }
+  }
+  return data;
+}
 
-    <!-- BODYGUARDS -->
-    <section class="page" id="page-bodyguards">
-      <div class="page-header">
-        <h1>Bodyguards & Associates</h1>
-        <p class="page-desc">Hire bodyguards to protect your operations and expand your organization.</p>
-      </div>
+/* ============================================================
+   4. ОБУЧЕНИЕ (одна эпоха полного батча)
+   ============================================================ */
 
-      <div class="panel">
-        <div class="panel-head">RECRUITMENT</div>
-        <div class="panel-body">
-          <div class="form-group">
-            <label>NUMBER OF BODYGUARDS</label>
-            <input type="number" id="bgCount" min="1" max="7" value="2">
-          </div>
-          <button class="action-btn primary" onclick="hireBodyguards()">HIRE BODYGUARDS ($5,000 each)</button>
-          <div id="bgResult" class="hint" style="margin-top:12px;"></div>
-        </div>
-      </div>
+function trainEpoch(nn, data, lr) {
+  const gradW = nn.W.map(layer => layer.map(row => new Float32Array(row.length)));
+  const gradB = nn.b.map(layer => new Float32Array(layer.length));
 
-      <div class="panel">
-        <div class="panel-head">ACTIVE BODYGUARDS</div>
-        <div class="panel-body" id="bodyguardList">
-          <div class="log-line">> No bodyguards hired.</div>
-        </div>
-      </div>
-    </section>
+  let loss = 0, correct = 0;
+  const N = data.length;
 
-    <!-- VIP WORK -->
-    <section class="page" id="page-vipwork">
-      <div class="page-header">
-        <h1>VIP Work</h1>
-        <p class="page-desc">Launch exclusive missions available only to registered CEOs and VIPs.</p>
-      </div>
+  for (let i = 0; i < N; i++) {
+    const { x, y, label } = data[i];
+    const probs = nn.backward([x, y], label, gradW, gradB);
+    loss -= Math.log(probs[label] + 1e-9);
 
-      <div class="vip-grid" id="vipWorkGrid"></div>
-    </section>
+    let pred = 0;
+    for (let k = 1; k < probs.length; k++) if (probs[k] > probs[pred]) pred = k;
+    if (pred === label) correct++;
+  }
 
-    <!-- SOCIAL CLUB -->
-    <section class="page" id="page-socialclub">
-      <div class="page-header">
-        <h1>Rockstar Games Social Club</h1>
-        <p class="page-desc">Connect your Social Club account to sync your SecuroServ profile.</p>
-      </div>
+  // обновление весов
+  for (let l = 0; l < nn.L; l++) {
+    for (let i = 0; i < nn.W[l].length; i++) {
+      const wRow = nn.W[l][i], gRow = gradW[l][i];
+      for (let j = 0; j < wRow.length; j++) {
+        wRow[j] -= lr * gRow[j] / N;
+      }
+      nn.b[l][i] -= lr * gradB[l][i] / N;
+    }
+  }
 
-      <div class="panel">
-        <div class="panel-head">SOCIAL CLUB INTEGRATION</div>
-        <div class="panel-body">
-          <div class="sc-notice">
-            <strong>IMPORTANT:</strong> Direct API integration with Rockstar Games Social Club is not available to third-party applications. 
-            Rockstar does not provide public developer credentials for Social Club authentication[reference:1].
-          </div>
-          <div class="form-group">
-            <label>SOCIAL CLUB NICKNAME</label>
-            <input type="text" id="scNickname" placeholder="Enter your Social Club name">
-          </div>
-          <div class="form-group">
-            <label>ROCKSTAR ID (RID)</label>
-            <input type="text" id="scRid" placeholder="e.g. 12345678">
-          </div>
-          <button class="action-btn" onclick="saveSocialClub()">SAVE PROFILE (LOCAL)</button>
-          <div id="scResult" class="hint" style="margin-top:12px;"></div>
-        </div>
-      </div>
+  return { loss: loss / N, acc: correct / N };
+}
 
-      <div class="panel">
-        <div class="panel-head">LINKED PROFILE</div>
-        <div class="panel-body" id="scProfile">
-          <div class="log-line">> No Social Club profile linked.</div>
-        </div>
-      </div>
-    </section>
+/* ============================================================
+   5. РЕНДЕР
+   ============================================================ */
 
-  </main>
+const netCanvas = document.getElementById('net');
+const ctx = netCanvas.getContext('2d');
+const chartCanvas = document.getElementById('chart');
+const chartCtx = chartCanvas.getContext('2d');
 
-  <!-- Bottom Status Bar -->
-  <footer class="statusbar">
-    <span id="statusMsg">SecuroServ Network v4.2.1 — All systems operational</span>
-    <span id="statusTime"></span>
-  </footer>
-</div>
+const offscreen = document.createElement('canvas');
+const offCtx = offscreen.getContext('2d');
+const GRID = 56; // разрешение карты решений
 
-<script src="script.js"></script>
+const CLASS_COLORS = [
+  [230, 57, 70],   // красный
+  [46, 204, 113],  // зелёный
+  [243, 156, 18]   // оранжевый
+];
+
+const lossHistory = [];
+
+function renderBoundary(nn, canvasW, canvasH) {
+  offscreen.width = GRID;
+  offscreen.height = GRID;
+  const img = offCtx.createImageData(GRID, GRID);
+
+  for (let py = 0; py < GRID; py++) {
+    for (let px = 0; px < GRID; px++) {
+      const x = (px / (GRID - 1)) * 2.6 - 1.3;
+      const y = 1.3 - (py / (GRID - 1)) * 2.6;
+      const { probs } = nn.predict([x, y]);
+
+      let r = 0, g = 0, b = 0;
+      for (let c = 0; c < probs.length; c++) {
+        r += probs[c] * CLASS_COLORS[c][0];
+        g += probs[c] * CLASS_COLORS[c][1];
+        b += probs[c] * CLASS_COLORS[c][2];
+      }
+      const idx = (py * GRID + px) * 4;
+      img.data[idx] = r;
+      img.data[idx + 1] = g;
+      img.data[idx + 2] = b;
+      img.data[idx + 3] = 90;
+    }
+  }
+
+  offCtx.putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(offscreen, 0, 0, canvasW, canvasH);
+}
+
+function dataToCanvas(x, y, w, h) {
+  return [
+    (x + 1.3) / 2.6 * w,
+    (1.3 - y) / 2.6 * h
+  ];
+}
+
+function renderData(data, canvasW, canvasH) {
+  data.forEach(({ x, y, label }) => {
+    const [cx, cy] = dataToCanvas(x, y, canvasW, canvasH);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+    const [r, g, b] = CLASS_COLORS[label];
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.5)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  });
+}
+
+function renderChart() {
+  const W = chartCanvas.width, H = chartCanvas.height;
+  chartCtx.fillStyle = '#0f1520';
+  chartCtx.fillRect(0, 0, W, H);
+
+  chartCtx.strokeStyle = '#1e2a3a';
+  chartCtx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    const y = (i / 4) * H;
+    chartCtx.beginPath();
+    chartCtx.moveTo(0, y);
+    chartCtx.lineTo(W, y);
+    chartCtx.stroke();
+  }
+
+  if (lossHistory.length < 2) return;
+  const maxLoss = Math.max(...lossHistory, 0.1);
+
+  chartCtx.beginPath();
+  lossHistory.forEach((v, i) => {
+    const x = (i / (lossHistory.length - 1)) * W;
+    const y = H - (v / maxLoss) * (H - 10) - 5;
+    if (i === 0) chartCtx.moveTo(x, y);
+    else chartCtx.lineTo(x, y);
+  });
+  chartCtx.strokeStyle = '#e63946';
+  chartCtx.lineWidth = 2;
+  chartCtx.stroke();
+
+  chartCtx.fillStyle = '#5a6a80';
+  chartCtx.font = '11px monospace';
+  chartCtx.fillText('loss = ' + lossHistory[lossHistory.length - 1].toFixed(4), 10, 18);
+}
+
+function fullRender(nn, data) {
+  ctx.clearRect(0, 0, netCanvas.width, netCanvas.height);
+  renderBoundary(nn, netCanvas.width, netCanvas.height);
+  renderData(data, netCanvas.width, netCanvas.height);
+  renderChart();
+}
+
+/* ============================================================
+   6. УПРАВЛЕНИЕ ЦИКЛОМ ОБУЧЕНИЯ
+   ============================================================ */
+
+let nn = null;
+let data = null;
+let training = false;
+let epoch = 0;
+let rafId = null;
+
+const ui = {
+  epoch: document.getElementById('sEpoch'),
+  loss: document.getElementById('sLoss'),
+  acc: document.getElementById('sAcc'),
+  speed: document.getElementById('sSpeed'),
+  params: document.getElementById('sParams'),
+  layers: document.getElementById('sLayers'),
+  lr: document.getElementById('lr'),
+  lrVal: document.getElementById('lrVal'),
+  neu: document.getElementById('neu'),
+  nVal: document.getElementById('nVal'),
+  btnStart: document.getElementById('btnStart'),
+  btnReset: document.getElementById('btnReset')
+};
+
+function rebuild() {
+  const hidden = parseInt(ui.neu.value);
+  nn = new NeuralNetwork([2, hidden, hidden, 3]);
+  epoch = 0;
+  lossHistory.length = 0;
+  ui.params.textContent = nn.countParams().toLocaleString();
+  ui.layers.textContent = `2 × ${hidden} × 3`;
+  ui.epoch.textContent = '0';
+  ui.loss.textContent = '—';
+  ui.acc.textContent = '—';
+  fullRender(nn, data);
+}
+
+function newDataset() {
+  data = makeSpiral(90, 3, 0.07);
+  rebuild();
+}
+
+function loop() {
+  if (!training) return;
+
+  const lr = parseFloat(ui.lr.value);
+  const t0 = performance.now();
+  const { loss, acc } = trainEpoch(nn, data, lr);
+  const t1 = performance.now();
+
+  epoch++;
+  lossHistory.push(loss);
+  if (lossHistory.length > 300) lossHistory.shift();
+
+  ui.epoch.textContent = epoch;
+  ui.loss.textContent = loss.toFixed(4);
+  ui.acc.textContent = (acc * 100).toFixed(1) + '%';
+  ui.speed.textContent = (t1 - t0).toFixed(1) + ' ms/эпоха';
+
+  fullRender(nn, data);
+
+  // останавливаемся, когда сошлось
+  if (acc >= 0.995 && loss < 0.02) {
+    training = false;
+    ui.btnStart.textContent = '✓ ОБУЧЕНО';
+    return;
+  }
+
+  rafId = requestAnimationFrame(loop);
+}
+
+ui.btnStart.addEventListener('click', () => {
+  if (training) {
+    training = false;
+    cancelAnimationFrame(rafId);
+    ui.btnStart.textContent = '▶ ПРОДОЛЖИТЬ';
+  } else {
+    training = true;
+    ui.btnStart.textContent = '⏸ ПАУЗА';
+    loop();
+  }
+});
+
+ui.btnReset.addEventListener('click', () => {
+  training = false;
+  cancelAnimationFrame(rafId);
+  ui.btnStart.textContent = '▶ START TRAINING';
+  newDataset();
+});
+
+ui.lr.addEventListener('input', () => {
+  ui.lrVal.textContent = parseFloat(ui.lr.value).toFixed(3);
+});
+
+ui.neu.addEventListener('input', () => {
+  ui.nVal.textContent = ui.neu.value;
+  if (!training) rebuild();
+});
+
+/* Старт */
+newDataset();
+</script>
 </body>
 </html>
