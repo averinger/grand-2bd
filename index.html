@@ -215,7 +215,7 @@ body {
     <p class="loader-tagline">Языковая модель работает прямо в браузере.<br>Никаких серверов. Никаких API-ключей.</p>
     <div class="loader-stats">
       <div class="ls-item"><span class="ls-label">Модель</span><span class="ls-value" id="lsModel">—</span></div>
-      <div class="ls-item"><span class="ls-label">Размер</span><span class="ls-value">≈300 МБ</span></div>
+      <div class="ls-item"><span class="ls-label">Размер</span><span class="ls-value">≈90 МБ</span></div>
       <div class="ls-item"><span class="ls-label">Устройство</span><span class="ls-value" id="lsDevice">—</span></div>
     </div>
     <button id="startBtn" class="btn-primary">Загрузить модель</button>
@@ -225,7 +225,7 @@ body {
     </div>
     <div class="loader-note">
       Первый запуск скачает модель. Файлы кешируются — повторные запуски мгновенны.
-      На телефоне без WebGPU используется CPU (медленно).
+      Если браузер вылетает — модель слишком большая для телефона, попробуй на ПК.
     </div>
   </div>
 </div>
@@ -262,10 +262,10 @@ body {
         <h2>Чем помочь?</h2>
         <p>Модель работает офлайн — твои сообщения никуда не отправляются.</p>
         <div class="suggestions">
-          <button data-prompt="Что такое HTML?">Что такое HTML?</button>
-          <button data-prompt="Напиши функцию на JavaScript для сортировки массива">Сортировка в JS</button>
-          <button data-prompt="Придумай короткий слоган для кофейни">Слоган для кофейни</button>
-          <button data-prompt="Перечисли 5 планет Солнечной системы">5 планет</button>
+          <button data-prompt="What is HTML?">What is HTML?</button>
+          <button data-prompt="Write a JavaScript function to sort an array">Sort array in JS</button>
+          <button data-prompt="Give me a short slogan for a coffee shop">Coffee shop slogan</button>
+          <button data-prompt="List 5 planets of the Solar System">List 5 planets</button>
         </div>
       </div>
       <div id="messages"></div>
@@ -295,14 +295,15 @@ body {
         <div class="setting">
           <label>Модель</label>
           <select id="setModel">
-            <option value="onnx-community/Qwen2.5-0.5B-Instruct">Qwen2.5 0.5B — быстрая (~300 МБ)</option>
-            <option value="onnx-community/Qwen2.5-1.5B-Instruct">Qwen2.5 1.5B — умнее (~1.2 ГБ)</option>
+            <option value="HuggingFaceTB/SmolLM2-135M-Instruct">SmolLM 135M — крошечная (~90 МБ)</option>
+            <option value="HuggingFaceTB/SmolLM2-360M-Instruct">SmolLM 360M — средняя (~230 МБ)</option>
+            <option value="onnx-community/Qwen2.5-0.5B-Instruct">Qwen 0.5B — для ПК (~300 МБ)</option>
           </select>
           <div class="setting-hint">Смена модели требует перезагрузки страницы</div>
         </div>
         <div class="setting">
           <label>Системный промпт</label>
-          <textarea id="setSystem" rows="3">Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.</textarea>
+          <textarea id="setSystem" rows="3">You are a helpful assistant. Answer briefly and to the point.</textarea>
         </div>
         <div class="setting">
           <label>Temperature: <span id="tempVal">0.7</span></label>
@@ -310,9 +311,9 @@ body {
           <div class="setting-hint">Ниже — точнее, выше — креативнее</div>
         </div>
         <div class="setting">
-          <label>Максимум токенов: <span id="tokensVal">128</span></label>
-          <input type="range" id="setTokens" min="32" max="1024" step="32" value="128">
-          <div class="setting-hint">Меньше — быстрее, больше — длиннее ответы</div>
+          <label>Максимум токенов: <span id="tokensVal">64</span></label>
+          <input type="range" id="setTokens" min="32" max="512" step="32" value="64">
+          <div class="setting-hint">Меньше — быстрее и легче для памяти</div>
         </div>
         <div class="setting">
           <label>Top-p: <span id="toppVal">0.9</span></label>
@@ -330,6 +331,10 @@ import { pipeline, TextStreamer, env } from 'https://cdn.jsdelivr.net/npm/@huggi
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
+const SETTINGS_VERSION = 'v3';
+const LS_SETTINGS = 'localchat.settings.' + SETTINGS_VERSION;
+const LS_CHATS = 'localchat.chats.' + SETTINGS_VERSION;
+
 const state = {
   generator: null,
   device: null,
@@ -338,16 +343,14 @@ const state = {
   currentChatId: null,
   chats: {},
   settings: {
-    model: 'onnx-community/Qwen2.5-0.5B-Instruct',
-    system: 'Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.',
+    model: 'HuggingFaceTB/SmolLM2-135M-Instruct',
+    system: 'You are a helpful assistant. Answer briefly and to the point.',
     temperature: 0.7,
-    maxTokens: 128,
+    maxTokens: 64,
     topP: 0.9
   }
 };
 
-const LS_SETTINGS = 'localchat.settings';
-const LS_CHATS = 'localchat.chats';
 const $ = id => document.getElementById(id);
 
 const loader = $('loader');
@@ -641,6 +644,15 @@ function renderMarkdown(text) {
   return html;
 }
 
+function buildChatPrompt(messages) {
+  let s = '';
+  for (const m of messages) {
+    s += '<|im_start|>' + m.role + '\n' + m.content + '<|im_end|>\n';
+  }
+  s += '<|im_start|>assistant\n';
+  return s;
+}
+
 async function sendMessage() {
   const text = inputEl.value.trim();
   if (!text || state.generating || !state.generator) return;
@@ -668,7 +680,7 @@ async function sendMessage() {
 
   const prompt = buildChatPrompt([
     { role: 'system', content: state.settings.system },
-    ...chat.messages.slice(-20)
+    ...chat.messages.slice(-10)
   ]);
 
   let fullResponse = '';
@@ -722,13 +734,6 @@ async function sendMessage() {
     inputEl.focus();
     scrollToBottom();
   }
-}
-
-function buildChatPrompt(messages) {
-  let s = '';
-  for (const m of messages) s += '<|im_start|>' + m.role + '\n' + m.content + '<|im_end|>\n';
-  s += '<|im_start|>assistant\n';
-  return s;
 }
 
 function autoResize() {
