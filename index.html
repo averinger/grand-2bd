@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Chat — Multi Provider</title>
+<title>AI Chat v4.0 — Multi Provider</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0f;--panel:#10101a;--panel-2:#16161f;--border:#1e1e2e;--accent:#7c5cff;--accent-dim:#5a3fd6;--green:#2ecc71;--amber:#f39c12;--red:#e63946;--text:#e8e8f2;--muted:#6a6a85;--muted-2:#4a4a5e}
@@ -14,6 +14,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .sb-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .sb-logo{font-weight:800;color:var(--accent);font-size:1.05em}
+.sb-ver{font-size:.6em;color:var(--muted);font-weight:400;margin-left:4px}
 .sb-new{width:32px;height:32px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);font-size:1.3em;cursor:pointer;transition:all .2s;display:grid;place-items:center}
 .sb-new:hover{background:var(--accent);border-color:var(--accent)}
 .sb-chats{flex:1;overflow-y:auto;padding:8px}
@@ -36,6 +37,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .main{display:flex;flex-direction:column;overflow:hidden;min-height:0;min-width:0}
 .chat-header{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--panel);flex-shrink:0}
 .ch-title{font-size:.96em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+.ch-ver{font-size:.7em;color:var(--muted);font-weight:400;margin-left:6px}
 .ch-actions{display:flex;gap:8px}
 .ch-btn{padding:7px 16px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:inherit;font-size:.8em;cursor:pointer;transition:all .2s}
 .ch-btn:hover{color:var(--text);border-color:var(--accent)}
@@ -127,7 +129,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="app">
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="sb-logo">◉ AI Chat</div>
+      <div class="sb-logo">◉ AI Chat<span class="sb-ver">v4.0</span></div>
       <button class="sb-new" id="newChatBtn" title="Новый чат">+</button>
     </div>
     <div class="sb-chats" id="chatList"></div>
@@ -143,7 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <main class="main">
     <header class="chat-header">
-      <div class="ch-title" id="chatTitle">Новый чат</div>
+      <div class="ch-title" id="chatTitle">Новый чат<span class="ch-ver">v4.0</span></div>
       <div class="ch-actions">
         <button class="ch-btn" id="clearBtn">Очистить</button>
         <button class="ch-btn" id="exportBtn">Экспорт</button>
@@ -154,7 +156,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="welcome" id="welcome">
         <div class="welcome-icon">◉</div>
         <h2>Чем помочь?</h2>
-        <p>Работает через бесплатные AI API. Отвечает за секунды.</p>
+        <p>Бесплатные AI API. Автопереключение при сбое. Отвечает за секунды.</p>
         <div class="suggestions">
           <button data-prompt="Что такое HTML?">Что такое HTML?</button>
           <button data-prompt="Напиши функцию на JavaScript для сортировки массива">Сортировка в JS</button>
@@ -189,16 +191,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <div class="setting">
           <label>Провайдер</label>
           <select id="setProvider">
-            <option value="pollinations">Pollinations — без ключа, новый API</option>
-            <option value="g4f">g4f.dev — без ключа, GPT-4o/DeepSeek</option>
-            <option value="openrouter">OpenRouter — нужен бесплатный ключ</option>
+            <option value="auto">Авто (перебирает всех)</option>
+            <option value="llm7">LLM7 — без ключа, DeepSeek/GLM</option>
+            <option value="kilo">Keyless Kilo — без ключа, Nemotron</option>
+            <option value="unclose">uncloseai — без ключа, Qwen 3.8</option>
+            <option value="g4f">g4f.dev — без ключа, GPT-4.1</option>
+            <option value="ovh">OVHcloud — без ключа, gpt-oss-120b</option>
           </select>
-          <div class="setting-hint" id="providerHint">Работает без ключа и регистрации</div>
-        </div>
-        <div class="setting" id="keyField" style="display:none">
-          <label>API-ключ OpenRouter</label>
-          <input type="text" id="setKey" placeholder="sk-or-v1-...">
-          <div class="setting-hint">Получить бесплатно: <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></div>
+          <div class="setting-hint" id="providerHint">Автоматически переключается при сбое</div>
         </div>
         <div class="setting">
           <label>Модель</label>
@@ -244,77 +244,74 @@ const state = {
   currentChatId: null,
   chats: {},
   settings: {
-    provider: 'pollinations',
-    apiKey: '',
-    model: 'openai',
+    provider: 'auto',
+    model: '',
     system: 'Ты полезный ассистент. Отвечай кратко, по делу, на русском языке.',
     temperature: 0.7,
     maxTokens: 512
   }
 };
 
-const LS_SETTINGS = 'aichat.settings.v3';
-const LS_CHATS = 'aichat.chats.v3';
+const LS_SETTINGS = 'aichat.settings.v4';
+const LS_CHATS = 'aichat.chats.v4';
 const $ = id => document.getElementById(id);
 
 const chatScroll=$('chatScroll'),messagesEl=$('messages'),welcomeEl=$('welcome');
 const inputEl=$('input'),sendBtn=$('sendBtn'),stopBtn=$('stopBtn');
 const statusInfo=$('statusInfo'),chatTitle=$('chatTitle'),chatListEl=$('chatList');
 const sbModel=$('sbModel'),sbDot=$('sbDot'),sbStatus=$('sbStatus');
-const settingsModal=$('settingsModal'),setProvider=$('setProvider'),setKey=$('setKey');
+const settingsModal=$('settingsModal'),setProvider=$('setProvider');
 const setModel=$('setModel'),setSystem=$('setSystem'),setTemp=$('setTemp'),setTokens=$('setTokens');
-const tempVal=$('tempVal'),tokensVal=$('tokensVal'),keyField=$('keyField');
+const tempVal=$('tempVal'),tokensVal=$('tokensVal');
 const modelHint=$('modelHint'),providerHint=$('providerHint');
 
-/* ═══ МОДЕЛИ ПО ПРОВАЙДЕРАМ (актуальные на 2026) ═══ */
-const MODELS = {
-  pollinations: [
-    { id: 'openai', name: 'GPT-4o mini (OpenAI)' },
-    { id: 'openai-large', name: 'GPT-4o large' },
-    { id: 'gemini', name: 'Google Gemini' },
-    { id: 'gemini-search', name: 'Gemini + поиск' },
-    { id: 'mistral', name: 'Mistral' },
-    { id: 'qwen-coder', name: 'Qwen Coder' },
-    { id: 'deepseek', name: 'DeepSeek' },
-    { id: 'kimi', name: 'Kimi (Moonshot)' },
-    { id: 'nova-fast', name: 'Nova Fast' },
-    { id: 'grok', name: 'Grok (xAI)' }
-  ],
-  g4f: [
-    { id: 'gpt-4.1', name: 'GPT-4.1' },
-    { id: 'gpt-4o', name: 'GPT-4o' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o mini' },
-    { id: 'deepseek-v3', name: 'DeepSeek V3' },
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-    { id: 'claude-sonnet-4', name: 'Claude Sonnet 4' }
-  ],
-  openrouter: [
-    { id: 'google/gemini-2.5-flash:free', name: 'Gemini 2.5 Flash (free)' },
-    { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 (free)' },
-    { id: 'qwen/qwen3-14b:free', name: 'Qwen 3 14B (free)' },
-    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B (free)' },
-    { id: 'mistralai/mistral-small-3.2-24b-instruct:free', name: 'Mistral Small 3.2 (free)' }
-  ]
-};
-
-/* ═══ ENDPOINTS ═══ */
-const ENDPOINTS = {
-  pollinations: {
-    url: 'https://gen.pollinations.ai/v1/chat/completions',
-    headers: () => ({ 'Content-Type': 'application/json' })
+/* ═══ ПРОВАЙДЕРЫ И МОДЕЛИ ═══ */
+const PROVIDERS = {
+  llm7: {
+    name: 'LLM7',
+    url: 'https://api.llm7.io/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'DeepSeek-V4-Flash-0731', name: 'DeepSeek V4 Flash' },
+      { id: 'GLM-5.3-Flash', name: 'GLM 5.3 Flash' },
+      { id: 'Inkling', name: 'Inkling' }
+    ]
+  },
+  kilo: {
+    name: 'Keyless Kilo',
+    url: 'https://api.kilo.ai/api/gateway/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'stepfun/step-5-preview-free', name: 'StepFun Step 5' },
+      { id: 'kilo-auto/free', name: 'Auto Free' }
+    ]
+  },
+  unclose: {
+    name: 'uncloseai',
+    url: 'https://hermes.ai.unturf.com/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'turboderp/Qwen3.8-27B-exl3', name: 'Qwen 3.8 27B' }
+    ]
   },
   g4f: {
+    name: 'g4f.dev',
     url: 'https://g4f.dev/api/openai/v1/chat/completions',
-    headers: () => ({ 'Content-Type': 'application/json' })
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'gpt-4.1', name: 'GPT-4.1' },
+      { id: 'gpt-4o', name: 'GPT-4o' },
+      { id: 'deepseek-v3', name: 'DeepSeek V3' }
+    ]
   },
-  openrouter: {
-    url: 'https://openrouter.ai/api/v1/chat/completions',
-    headers: () => ({
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + state.settings.apiKey,
-      'HTTP-Referer': location.origin || 'http://localhost',
-      'X-Title': 'AI Chat'
-    })
+  ovh: {
+    name: 'OVHcloud',
+    url: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',
+    headers: () => ({ 'Content-Type': 'application/json' }),
+    models: [
+      { id: 'gpt-oss-120b', name: 'gpt-oss-120b' },
+      { id: 'Mistral-7B-Instruct-v0.3', name: 'Mistral 7B' }
+    ]
   }
 };
 
@@ -322,7 +319,6 @@ const ENDPOINTS = {
 function loadSettings(){
   try { const raw = localStorage.getItem(LS_SETTINGS); if(raw) Object.assign(state.settings, JSON.parse(raw)); } catch(e){}
   setProvider.value = state.settings.provider;
-  setKey.value = state.settings.apiKey || '';
   setSystem.value = state.settings.system;
   setTemp.value = state.settings.temperature;
   setTokens.value = state.settings.maxTokens;
@@ -334,24 +330,27 @@ function saveSettingsToDisk(){ localStorage.setItem(LS_SETTINGS, JSON.stringify(
 function refreshSettingsUI(){
   tempVal.textContent = state.settings.temperature.toFixed(2);
   tokensVal.textContent = state.settings.maxTokens;
-  keyField.style.display = state.settings.provider === 'openrouter' ? 'block' : 'none';
 
-  if(state.settings.provider === 'openrouter') providerHint.textContent = 'Нужен бесплатный ключ с openrouter.ai/keys';
-  else if(state.settings.provider === 'g4f') providerHint.textContent = 'Прямой браузерный клиент, без ключа';
-  else providerHint.textContent = 'Новый API (gen.pollinations.ai), без ключа';
-
-  const models = MODELS[state.settings.provider] || [];
-  setModel.innerHTML = models.map(m => '<option value="'+m.id+'">'+m.name+'</option>').join('');
-  const ids = models.map(m => m.id);
-  setModel.value = ids.includes(state.settings.model) ? state.settings.model : ids[0];
-  state.settings.model = setModel.value;
-
-  if(state.settings.provider === 'openrouter') modelHint.innerHTML = 'Бесплатные модели. Ключ: <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>';
-  else modelHint.textContent = 'Без ключа и регистрации';
-
-  const modelName = models.find(m => m.id === state.settings.model)?.name || state.settings.model;
-  sbModel.textContent = modelName;
-  sbStatus.textContent = state.settings.provider === 'pollinations' ? 'Pollinations' : state.settings.provider === 'g4f' ? 'g4f.dev' : 'OpenRouter';
+  if(state.settings.provider === 'auto'){
+    providerHint.textContent = 'Автоматически переключается между всеми провайдерами';
+    modelHint.textContent = 'Модель выбирается автоматически';
+    setModel.innerHTML = '<option value="">Авто</option>';
+    setModel.disabled = true;
+    sbModel.textContent = 'Авто';
+    sbStatus.textContent = 'Авто-режим';
+  } else {
+    const p = PROVIDERS[state.settings.provider];
+    if(!p) return;
+    providerHint.textContent = p.name + ' — без ключа';
+    setModel.disabled = false;
+    setModel.innerHTML = p.models.map(m => '<option value="'+m.id+'">'+m.name+'</option>').join('');
+    const ids = p.models.map(m => m.id);
+    setModel.value = ids.includes(state.settings.model) ? state.settings.model : ids[0];
+    state.settings.model = setModel.value;
+    modelHint.textContent = 'Модели доступны без регистрации';
+    sbModel.textContent = p.models.find(m => m.id === state.settings.model)?.name || state.settings.model;
+    sbStatus.textContent = p.name;
+  }
 }
 
 /* ═══ ЧАТЫ ═══ */
@@ -429,7 +428,7 @@ function renderMarkdown(text){
   html = html.replace(/<p>\s*<\/p>/g, ''); return html;
 }
 
-/* ═══ ОТПРАВКА С АВТОПЕРЕКЛЮЧЕНИЕМ ПРОВАЙДЕРА ═══ */
+/* ═══ ОТПРАВКА С АВТОПЕРЕКЛЮЧЕНИЕМ ═══ */
 async function sendMessage(){
   const text = inputEl.value.trim();
   if(!text || state.generating) return;
@@ -453,30 +452,29 @@ async function sendMessage(){
     ...chat.messages.slice(-20).map(m => ({ role: m.role, content: m.content }))
   ];
 
-  // Список провайдеров для попытки
-  const providersToTry = state.settings.provider === 'openrouter'
-    ? ['openrouter']
-    : state.settings.provider === 'g4f'
-    ? ['g4f', 'pollinations']
-    : ['pollinations', 'g4f'];
+  let providersToTry = [];
+  if(state.settings.provider === 'auto'){
+    providersToTry = Object.keys(PROVIDERS);
+  } else {
+    providersToTry = [state.settings.provider, ...Object.keys(PROVIDERS).filter(p => p !== state.settings.provider)];
+  }
 
   let fullResponse = '';
   let lastError = null;
   let usedProvider = null;
+  let usedModel = null;
 
-  for(const provider of providersToTry){
+  for(const providerKey of providersToTry){
     try {
-      const endpoint = ENDPOINTS[provider];
-      if(provider === 'openrouter' && !state.settings.apiKey) throw new Error('Нужен API-ключ OpenRouter');
+      const p = PROVIDERS[providerKey];
+      if(!p) continue;
 
-      // Подбираем модель под провайдера
-      const models = MODELS[provider] || [];
       let model = state.settings.model;
-      if(!models.find(m => m.id === model)) model = models[0]?.id || 'openai';
+      if(!p.models.find(m => m.id === model)) model = p.models[0].id;
 
-      const res = await fetch(endpoint.url, {
+      const res = await fetch(p.url, {
         method: 'POST',
-        headers: endpoint.headers(),
+        headers: p.headers(),
         body: JSON.stringify({ model, messages, temperature: state.settings.temperature, max_tokens: state.settings.maxTokens, stream: true }),
         signal: state.abortController.signal
       });
@@ -487,7 +485,8 @@ async function sendMessage(){
       const decoder = new TextDecoder();
       let buffer = '';
       fullResponse = '';
-      usedProvider = provider;
+      usedProvider = providerKey;
+      usedModel = model;
 
       while(true){
         const { done, value } = await reader.read();
@@ -505,12 +504,12 @@ async function sendMessage(){
         }
       }
 
-      if(fullResponse.trim()) break; // Успех
+      if(fullResponse.trim()) break;
       else throw new Error('Пустой ответ');
 
     } catch(err){
       if(err.name === 'AbortError'){ lastError = err; break; }
-      console.warn('Провайдер ' + provider + ' не сработал:', err.message);
+      console.warn('Провайдер ' + providerKey + ' не сработал:', err.message);
       lastError = err;
       fullResponse = '';
       botBody.innerHTML = '<span class="cursor-blink"></span>';
@@ -521,20 +520,21 @@ async function sendMessage(){
     if(lastError && !fullResponse.trim()){
       if(lastError.name === 'AbortError'){ botBody.textContent = '(остановлено)'; }
       else {
-        botBody.innerHTML = '<strong>Все провайдеры недоступны.</strong><br><br><span style="color:var(--muted);font-size:.9em">Последняя ошибка: '+escapeHtml(lastError.message)+'<br><br>Попробуй сменить провайдера или модель в настройках.</span>';
+        botBody.innerHTML = '<strong>Все провайдеры недоступны.</strong><br><br><span style="color:var(--muted);font-size:.9em">Последняя ошибка: '+escapeHtml(lastError.message)+'<br><br>Попробуй сменить провайдера в настройках.</span>';
       }
     } else {
       botBody.innerHTML = renderMarkdown(fullResponse);
       chat.messages.push({ role: 'assistant', content: fullResponse });
       persistChats();
-      const pName = usedProvider === 'pollinations' ? 'Pollinations' : usedProvider === 'g4f' ? 'g4f.dev' : 'OpenRouter';
-      statusInfo.textContent = 'Ответ от ' + pName;
+      const pName = PROVIDERS[usedProvider]?.name || usedProvider;
+      const mName = PROVIDERS[usedProvider]?.models.find(m => m.id === usedModel)?.name || usedModel;
+      statusInfo.textContent = 'Ответ от ' + pName + ' · ' + mName;
     }
   } finally {
     state.generating = false; state.abortController = null;
     sendBtn.disabled = false; stopBtn.classList.add('hidden');
     sbDot.className = 'dot ready';
-    sbStatus.textContent = state.settings.provider === 'pollinations' ? 'Pollinations' : state.settings.provider === 'g4f' ? 'g4f.dev' : 'OpenRouter';
+    sbStatus.textContent = state.settings.provider === 'auto' ? 'Авто-режим' : (PROVIDERS[state.settings.provider]?.name || 'Готов');
     scrollToBottom();
   }
 }
@@ -572,18 +572,16 @@ function init(){
   settingsModal.addEventListener('click', e => { if(e.target === settingsModal) settingsModal.classList.remove('open'); });
 
   setProvider.addEventListener('change', () => { state.settings.provider = setProvider.value; refreshSettingsUI(); });
-  setModel.addEventListener('change', () => { state.settings.model = setModel.value; const models = MODELS[state.settings.provider] || []; const name = models.find(m => m.id === state.settings.model)?.name || state.settings.model; sbModel.textContent = name; });
+  setModel.addEventListener('change', () => { state.settings.model = setModel.value; const p = PROVIDERS[state.settings.provider]; if(p) sbModel.textContent = p.models.find(m => m.id === state.settings.model)?.name || state.settings.model; });
   setTemp.addEventListener('input', () => { tempVal.textContent = parseFloat(setTemp.value).toFixed(2); });
   setTokens.addEventListener('input', () => { tokensVal.textContent = setTokens.value; });
 
   $('saveSettings').addEventListener('click', () => {
     state.settings.provider = setProvider.value;
-    state.settings.apiKey = setKey.value.trim();
     state.settings.model = setModel.value;
     state.settings.system = setSystem.value;
     state.settings.temperature = parseFloat(setTemp.value);
     state.settings.maxTokens = parseInt(setTokens.value);
-    if(state.settings.provider === 'openrouter' && !state.settings.apiKey){ alert('Для OpenRouter нужен бесплатный API-ключ. Получи его на openrouter.ai/keys'); return; }
     saveSettingsToDisk(); refreshSettingsUI(); settingsModal.classList.remove('open');
   });
 
