@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AI Chat — Free API</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11,11 +11,18 @@
   --accent:#7c5cff; --accent-dim:#5a3fd6; --green:#2ecc71; --amber:#f39c12;
   --red:#e63946; --text:#e8e8f2; --muted:#6a6a85; --muted-2:#4a4a5e;
 }
-html,body{height:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
+html,body{height:100%;overscroll-behavior:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased;position:fixed;inset:0}
 .hidden{display:none!important}
 
-#app{display:grid;grid-template-columns:260px 1fr;height:100vh}
+#app{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  height:100vh;
+  height:100dvh;
+  height:var(--vh,100dvh);
+  width:100%;
+}
 .sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .sb-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .sb-logo{font-weight:800;color:var(--accent);font-size:1.05em}
@@ -39,13 +46,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sb-settings{width:100%;padding:9px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:inherit;font-size:.82em;cursor:pointer;transition:all .2s}
 .sb-settings:hover{color:var(--text);border-color:var(--accent)}
 
-.main{display:flex;flex-direction:column;overflow:hidden}
+.main{display:flex;flex-direction:column;overflow:hidden;min-height:0;min-width:0}
 .chat-header{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--panel);flex-shrink:0}
 .ch-title{font-size:.96em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
 .ch-actions{display:flex;gap:8px}
 .ch-btn{padding:7px 16px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:inherit;font-size:.8em;cursor:pointer;transition:all .2s}
 .ch-btn:hover{color:var(--text);border-color:var(--accent)}
-.chat-scroll{flex:1;overflow-y:auto;padding:32px 28px;scroll-behavior:smooth}
+.chat-scroll{flex:1;overflow-y:auto;padding:32px 28px;scroll-behavior:smooth;min-height:0;-webkit-overflow-scrolling:touch}
 .chat-scroll::-webkit-scrollbar{width:8px}
 .chat-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 .welcome{max-width:640px;margin:40px auto;text-align:center}
@@ -88,14 +95,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .msg-tool{padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:inherit;font-size:.74em;cursor:pointer;transition:all .2s}
 .msg-tool:hover{color:var(--text);border-color:var(--accent)}
 
-.composer{padding:16px 28px 20px;border-top:1px solid var(--border);background:var(--panel);flex-shrink:0}
+.composer{padding:16px 28px 20px;border-top:1px solid var(--border);background:var(--panel);flex-shrink:0;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 .composer-inner{max-width:820px;margin:0 auto;display:flex;gap:10px;align-items:flex-end;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:10px 12px 10px 18px;transition:border-color .2s}
 .composer-inner:focus-within{border-color:var(--accent)}
-#input{flex:1;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:.95em;line-height:1.55;resize:none;outline:none;max-height:200px;padding:6px 0}
+#input{
+  flex:1;
+  background:transparent;
+  border:none;
+  color:var(--text);
+  -webkit-text-fill-color:var(--text);
+  caret-color:var(--accent);
+  font-family:inherit;
+  font-size:16px;
+  line-height:1.5;
+  resize:none;
+  outline:none;
+  max-height:200px;
+  min-height:24px;
+  padding:6px 0;
+  -webkit-appearance:none;
+  appearance:none;
+}
 #input::placeholder{color:var(--muted-2)}
-#input:disabled{opacity:.5}
-#sendBtn{width:40px;height:40px;border-radius:10px;background:var(--accent);border:none;color:#fff;cursor:pointer;display:grid;place-items:center;transition:all .2s;flex-shrink:0}
+#sendBtn{width:44px;height:44px;border-radius:10px;background:var(--accent);border:none;color:#fff;cursor:pointer;display:grid;place-items:center;transition:all .2s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
 #sendBtn:hover:not(:disabled){background:var(--accent-dim);transform:scale(1.05)}
+#sendBtn:active:not(:disabled){transform:scale(.95)}
 #sendBtn:disabled{opacity:.3;cursor:not-allowed}
 .composer-hint{max-width:820px;margin:8px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:.75em;color:var(--muted);padding:0 4px}
 .stop-btn{padding:4px 12px;background:rgba(230,57,70,.15);border:1px solid rgba(230,57,70,.4);border-radius:6px;color:var(--red);font-family:inherit;font-size:1em;cursor:pointer;transition:all .2s}
@@ -112,7 +136,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .modal-body{padding:24px}
 .setting{margin-bottom:22px}
 .setting label{display:block;font-size:.82em;font-weight:600;margin-bottom:8px;color:var(--text)}
-.setting select,.setting textarea,.setting input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:.9em;outline:none;transition:border-color .2s;resize:vertical}
+.setting select,.setting textarea,.setting input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:16px;outline:none;transition:border-color .2s;resize:vertical}
 .setting select:focus,.setting textarea:focus,.setting input:focus{border-color:var(--accent)}
 .setting input[type=range]{width:100%;accent-color:var(--accent)}
 .setting-hint{font-size:.75em;color:var(--muted);margin-top:6px;line-height:1.5}
@@ -122,10 +146,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   #app{grid-template-columns:1fr}
   .sidebar{display:none}
   .chat-scroll{padding:20px 16px}
-  .composer{padding:12px 16px 16px}
+  .composer{padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .composer-inner{padding:8px 8px 8px 16px}
   .suggestions{grid-template-columns:1fr}
   .chat-header{padding:12px 16px}
   .ch-title{max-width:50%;font-size:.85em}
+  .ch-btn{padding:6px 12px;font-size:.75em}
+  .welcome{margin:20px auto}
+  .welcome h2{font-size:1.4em}
+  .msg-body{font-size:.9em;padding:12px 14px}
 }
 </style>
 </head>
@@ -174,7 +203,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
     <div class="composer">
       <div class="composer-inner">
-        <textarea id="input" rows="1" placeholder="Напиши сообщение... (Enter — отправить)"></textarea>
+        <textarea id="input" rows="1" placeholder="Напиши сообщение..." enterkeyhint="send" autocomplete="off" autocorrect="on" spellcheck="true"></textarea>
         <button id="sendBtn" title="Отправить">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
@@ -207,12 +236,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         </div>
         <div class="setting">
           <label>Модель</label>
-          <select id="setModel">
-            <option value="openai">OpenAI GPT-4o mini</option>
-            <option value="mistral">Mistral</option>
-            <option value="deepseek">DeepSeek</option>
-          </select>
-          <div class="setting-hint" id="modelHint">Для OpenRouter — список бесплатных моделей</div>
+          <select id="setModel"></select>
+          <div class="setting-hint" id="modelHint"></div>
         </div>
         <div class="setting">
           <label>Системный промпт</label>
@@ -226,17 +251,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
           <label>Максимум токенов: <span id="tokensVal">512</span></label>
           <input type="range" id="setTokens" min="64" max="2048" step="64" value="512">
         </div>
-        <button class="btn-primary" id="saveSettings" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));border:none;border-radius:10px;color:#fff;font-size:.95em;font-weight:700;cursor:pointer;font-family:inherit">Сохранить</button>
+        <button id="saveSettings" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));border:none;border-radius:10px;color:#fff;font-size:.95em;font-weight:700;cursor:pointer;font-family:inherit">Сохранить</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════
-   AI CHAT — Pollinations AI (без ключа) + OpenRouter (с ключом)
-   ═══════════════════════════════════════════════════════════ */
+/* ═══ Динамическая высота под клавиатуру (mobile-safe) ═══ */
+function setViewportHeight() {
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--vh', h + 'px');
+}
+setViewportHeight();
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setViewportHeight);
+  window.visualViewport.addEventListener('scroll', setViewportHeight);
+}
+window.addEventListener('resize', setViewportHeight);
+window.addEventListener('orientationchange', () => setTimeout(setViewportHeight, 200));
 
+/* ═══ СОСТОЯНИЕ ═══ */
 const state = {
   generating: false,
   abortController: null,
@@ -252,12 +287,10 @@ const state = {
   }
 };
 
-const LS_SETTINGS = 'aichat.settings.v1';
-const LS_CHATS = 'aichat.chats.v1';
+const LS_SETTINGS = 'aichat.settings.v2';
+const LS_CHATS = 'aichat.chats.v2';
 const $ = id => document.getElementById(id);
 
-/* ── DOM ── */
-const app = $('app');
 const chatScroll = $('chatScroll');
 const messagesEl = $('messages');
 const welcomeEl = $('welcome');
@@ -282,7 +315,6 @@ const tokensVal = $('tokensVal');
 const keyField = $('keyField');
 const modelHint = $('modelHint');
 
-/* ═══ МОДЕЛИ ПО ПРОВАЙДЕРАМ ═══ */
 const MODELS = {
   pollinations: [
     { id: 'openai', name: 'OpenAI (GPT-4o mini)' },
@@ -300,7 +332,6 @@ const MODELS = {
   ]
 };
 
-/* ═══ ENDPOINTS ═══ */
 const ENDPOINTS = {
   pollinations: {
     url: 'https://text.pollinations.ai/openai',
@@ -338,29 +369,23 @@ function saveSettingsToDisk() {
 function refreshSettingsUI() {
   tempVal.textContent = state.settings.temperature.toFixed(2);
   tokensVal.textContent = state.settings.maxTokens;
-
-  // Показываем/скрываем поле ключа
   keyField.style.display = state.settings.provider === 'openrouter' ? 'block' : 'none';
 
-  // Обновляем список моделей под провайдера
   const models = MODELS[state.settings.provider] || [];
   setModel.innerHTML = models.map(m =>
     '<option value="' + m.id + '">' + m.name + '</option>'
   ).join('');
 
-  // Выбираем текущую модель или первую
   const ids = models.map(m => m.id);
   setModel.value = ids.includes(state.settings.model) ? state.settings.model : ids[0];
   state.settings.model = setModel.value;
 
-  // Обновляем подсказку
   if (state.settings.provider === 'openrouter') {
     modelHint.innerHTML = 'Бесплатные модели. Ключ: <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>';
   } else {
     modelHint.textContent = 'Работает без ключа и регистрации';
   }
 
-  // Обновляем сайдбар
   const modelName = models.find(m => m.id === state.settings.model)?.name || state.settings.model;
   sbModel.textContent = modelName;
   sbStatus.textContent = state.settings.provider === 'pollinations' ? 'Pollinations' : 'OpenRouter';
@@ -386,7 +411,6 @@ function createChat() {
   persistChats();
   renderChatList();
   renderMessages();
-  inputEl.focus();
 }
 
 function switchChat(id) {
@@ -435,7 +459,6 @@ function renderChatList() {
   });
 }
 
-/* ═══ РЕНДЕР СООБЩЕНИЙ ═══ */
 function renderMessages() {
   const chat = currentChat();
   messagesEl.innerHTML = '';
@@ -481,7 +504,6 @@ function scrollToBottom() {
   requestAnimationFrame(() => { chatScroll.scrollTop = chatScroll.scrollHeight; });
 }
 
-/* ═══ MARKDOWN ═══ */
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -509,7 +531,6 @@ function renderMarkdown(text) {
   return html;
 }
 
-/* ═══ ОТПРАВКА ═══ */
 async function sendMessage() {
   const text = inputEl.value.trim();
   if (!text || state.generating) return;
@@ -593,13 +614,11 @@ async function sendMessage() {
             botBody.innerHTML = renderMarkdown(fullResponse) + '<span class="cursor-blink"></span>';
             scrollToBottom();
           }
-        } catch (e) { /* игнорируем неполный JSON */ }
+        } catch (e) {}
       }
     }
 
-    if (!fullResponse) {
-      fullResponse = '(пустой ответ — модель не вернула текст)';
-    }
+    if (!fullResponse) fullResponse = '(пустой ответ — модель не вернула текст)';
 
     botBody.innerHTML = renderMarkdown(fullResponse);
     chat.messages.push({ role: 'assistant', content: fullResponse });
@@ -626,7 +645,6 @@ async function sendMessage() {
     stopBtn.classList.add('hidden');
     sbDot.className = 'dot ready';
     sbStatus.textContent = state.settings.provider === 'pollinations' ? 'Pollinations' : 'OpenRouter';
-    inputEl.focus();
     scrollToBottom();
   }
 }
@@ -636,7 +654,6 @@ function autoResize() {
   inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + 'px';
 }
 
-/* ═══ ЭКСПОРТ ═══ */
 function exportChat() {
   const chat = currentChat();
   if (!chat || chat.messages.length === 0) { alert('Нечего экспортировать'); return; }
@@ -653,7 +670,6 @@ function exportChat() {
   URL.revokeObjectURL(url);
 }
 
-/* ═══ INIT ═══ */
 function init() {
   loadSettings();
   loadChats();
@@ -668,8 +684,19 @@ function init() {
 
   inputEl.addEventListener('input', autoResize);
   inputEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   });
+
+  // Скроллит к полю при фокусе (на случай если клавиатура перекрыла)
+  inputEl.addEventListener('focus', () => {
+    setTimeout(() => {
+      chatScroll.scrollTop = chatScroll.scrollHeight;
+    }, 300);
+  });
+
   sendBtn.addEventListener('click', sendMessage);
   stopBtn.addEventListener('click', () => state.abortController && state.abortController.abort());
   $('newChatBtn').addEventListener('click', () => createChat());
@@ -695,7 +722,6 @@ function init() {
     });
   });
 
-  /* ── Модалка ── */
   $('settingsBtn').addEventListener('click', () => settingsModal.classList.add('open'));
   $('modalClose').addEventListener('click', () => settingsModal.classList.remove('open'));
   settingsModal.addEventListener('click', e => { if (e.target === settingsModal) settingsModal.classList.remove('open'); });
