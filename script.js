@@ -1,302 +1,333 @@
-/* ===== ПРЕЛОАДЕР ===== */
-window.addEventListener('load', () => {
-  setTimeout(() => document.getElementById('loader')?.classList.add('hide'), 400);
-});
+/* ===== STATE ===== */
+const state = {
+  bank: 100000,
+  ceo: false,
+  orgName: '',
+  associates: 0,
+  warehouses: [],
+  bodyguards: 0,
+  earnings: 0,
+  socialClub: null,
+  cargoCount: 0
+};
 
-/* ===== КУРСОР ===== */
-const cursor = document.getElementById('cursor');
-const dot = document.getElementById('cursorDot');
-let mx = 0, my = 0, cx = 0, cy = 0;
+const WH_DATA = [
+  { id: 'wh1', name: 'La Mesa Warehouse', size: 'Small', price: 250000 },
+  { id: 'wh2', name: 'Cypress Flats Depot', size: 'Medium', price: 500000 },
+  { id: 'wh3', name: 'Elysian Island Storage', size: 'Large', price: 1200000 },
+  { id: 'wh4', name: 'LSIA Hangar', size: 'Hangar', price: 2000000 },
+  { id: 'wh5', name: 'Grapeseed Facility', size: 'XL', price: 3500000 }
+];
 
-if (cursor && dot) {
-  document.addEventListener('mousemove', e => {
-    mx = e.clientX; my = e.clientY;
-    dot.style.transform = `translate(${mx - 2.5}px, ${my - 2.5}px)`;
-  });
-  (function follow() {
-    cx += (mx - cx) * 0.16;
-    cy += (my - cy) * 0.16;
-    cursor.style.transform = `translate(${cx - 17}px, ${cy - 17}px)`;
-    requestAnimationFrame(follow);
-  })();
-  document.querySelectorAll('a, button, .card, .price-card, .review, .fleet-card').forEach(el => {
-    el.addEventListener('mouseenter', () => cursor.classList.add('grow'));
-    el.addEventListener('mouseleave', () => cursor.classList.remove('grow'));
-  });
+const VIP_WORK = [
+  { id: 'vip1', name: 'Headhunter', desc: 'Eliminate targets across Los Santos.', payout: 20000 },
+  { id: 'vip2', name: 'Sightseer', desc: 'Collect and deliver packages to buyers.', payout: 25000 },
+  { id: 'vip3', name: 'Hostile Takeover', desc: 'Seize control of rival operations.', payout: 35000 },
+  { id: 'vip4', name: 'Asset Recovery', desc: 'Recover stolen assets from rivals.', payout: 40000 },
+  { id: 'vip5', name: 'Executive Search', desc: 'Hunt down high-value targets.', payout: 50000 },
+  { id: 'vip6', name: 'Plowed', desc: 'Destroy rival supply lines.', payout: 30000 }
+];
+
+/* ===== BOOT SEQUENCE ===== */
+const bootMessages = [
+  '> Initializing SecuroServ kernel...',
+  '> Loading encryption modules...',
+  '> Connecting to network node LS-04...',
+  '> Authentication protocol: OK',
+  '> Loading executive dashboard...',
+  '> System ready.'
+];
+
+let bootIndex = 0;
+function runBoot() {
+  const fill = document.getElementById('bootFill');
+  const log = document.getElementById('bootLog');
+  const interval = setInterval(() => {
+    if (bootIndex < bootMessages.length) {
+      log.innerHTML += bootMessages[bootIndex] + '<br>';
+      fill.style.width = ((bootIndex + 1) / bootMessages.length * 100) + '%';
+      log.scrollTop = log.scrollHeight;
+      bootIndex++;
+    } else {
+      clearInterval(interval);
+      setTimeout(() => {
+        document.getElementById('boot').classList.add('done');
+        document.getElementById('app').classList.remove('hidden');
+        initApp();
+      }, 600);
+    }
+  }, 350);
 }
 
-/* ===== ЧАСТИЦЫ ===== */
-const canvas = document.getElementById('particles');
-if (canvas) {
-  const ctx = canvas.getContext('2d');
-  let W, H;
-  const particles = [];
-  const COUNT = window.innerWidth < 760 ? 40 : 85;
-
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  class Particle {
-    constructor() { this.reset(); }
-    reset() {
-      this.x = Math.random() * W;
-      this.y = Math.random() * H;
-      this.vx = (Math.random() - 0.5) * 0.35;
-      this.vy = (Math.random() - 0.5) * 0.35;
-      this.r = Math.random() * 1.6 + 0.5;
-      this.a = Math.random() * 0.5 + 0.15;
-    }
-    update() {
-      this.x += this.vx; this.y += this.vy;
-      if (this.x < 0 || this.x > W) this.vx *= -1;
-      if (this.y < 0 || this.y > H) this.vy *= -1;
-    }
-    draw() {
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 80, 80, ${this.a})`;
-      ctx.fill();
-    }
-  }
-  for (let i = 0; i < COUNT; i++) particles.push(new Particle());
-
-  function link() {
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const d = Math.hypot(dx, dy);
-        if (d < 130) {
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(255, 80, 80, ${0.1 * (1 - d / 130)})`;
-          ctx.lineWidth = 0.6;
-          ctx.stroke();
-        }
-      }
-    }
-  }
-  (function loop() {
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach(p => { p.update(); p.draw(); });
-    link();
-    requestAnimationFrame(loop);
-  })();
+/* ===== CLOCK ===== */
+function updateClock() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  document.getElementById('topClock').textContent = t;
+  document.getElementById('statusTime').textContent = t;
 }
 
-/* ===== НАВИГАЦИЯ + ПРОГРЕСС ===== */
-const nav = document.getElementById('nav');
-const progress = document.getElementById('progress');
-window.addEventListener('scroll', () => {
-  nav?.classList.toggle('scrolled', window.scrollY > 40);
-  if (progress) {
-    const h = document.documentElement.scrollHeight - window.innerHeight;
-    progress.style.width = (window.scrollY / h) * 100 + '%';
+/* ===== NAVIGATION ===== */
+function navigateTo(page) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+  document.getElementById(`page-${page}`)?.classList.add('active');
+}
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+});
+
+/* ===== CEO REGISTRATION ===== */
+function registerCEO() {
+  const name = document.getElementById('orgNameInput').value.trim();
+  const err = document.getElementById('registerError');
+
+  if (name.length < 2) {
+    err.textContent = 'ERROR: Organization name must be at least 2 characters.';
+    err.classList.remove('hidden');
+    return;
   }
-}, { passive: true });
-
-/* ===== REVEAL ===== */
-const io = new IntersectionObserver((entries) => {
-  entries.forEach((e, i) => {
-    if (e.isIntersecting) {
-      setTimeout(() => e.target.classList.add('in'), i * 90);
-      io.unobserve(e.target);
-    }
-  });
-}, { threshold: 0.15 });
-document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-/* ===== СЧЁТЧИКИ ===== */
-const cio = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    const el = e.target;
-    const target = parseFloat(el.dataset.count);
-    const suffix = el.dataset.suffix || '';
-    const decimals = (el.dataset.count.split('.')[1] || '').length;
-    let cur = 0;
-    const step = target / 60;
-    const t = setInterval(() => {
-      cur += step;
-      if (cur >= target) { cur = target; clearInterval(t); }
-      el.textContent = cur.toFixed(decimals) + suffix;
-    }, 18);
-    cio.unobserve(el);
-  });
-}, { threshold: 0.5 });
-document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
-
-/* ===== 3D-НАКЛОН КАРТОЧЕК ===== */
-document.querySelectorAll('.card').forEach(card => {
-  card.addEventListener('mousemove', e => {
-    const r = card.getBoundingClientRect();
-    const x = e.clientX - r.left;
-    const y = e.clientY - r.top;
-    card.style.setProperty('--mx', x + 'px');
-    card.style.setProperty('--my', y + 'px');
-    const rx = ((y / r.height) - 0.5) * -6;
-    const ry = ((x / r.width) - 0.5) * 6;
-    card.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-6px)`;
-  });
-  card.addEventListener('mouseleave', () => { card.style.transform = ''; });
-});
-
-/* ===== ПАРАЛЛАКС ГЛОУ ===== */
-const glows = document.querySelectorAll('.glow');
-window.addEventListener('mousemove', e => {
-  const px = (e.clientX / window.innerWidth - 0.5) * 2;
-  const py = (e.clientY / window.innerHeight - 0.5) * 2;
-  glows.forEach((g, i) => {
-    const depth = (i + 1) * 14;
-    g.style.marginLeft = px * depth + 'px';
-    g.style.marginTop  = py * depth + 'px';
-  });
-});
-
-/* ===== FAQ ===== */
-document.querySelectorAll('.faq-item').forEach(item => {
-  item.querySelector('.faq-q')?.addEventListener('click', () => {
-    const isOpen = item.classList.contains('open');
-    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-    if (!isOpen) item.classList.add('open');
-  });
-});
-
-/* ===== ПЛАВНЫЙ СКРОЛЛ ===== */
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', e => {
-    const id = a.getAttribute('href');
-    if (id === '#' || id.length < 2) return;
-    const target = document.querySelector(id);
-    if (!target) return;
-    e.preventDefault();
-    const top = target.getBoundingClientRect().top + window.scrollY - 80;
-    window.scrollTo({ top, behavior: 'smooth' });
-  });
-});
-
-/* ===== МОДАЛЬНОЕ ОКНО ЗАЯВКИ ===== */
-const overlay = document.getElementById('modalOverlay');
-const modalClose = document.getElementById('modalClose');
-const hireForm = document.getElementById('hireForm');
-const modalSuccess = document.getElementById('modalSuccess');
-const modalSub = document.getElementById('modalSub');
-const serviceSelect = document.getElementById('fService');
-
-let currentPlan = null;
-
-function openModal(opts = {}) {
-  overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
-  hireForm.style.display = '';
-  modalSuccess.classList.remove('show');
-  modalSub.textContent = 'Заполните форму — координатор свяжется с вами';
-
-  if (opts.service) {
-    serviceSelect.value = opts.service;
+  if (state.bank < 50000) {
+    err.textContent = 'ERROR: Insufficient funds. Minimum $50,000 required.';
+    err.classList.remove('hidden');
+    return;
   }
-  if (opts.plan) {
-    currentPlan = opts.plan;
-    modalSub.textContent = `Выбран тариф: ${opts.plan}`;
+
+  state.ceo = true;
+  state.orgName = name;
+  err.classList.add('hidden');
+
+  document.getElementById('ceoStatusPanel').style.display = 'block';
+  document.getElementById('activeOrgName').textContent = name;
+  document.getElementById('topUser').textContent = name.toUpperCase();
+  document.getElementById('dashStatus').textContent = 'ACTIVE';
+  document.getElementById('dashOrg').textContent = name;
+
+  addLog(`CEO REGISTERED: Organization "${name}" is now active.`);
+}
+
+function resignCEO() {
+  state.ceo = false;
+  state.orgName = '';
+  document.getElementById('ceoStatusPanel').style.display = 'none';
+  document.getElementById('topUser').textContent = 'GUEST';
+  document.getElementById('dashStatus').textContent = 'NOT REGISTERED';
+  document.getElementById('dashOrg').textContent = '—';
+  addLog('CEO RESIGNED: Organization disbanded.', 'warn');
+}
+
+/* ===== WAREHOUSES ===== */
+function renderWarehouses() {
+  const grid = document.getElementById('warehouseGrid');
+  grid.innerHTML = '';
+  WH_DATA.forEach(wh => {
+    const owned = state.warehouses.includes(wh.id);
+    const card = document.createElement('div');
+    card.className = 'wh-card' + (owned ? ' owned' : '');
+    card.innerHTML = `
+      <div class="wh-name">${wh.name}</div>
+      <div class="wh-size">SIZE: ${wh.size}</div>
+      <div class="wh-price">$${wh.price.toLocaleString()}</div>
+      <div class="wh-status" style="color:${owned ? 'var(--green)' : 'var(--text-dim)'}">
+        ${owned ? '● OWNED' : '○ AVAILABLE'}
+      </div>
+      <button class="action-btn" ${owned ? 'disabled' : ''} onclick="buyWarehouse('${wh.id}')">
+        ${owned ? 'OWNED' : 'PURCHASE'}
+      </button>
+    `;
+    grid.appendChild(card);
+  });
+
+  const ownedList = document.getElementById('ownedWarehouses');
+  if (state.warehouses.length === 0) {
+    ownedList.innerHTML = '<div class="log-line">> No warehouses owned.</div>';
   } else {
-    currentPlan = null;
+    ownedList.innerHTML = state.warehouses.map(id => {
+      const wh = WH_DATA.find(w => w.id === id);
+      return `<div class="log-line highlight">> ${wh.name} — ${wh.size} — Operational</div>`;
+    }).join('');
   }
-  setTimeout(() => document.getElementById('fName')?.focus(), 350);
+  document.getElementById('dashWarehouses').textContent = `${state.warehouses.length} / 5`;
 }
 
-function closeModal() {
-  overlay.classList.remove('open');
-  document.body.style.overflow = '';
-  hireForm.reset();
-  clearErrors();
+function buyWarehouse(id) {
+  const wh = WH_DATA.find(w => w.id === id);
+  if (!wh || state.warehouses.includes(id)) return;
+  if (state.bank < wh.price) {
+    addLog(`PURCHASE FAILED: Insufficient funds for ${wh.name}.`, 'warn');
+    return;
+  }
+  state.bank -= wh.price;
+  state.warehouses.push(id);
+  updateBank();
+  renderWarehouses();
+  addLog(`WAREHOUSE ACQUIRED: ${wh.name} (${wh.size}) for $${wh.price.toLocaleString()}.`);
 }
 
-/* Открытие по кнопкам */
-document.querySelectorAll('[data-modal="hire"]').forEach(el => {
-  el.addEventListener('click', e => {
-    e.preventDefault();
-    openModal({
-      service: el.dataset.service || undefined,
-      plan: el.dataset.plan || undefined
-    });
+/* ===== VEHICLE CARGO ===== */
+function renderContracts() {
+  const container = document.getElementById('vehicleContracts');
+  const vehicles = ['Zentorno', 'T20', 'Osiris', 'Entity XF', 'Adder', 'Cheetah'];
+  container.innerHTML = vehicles.slice(0, 4).map(v => `
+    <div class="log-line">> ${v} — Cargo value: $${(Math.random() * 50000 + 20000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
+  `).join('');
+}
+
+function sourceVehicle() {
+  if (!state.ceo) {
+    document.getElementById('sourceResult').textContent = 'ERROR: You must be a registered CEO.';
+    return;
+  }
+  const payout = Math.floor(Math.random() * 40000 + 15000);
+  const cost = 5000;
+  if (state.bank < cost) {
+    document.getElementById('sourceResult').textContent = 'ERROR: Insufficient funds for sourcing costs.';
+    return;
+  }
+  state.bank -= cost;
+  state.bank += payout;
+  state.earnings += payout;
+  state.cargoCount++;
+  updateBank();
+  document.getElementById('sourceResult').textContent = 
+    `Vehicle sourced and delivered! Payout: $${payout.toLocaleString()} (net: $${(payout - cost).toLocaleString()})`;
+  document.getElementById('dashEarnings').textContent = '$' + state.earnings.toLocaleString();
+  addLog(`VEHICLE CARGO: Sourced vehicle #${state.cargoCount}. Payout $${payout.toLocaleString()}.`, 'highlight');
+}
+
+/* ===== BODYGUARDS ===== */
+function hireBodyguards() {
+  if (!state.ceo) {
+    document.getElementById('bgResult').textContent = 'ERROR: Register as CEO first.';
+    return;
+  }
+  const count = parseInt(document.getElementById('bgCount').value) || 0;
+  const cost = count * 5000;
+  if (count < 1 || count > 7) {
+    document.getElementById('bgResult').textContent = 'ERROR: Enter a number between 1 and 7.';
+    return;
+  }
+  if (state.bank < cost) {
+    document.getElementById('bgResult').textContent = `ERROR: Need $${cost.toLocaleString()} to hire ${count} bodyguards.`;
+    return;
+  }
+  state.bank -= cost;
+  state.bodyguards += count;
+  state.associates = state.bodyguards;
+  updateBank();
+  document.getElementById('bgResult').textContent = 
+    `${count} bodyguard(s) hired for $${cost.toLocaleString()}. Total: ${state.bodyguards}`;
+  document.getElementById('activeAssociates').textContent = state.bodyguards;
+  renderBodyguards();
+  addLog(`HIRED: ${count} bodyguard(s). Total active: ${state.bodyguards}.`);
+}
+
+function renderBodyguards() {
+  const list = document.getElementById('bodyguardList');
+  if (state.bodyguards === 0) {
+    list.innerHTML = '<div class="log-line">> No bodyguards hired.</div>';
+  } else {
+    list.innerHTML = Array.from({ length: state.bodyguards }, (_, i) => 
+      `<div class="log-line highlight">> Bodyguard #${i + 1} — ACTIVE — Assigned to ${state.orgName || 'Organization'}</div>`
+    ).join('');
+  }
+}
+
+/* ===== VIP WORK ===== */
+function renderVipWork() {
+  const grid = document.getElementById('vipWorkGrid');
+  grid.innerHTML = '';
+  VIP_WORK.forEach(w => {
+    const card = document.createElement('div');
+    card.className = 'vip-card';
+    card.innerHTML = `
+      <div class="vip-name">${w.name}</div>
+      <div class="vip-desc">${w.desc}</div>
+      <div class="vip-payout">$${w.payout.toLocaleString()}</div>
+    `;
+    card.addEventListener('click', () => startVipWork(w));
+    grid.appendChild(card);
   });
-});
-
-/* Закрытие */
-modalClose.addEventListener('click', closeModal);
-overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal(); });
-
-/* Валидация и отправка */
-function clearErrors() {
-  document.querySelectorAll('.err').forEach(el => el.textContent = '');
-  document.querySelectorAll('.field').forEach(el => el.classList.remove('invalid'));
 }
 
-function setError(fieldId, msg) {
-  const field = document.getElementById(fieldId).closest('.field');
-  field.classList.add('invalid');
-  field.querySelector('.err').textContent = msg;
+function startVipWork(work) {
+  if (!state.ceo) {
+    addLog('ERROR: CEO registration required to start VIP Work.', 'warn');
+    navigateTo('register');
+    return;
+  }
+  const success = Math.random() > 0.3;
+  if (success) {
+    state.bank += work.payout;
+    state.earnings += work.payout;
+    updateBank();
+    document.getElementById('dashEarnings').textContent = '$' + state.earnings.toLocaleString();
+    addLog(`VIP WORK COMPLETE: "${work.name}" — Earned $${work.payout.toLocaleString()}.`, 'highlight');
+  } else {
+    addLog(`VIP WORK FAILED: "${work.name}" — Mission compromised. No payout.`, 'warn');
+  }
 }
 
-hireForm.addEventListener('submit', e => {
-  e.preventDefault();
-  clearErrors();
-
-  const name = document.getElementById('fName').value.trim();
-  const phone = document.getElementById('fPhone').value.trim();
-  let valid = true;
-
-  if (name.length < 2) { setError('fName', 'Введите имя (минимум 2 символа)'); valid = false; }
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length < 10) { setError('fPhone', 'Введите корректный номер телефона'); valid = false; }
-
-  if (!valid) return;
-
-  // Имитация отправки
-  const submitBtn = hireForm.querySelector('.modal-submit');
-  const orig = submitBtn.textContent;
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Отправка...';
-
-  setTimeout(() => {
-    hireForm.style.display = 'none';
-    modalSuccess.classList.add('show');
-    submitBtn.disabled = false;
-    submitBtn.textContent = orig;
-    showToast(`Заявка принята${currentPlan ? ' — тариф ' + currentPlan : ''}`);
-  }, 900);
-});
-
-document.getElementById('successClose').addEventListener('click', closeModal);
-
-/* ===== ТОСТЫ ===== */
-function showToast(text) {
-  const t = document.createElement('div');
-  t.className = 'toast-msg';
-  t.textContent = text;
-  document.body.appendChild(t);
-  requestAnimationFrame(() => t.classList.add('show'));
-  setTimeout(() => {
-    t.classList.remove('show');
-    setTimeout(() => t.remove(), 400);
-  }, 2600);
+/* ===== SOCIAL CLUB ===== */
+function saveSocialClub() {
+  const nick = document.getElementById('scNickname').value.trim();
+  const rid = document.getElementById('scRid').value.trim();
+  if (!nick) {
+    document.getElementById('scResult').textContent = 'ERROR: Enter your Social Club nickname.';
+    return;
+  }
+  state.socialClub = { nickname: nick, rid: rid || 'N/A' };
+  document.getElementById('scResult').textContent = 'Profile saved locally.';
+  document.getElementById('scProfile').innerHTML = `
+    <div class="status-row">
+      <span class="status-label">Nickname:</span>
+      <span>${nick}</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">RID:</span>
+      <span>${state.socialClub.rid}</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Sync:</span>
+      <span style="color:var(--amber)">LOCAL ONLY — Rockstar API not available</span>
+    </div>
+  `;
+  addLog(`SOCIAL CLUB: Local profile saved for ${nick}.`);
 }
 
-/* Кнопки-заглушки */
-document.querySelectorAll('[data-toast]').forEach(el => {
-  el.addEventListener('click', e => {
-    e.preventDefault();
-    showToast(el.dataset.toast);
-  });
-});
+/* ===== UTILITIES ===== */
+function updateBank() {
+  document.getElementById('bankBalance').textContent = '$' + state.bank.toLocaleString();
+  const reg = document.getElementById('regBalance');
+  if (reg) reg.textContent = state.bank.toLocaleString();
+}
 
-/* Плавное появление тоста при загрузке */
-window.addEventListener('load', () => {
-  setTimeout(() => showToast('SecuroServ на связи. Чем помочь?'), 1200);
-});
+function addLog(msg, type = '') {
+  const log = document.getElementById('dashboardLog');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (type ? ' ' + type : '');
+  line.textContent = '> ' + msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+/* ===== INIT ===== */
+function initApp() {
+  updateClock();
+  setInterval(updateClock, 1000);
+  updateBank();
+  renderWarehouses();
+  renderContracts();
+  renderVipWork();
+  renderBodyguards();
+
+  document.getElementById('bankBalance').textContent = '$' + state.bank.toLocaleString();
+
+  addLog('System initialized. Welcome to SecuroServ Network.');
+  addLog('Tip: Register as CEO to unlock VIP Work and warehouse operations.', 'highlight');
+}
+
+/* ===== START ===== */
+runBoot();
