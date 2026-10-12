@@ -3,124 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Камера</title>
+<title>Камера → OpenCV → приставка</title>
 <style>
   body {
-    margin: 0;
-    background: #111;
-    color: #eee;
+    margin: 0; background: #111; color: #eee;
     font-family: system-ui, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    gap: 16px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 14px; padding: 16px;
   }
-  #video {
-    width: 100%;
-    max-width: 640px;
-    border-radius: 12px;
-    background: #000;
-    transform: scaleX(-1); /* зеркалим для фронталки, убери если не нужно */
+  #out {
+    width: 100%; max-width: 720px;
+    border-radius: 12px; background: #000;
+    aspect-ratio: 4 / 3; object-fit: contain;
   }
-  #video.rear {
-    transform: none;
-  }
+  #local { display: none; }
+  #stats { font-size: 13px; opacity: .7; }
+  #error { color: #ff6b6b; max-width: 720px; text-align: center; }
   button {
-    padding: 12px 24px;
-    font-size: 16px;
-    border: none;
-    border-radius: 8px;
-    background: #2d7ef7;
-    color: #fff;
-    cursor: pointer;
+    padding: 12px 24px; border: 0; border-radius: 8px;
+    background: #2d7ef7; color: #fff; font-size: 16px; cursor: pointer;
   }
   button:disabled { background: #555; cursor: default; }
-  #error {
-    color: #ff6b6b;
-    max-width: 640px;
-    text-align: center;
-    padding: 0 16px;
-  }
 </style>
 </head>
 <body>
 
-<video id="video" autoplay playsinline muted></video>
-<div>
-  <button id="startBtn">Включить камеру</button>
-  <button id="switchBtn" disabled>Переключить камеру</button>
-</div>
+<img id="out" alt="Обработанный кадр появится здесь">
+<video id="local" autoplay playsinline muted></video>
+<div id="stats">—</div>
 <div id="error"></div>
+<button id="startBtn">Запустить</button>
 
 <script>
-const video     = document.getElementById('video');
-const startBtn  = document.getElementById('startBtn');
-const switchBtn = document.getElementById('switchBtn');
-const errorEl   = document.getElementById('error');
+const video    = document.getElementById('local');
+const outImg   = document.getElementById('out');
+const startBtn = document.getElementById('startBtn');
+const statsEl  = document.getElementById('stats');
+const errorEl  = document.getElementById('error');
 
+// ============= НАСТРОЙКИ =============
+// Текущий адрес туннеля Cloudflare:
+const WS_URL = 'wss://lie-native-submissions-advisory.trycloudflare.com/ws';
+
+// Для локального теста с самой приставки замени на:
+// const WS_URL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`;
+
+const SEND_WIDTH  = 480;
+const SEND_JPEG_Q = 0.65;
+const FPS_LIMIT   = 10;
+// =====================================
+
+let ws = null;
+const sendCanvas = document.createElement('canvas');
+const sendCtx = sendCanvas.getContext('2d');
 let stream = null;
-let facingMode = 'user'; // 'user' = фронталка, 'environment' = задняя
+let lastSend = 0;
+let framesSent = 0, framesGot = 0, t0 = 0;
+let lastUrl = null;
 
-async function startCamera() {
+function setError(text) { errorEl.textContent = text || ''; }
+
+async function start() {
   errorEl.textContent = '';
   startBtn.disabled = true;
 
-  // Останавливаем предыдущий поток, если был
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
-
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: facingMode },
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
-      },
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false
     });
-
     video.srcObject = stream;
-    video.classList.toggle('rear', facingMode === 'environment');
-    switchBtn.disabled = false;
-  } catch (err) {
-    handleError(err);
+    await video.play();
+  } catch (e) {
+    setError('Не удалось получить доступ к камере: ' + e.message);
     startBtn.disabled = false;
+    return;
   }
+
+  const vw = video.videoWidth  || 640;
+  const vh = video.videoHeight || 480;
+  const scale = SEND_WIDTH / vw;
+  sendCanvas.width  = SEND_WIDTH;
+  sendCanvas.height = Math.round(vh * scale);
+
+  ws = new WebSocket(WS_URL);
+  ws.binaryType = 'blob';
+
+  ws.onopen = () => {
+    t0 = performance.now();
+    framesSent = framesGot = 0;
+    requestAnimationFrame(loop);
+  };
+
+  ws.onmessage = (ev) => {
+    const url = URL.createObjectURL(ev.data);
+    outImg.src = url;
+    if (lastUrl) URL.revokeObjectURL(lastUrl);
+    lastUrl = url;
+    framesGot++;
+  };
+
+  ws.onerror = () => setError('Ошибка WebSocket');
+  ws.onclose = () => {
+    setError('Соединение закрыто');
+    startBtn.disabled = false;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+  };
 }
 
-function handleError(err) {
-  switch (err.name) {
-    case 'NotAllowedError':
-      errorEl.textContent = 'Доступ к камере запрещён. Разрешите его в настройках браузера.';
-      break;
-    case 'NotFoundError':
-      errorEl.textContent = 'Камера не найдена на устройстве.';
-      break;
-    case 'NotReadableError':
-      errorEl.textContent = 'Камера занята другим приложением.';
-      break;
-    case 'OverconstrainedError':
-      errorEl.textContent = 'Не удалось подобрать параметры камеры.';
-      break;
-    default:
-      errorEl.textContent = 'Ошибка доступа к камере: ' + (err.message || err.name);
+function loop(now) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  const minInterval = 1000 / FPS_LIMIT;
+  if (now - lastSend >= minInterval) {
+    lastSend = now;
+    sendFrame();
   }
-  console.error(err);
+  updateStats();
+  requestAnimationFrame(loop);
 }
 
-startBtn.addEventListener('click', startCamera);
+function sendFrame() {
+  if (video.readyState < 2) return;
+  sendCtx.drawImage(video, 0, 0, sendCanvas.width, sendCanvas.height);
+  sendCanvas.toBlob(
+    (blob) => {
+      if (blob && ws.readyState === WebSocket.OPEN) {
+        ws.send(blob);
+        framesSent++;
+      }
+    },
+    'image/jpeg',
+    SEND_JPEG_Q
+  );
+}
 
-switchBtn.addEventListener('click', () => {
-  facingMode = facingMode === 'user' ? 'environment' : 'user';
-  startCamera();
-});
+function updateStats() {
+  if (!t0) return;
+  const dt = (performance.now() - t0) / 1000;
+  if (dt < 0.5) return;
+  statsEl.textContent =
+    `отправлено: ${(framesSent / dt).toFixed(1)} fps · ` +
+    `получено: ${(framesGot / dt).toFixed(1)} fps`;
+}
 
-// Автозапуск при загрузке (браузер всё равно спросит разрешение)
-startCamera();
+startBtn.addEventListener('click', start);
 </script>
 
 </body>
