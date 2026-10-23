@@ -1,15 +1,15 @@
-/* ==========================================================================
-   TikSave — frontend logic (звонок на свой Cloudflare Worker)
-   ========================================================================== */
+/* ============================================================================
+   TikSave — frontend logic (прокси через свой Cloudflare Worker)
+   ============================================================================ */
 
 (function () {
   "use strict";
 
   // ========================================================================
-  // НАСТРОЙКА: укажите адрес своего развёрнутого Workers-бэкенда
+  // НАСТРОЙКА: адрес вашего развёрнутого Workers-бэкенда
   // Пример: https://tiktok-downloader.vash-username.workers.dev
   // ========================================================================
-  const WORKER_URL = "https://tiktok-downloader.ivanger.workers.dev"; // <-- адрес вашего Cloudflare Workers
+  const WORKER_URL = "https://tiktok-downloader.ivanger.workers.dev";
 
   // DOM элементы
   const form = document.getElementById("download-form");
@@ -26,25 +26,22 @@
   const resultVideo = document.getElementById("result-video");
   const resultTitle = document.getElementById("result-title");
   const downloadMp4Btn = document.getElementById("download-mp4-btn");
-  const downloadMp3Btn = document.getElementById("download-mp3-btn");
   const retryBtn = document.getElementById("retry-btn");
   const submitBtn = document.getElementById("submit-btn");
   const btnText = document.querySelector(".btn-text");
-  const proxyInfo = document.getElementById("proxy-info");
-  const downloadHint = document.getElementById("download-hint");
 
   // Регулярное выражение для ссылок TikTok / Douyin
   const TIKTOK_REGEX = /^https?:\/\/(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com\/.+/;
 
   // Состояние
-  let videoUrl = "";
+  let currentVideoUrl = "";
+  let currentTitle = "";
 
   // Инициализация
   function init() {
     form.addEventListener("submit", handleSubmit);
     retryBtn.addEventListener("click", resetForm);
-    downloadMp4Btn.addEventListener("click", () => handleDownload("mp4"));
-    downloadMp3Btn.addEventListener("click", () => handleDownload("mp3"));
+    downloadMp4Btn.addEventListener("click", handleDownload);
 
     urlInput.addEventListener("input", () => {
       if (urlError.textContent) hideError();
@@ -75,32 +72,22 @@
       return;
     }
 
-    if (!WORKER_URL) {
-      showErrorState(
-        "Бэкенд не настроен. В файле js/app.js укажите WORKER_URL (адрес вашего Cloudflare Workers)."
-      );
-      return;
-    }
-
-    videoUrl = "";
     hideAllStates();
     hideError();
-    downloadHint.hidden = true;
+    downloadMp4Btn.hidden = true;
 
-    setProgress(20, "Получение данных, подождите несколько секунд!", "Запрос к бэкенду…");
+    setProgress(10, "Получение данных, подождите несколько секунд!", "Запрос к бэкенду…");
 
     try {
-      // Звоним на свой Worker
-      const workerUrl = `${WORKER_URL}?url=${encodeURIComponent(rawUrl)}`;
+      // 1. Звоним на Worker за информацией о видео
+      const workerUrl = `${WORKER_URL}/api/info?url=${encodeURIComponent(rawUrl)}`;
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(workerUrl, {
         signal: controller.signal,
-        headers: {
-          Accept: "application/json",
-        },
+        headers: { Accept: "application/json" },
       });
 
       clearTimeout(timeout);
@@ -112,28 +99,21 @@
 
       const data = await response.json();
 
-      setProgress(60, "Обрабатываем ответ…", "Извлекаем ссылку на видео");
-
       if (!data.success || !data.videoUrl) {
         throw new Error(data.error || "Не удалось получить ссылку на видео");
       }
 
-      videoUrl = data.videoUrl;
-      resultTitle.textContent = data.title || "Видео из TikTok";
+      setProgress(50, "Обрабатываем ответ…", "Получили ссылку на видео");
+
+      currentVideoUrl = data.videoUrl;
+      currentTitle = data.title || "Видео из TikTok";
+      resultTitle.textContent = currentTitle;
       resultVideo.poster = data.coverUrl || "";
-      resultVideo.src = videoUrl;
 
-      downloadMp4Btn.dataset.url = videoUrl;
-      downloadMp3Btn.dataset.url = videoUrl;
+      setProgress(90, "Готово!", "Видео найдено");
 
-      setProgress(90, "Готово!", "Видео готово к скачиванию");
-
-      if (proxyInfo) {
-        proxyInfo.textContent = "Бэкенд: ваш Cloudflare Workers";
-        proxyInfo.hidden = false;
-      }
-
-      downloadHint.hidden = false;
+      downloadMp4Btn.hidden = false;
+      downloadMp4Btn.dataset.url = `${WORKER_URL}/api/download?url=${encodeURIComponent(rawUrl)}`;
 
       showState(resultState);
     } catch (err) {
@@ -150,7 +130,6 @@
     loadingState.hidden = true;
     resultState.hidden = true;
     errorState.hidden = true;
-    if (proxyInfo) proxyInfo.hidden = true;
   }
 
   function showState(state) {
@@ -175,37 +154,25 @@
 
   function resetForm() {
     urlInput.value = "";
-    videoUrl = "";
+    currentVideoUrl = "";
+    currentTitle = "";
     progressBar.style.width = "0%";
     statusPercent.textContent = "0%";
     hideAllStates();
     hideError();
-    downloadHint.hidden = true;
+    downloadMp4Btn.hidden = true;
     urlInput.focus();
     resultVideo.src = "";
     resultVideo.load();
   }
 
-  // Скачивание (MP4 или MP3)
-  function handleDownload(format) {
-    const url = (format === "mp3" ? downloadMp3Btn : downloadMp4Btn).dataset.url || videoUrl;
+  // Скачивание видео через прокси-Worker
+  function handleDownload() {
+    const url = downloadMp4Btn.dataset.url;
     if (!url) return;
 
-    try {
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = format === "mp3" ? "tiktok-audio.mp3" : "tiktok-video.mp4";
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
-    } catch (err) {
-      console.warn("Прямое скачивание не сработало:", err);
-    }
-
-    window.open(url, "_blank");
+    // Открываем прямую ссылку на прокси-Worker — браузер начнёт скачивание
+    window.location.href = url;
   }
 
   init();

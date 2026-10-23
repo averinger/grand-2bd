@@ -368,20 +368,6 @@ img, video {
   flex-wrap: wrap;
 }
 
-.download-hint {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: rgba(0, 242, 255, 0.1);
-  border: 1px dashed var(--accent);
-  border-radius: var(--radius);
-  font-size: 0.875rem;
-  color: var(--accent);
-}
-
-.download-hint p {
-  margin: 0;
-}
-
 .quality-hint {
   font-size: 0.875rem;
   color: var(--text-muted);

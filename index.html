@@ -38,22 +38,22 @@
     <div class="card glass" id="downloader-card">
       <div class="card-body">
         <form id="download-form" novalidate>
-        <div class="input-group">
-          <label for="tiktok-url" class="visually-hidden">Ссылка на видео TikTok</label>
-          <input
-            type="url"
-            id="tiktok-url"
-            name="tiktok-url"
-            placeholder="Вставьте ссылку на видео TikTok…"
-            required
-            pattern="https?://(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com/.+"
-          >
-          <button type="submit" id="submit-btn" class="btn btn-primary">
-            Скачать
-          </button>
-        </div>
+          <div class="input-group">
+            <label for="tiktok-url" class="visually-hidden">Ссылка на видео TikTok</label>
+            <input
+              type="url"
+              id="tiktok-url"
+              name="tiktok-url"
+              placeholder="Вставьте ссылку на видео TikTok…"
+              required
+              pattern="https?://(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com/.+"
+            >
+            <button type="submit" id="submit-btn" class="btn btn-primary">
+              Скачать
+            </button>
+          </div>
+          <p id="url-error" class="error-msg" role="alert"></p>
         </form>
-        <p id="url-error" class="error-msg" role="alert"></p>
       </div>
 
       <!-- Статус и прогресс -->
@@ -81,18 +81,12 @@
         </div>
         <div class="result-info">
           <h3 id="result-title">Видео из TikTok</h3>
-          <p id="proxy-info" class="quality-hint" hidden></p>
           <div class="result-actions">
-            <button id="download-mp4-btn" class="btn btn-success">
+            <button id="download-mp4-btn" class="btn btn-success" hidden>
               <span>↓</span> Загрузить MP4
             </button>
-            <button id="download-mp3-btn" class="btn btn-outline">
-              <span>♪</span> Загрузить MP3
-            </button>
           </div>
-          <div class="download-hint" id="download-hint">
-            <p>Загрузка начнется автоматически. Пожалуйста, подождите несколько секунд.</p>
-          </div>
+          <p class="quality-hint">Видео будет скачано через наш сервер — без водяных знаков и без ограничений CORS.</p>
         </div>
       </div>
 
@@ -103,9 +97,8 @@
         <p id="error-msg"></p>
         <div class="error-actions">
           <button id="retry-btn" class="btn btn-outline">Попробовать снова</button>
-          <button id="try-another-proxy-btn" class="btn btn-outline" style="display:none">Другой прокси</button>
         </div>
-        <p class="error-tip">Совет: попробуйте другую ссылку TikTok или подождите несколько минут — публичные прокси могут быть перегружены.</p>
+        <p class="error-tip">Совет: попробуйте другую ссылку TikTok или подождите несколько минут.</p>
       </div>
     </div>
   </main>
@@ -128,7 +121,7 @@
         <div class="step">
           <div class="step-number">3</div>
           <h3>Скачайте без водяного знака</h3>
-          <p>Получите чистый видеофайл без логотипа TikTok.</p>
+          <p>Наш сервер забирает видео с TikTok и отдаёт его вам напрямую — без логотипа и без ограничений.</p>
         </div>
       </div>
     </div>
@@ -151,7 +144,7 @@
       </div>
     </div>
     <div class="container footer-bottom">
-      <p>&copy; 2026 TikSave. Сделано для GitHub Pages.</p>
+      <p>&copy; 2026 TikSave. Сделано для GitHub Pages + Cloudflare Workers.</p>
     </div>
   </footer>
 
