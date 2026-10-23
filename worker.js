@@ -103,12 +103,18 @@ export default {
           title = titleMatch && titleMatch[1] ? titleMatch[1].trim() : `Видео с ${platform}`;
         }
 
+        // Очищаем videoUrl от JSON escape sequences (/ -> /, убираем обратные слеши)
+        // Это критично: URLSearchParams будет экранировать / как %5Cu002F, что сломает ссылку
+        const cleanVideoUrl = videoUrl
+          .replace(/\\u002F/g, '/')
+          .replace(/\\/g, '');
+
         // Возвращаем ПРЯМУЮ ссылку на видео для возможного прямого использования
         // и downloadUrl через наш прокси для гарантированного скачивания
         // Передаем куки через downloadUrl для использования при скачивании
         const downloadParams = new URLSearchParams({
           url: targetUrl,
-          videoUrl: videoUrl,
+          videoUrl: cleanVideoUrl,
           platform: platform,
           title: title,
         });
@@ -119,7 +125,7 @@ export default {
         return jsonResponse({
           success: true,
           platform,
-          videoUrl,           // прямая ссылка на видео (может не работать из-за CORS)
+          videoUrl: cleanVideoUrl,           // прямая ссылка на видео (может не работать из-за CORS)
           downloadUrl: `${url.origin}/api/download?${downloadParams.toString()}`,
           title,
           coverUrl,

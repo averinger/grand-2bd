@@ -67,10 +67,10 @@ test('TikSave - Download TikTok video', async ({ page }) => {
     await submitBtn.click();
     logToFile('Clicked submit button');
 
-    logToFile('Waiting for download button to appear...');
-    // Wait for download button to be visible (result state shown)
-    await page.waitForSelector('#download-mp4-btn:not([hidden])', { state: 'visible', timeout: 120000 });
-    logToFile('Download button visible');
+    logToFile('Waiting for download button to have data-url (indicates frontend processed response)...');
+    // Wait for download button to have data-url attribute (set by frontend after successful API response)
+    await page.waitForSelector('#download-mp4-btn[data-url]', { state: 'attached', timeout: 120000 });
+    logToFile('Download button has data-url attribute');
 
     // Wait for download event - this is the key: we wait for the actual file download
     // regardless of whether the video preview loads (which may 404 due to CORS)
@@ -110,6 +110,14 @@ test('TikSave - Download TikTok video', async ({ page }) => {
       logToFile('Screenshot saved to error_screenshot.png');
     } catch (screenshotError) {
       logToFile(`Failed to take screenshot: ${screenshotError.message}`);
+    }
+
+    // Log page HTML content for debugging
+    try {
+      const html = await page.content();
+      logToFile(`PAGE HTML AT ERROR:\n${html}`);
+    } catch (htmlError) {
+      logToFile(`Failed to get page content: ${htmlError.message}`);
     }
 
     // Log captured API responses
