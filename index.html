@@ -1,1 +1,145 @@
-1
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikSave | Скачивание видео TikTok без водяных знаков</title>
+  <meta name="description" content="Бесплатно скачивайте видео из TikTok без водяных знаков. Просто вставьте ссылку на видео.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Навигация -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="#" class="logo">TikSave</a>
+      <div class="nav-links">
+        <a href="#how-it-works">Как это работает</a>
+        <a href="#about">О нас</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Главный экран -->
+  <header class="hero">
+    <div class="hero-content">
+      <h1>Скачивайте видео TikTok<br><span class="highlight">без водяных знаков</span></h1>
+      <p class="hero-subtitle">Бесплатно, быстро и без регистрации. Вставьте ссылку на видео ниже.</p>
+    </div>
+  </header>
+
+  <!-- Основная карта -->
+  <main class="container">
+    <div class="card glass" id="downloader-card">
+      <div class="card-header">
+        <h2>Загрузка видео</h2>
+        <p class="card-subtitle">Вставьте ссылку на видео из TikTok</p>
+      </div>
+
+      <form id="download-form" novalidate>
+        <div class="input-group">
+          <label for="tiktok-url" class="visually-hidden">Ссылка на видео TikTok</label>
+          <input
+            type="url"
+            id="tiktok-url"
+            name="tiktok-url"
+            placeholder="https://www.tiktok.com/@user/video/1234567890"
+            required
+            pattern="https?://(www\.)?(tiktok|vm\.tiktok)\.com/.+"
+          >
+          <button type="submit" id="submit-btn" class="btn btn-primary">
+            <span class="btn-text">Скачать</span>
+            <span class="btn-icon">→</span>
+          </button>
+        </div>
+        <p id="url-error" class="error-msg" role="alert"></p>
+      </form>
+
+      <!-- Состояние загрузки -->
+      <div id="loading-state" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p>Обрабатываем ссылку, пожалуйста подождите…</p>
+      </div>
+
+      <!-- Результат -->
+      <div id="result-state" class="result-state hidden">
+        <div class="result-media">
+          <video id="result-video" controls preload="metadata" poster=""></video>
+        </div>
+        <div class="result-info">
+          <h3 id="result-title">Видео из TikTok</h3>
+          <div class="result-actions">
+            <button id="download-link-btn" class="btn btn-success">
+              <span>↓</span> Скачать видео
+            </button>
+            <button id="copy-btn" class="btn btn-outline">
+              <span>📋</span> Скопировать ссылку
+            </button>
+          </div>
+          <p id="result-quality" class="quality-hint">Качество: определяется автоматически</p>
+          <p id="proxy-info" class="quality-hint" hidden></p>
+        </div>
+      </div>
+
+      <!-- Сообщения об ошибке -->
+      <div id="error-state" class="error-state hidden">
+        <div class="error-icon">⚠</div>
+        <h3>Не удалось скачать видео</h3>
+        <p id="error-msg"></p>
+        <button id="retry-btn" class="btn btn-outline">Попробовать снова</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Как это работает -->
+  <section id="how-it-works" class="section how-it-works">
+    <div class="container">
+      <h2 class="section-title">Как это работает</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Скопируйте ссылку</h3>
+          <p>Откройте видео в TikTok и скопируйте его ссылку из адресной строки или через кнопку «Поделиться».</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Вставьте сюда</h3>
+          <p>Вставьте ссылку в поле выше и нажмите кнопку «Скачать».</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Скачайте без водяного знака</h3>
+          <p>Получите чистый видеофайл без логотипа TikTok и без учётной записи.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Подвал -->
+  <footer id="about" class="footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <a href="#" class="logo">TikSave</a>
+        <p>Бесплатный онлайн-сервис для скачивания видео TikTok без водяных знаков.</p>
+      </div>
+      <div class="footer-legal">
+        <h4>Важно</h4>
+        <ul>
+          <li>Сервис не принадлежит TikTok и не имеет с ним никакого отношения.</li>
+          <li>Скачивайте только контент, на который у вас есть права или разрешение автора.</li>
+          <li>Уважайте авторские права и Условия обслуживания TikTok.</li>
+          <li>Используйте материал только в личных некоммерческих целях.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; 2026 TikSave. Сделано для GitHub Pages.</p>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
