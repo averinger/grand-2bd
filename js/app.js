@@ -104,6 +104,11 @@
     submitBtn.disabled = true;
     submitBtn.textContent = "Обработка...";
 
+    // Explicitly clear previous video to prevent showing stale preview
+    resultVideo.src = "";
+    resultVideo.poster = "";
+    resultVideo.load();
+
     setProgress(10, "Определяем платформу…", "Анализируем ссылку…");
 
     const platform = detectPlatform(rawUrl);
