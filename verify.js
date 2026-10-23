@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const TEST_URL = 'https://www.tiktok.com/@dr.shiz/video/7684765941506264334';
-const TARGET_SITE = 'https://grandmen.de5.net';
+const TARGET_SITE = `https://grandmen.de5.net?nocache=${Date.now()}`;
 const VIDEO_FILE = 'verify-video.mp4';
 const VERIFIER_HTML = 'verifier.html';
 
@@ -32,17 +32,23 @@ async function runVerification() {
     const url = response.url();
     if (url.includes('/api/info')) {
       try {
-        const body = await response.json();
+        const text = await response.text();
+        console.log('\n🔍 API /api/info RAW response:');
+        console.log(text);
+        const body = JSON.parse(text);
         apiInfoData = body;
-        console.log('\n🔍 API /api/info response:');
+        console.log('\n🔍 API /api/info PARSED response:');
         console.log(`   success: ${body.success}`);
+        console.log(`   error: ${body.error}`);
         console.log(`   platform: ${body.platform}`);
         console.log(`   title: ${body.title}`);
         console.log(`   videoUrl: ${body.videoUrl ? body.videoUrl.substring(0, 100) + '...' : 'НЕТ'}`);
         console.log(`   downloadUrl: ${body.downloadUrl ? body.downloadUrl.substring(0, 100) + '...' : 'НЕТ'}`);
         console.log(`   coverUrl: ${body.coverUrl ? body.coverUrl.substring(0, 100) + '...' : 'НЕТ'}`);
+        console.log(`   returnedVideoId: ${body.returnedVideoId}`);
+        console.log(`   requestedVideoId: ${body.requestedVideoId}`);
       } catch (e) {
-        console.log('⚠️ Не удалось распарсить ответ /api/info');
+        console.log('⚠️ Не удалось распарсить ответ /api/info:', e.message);
       }
     }
   });
