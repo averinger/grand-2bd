@@ -50,6 +50,8 @@
 
   // Состояние
   let currentDownloadUrl = "";
+  let currentVideoUrl = "";
+  let currentTitle = "";
   let currentPlatform = "generic";
 
   // Инициализация
@@ -61,14 +63,23 @@
     urlInput.addEventListener("input", () => {
       if (urlError.textContent) hideError();
     });
+
+    // Enter в поле ввода = отправка формы (уже работает через submit, но на всякий случай)
+    urlInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        form.dispatchEvent(new Event("submit"));
+      }
+    });
   }
 
   // Обновление прогресс-бара и статуса
   function setProgress(percent, text, detail) {
     statusPanel.hidden = false;
     loadingState.hidden = true;
-    progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
-    statusPercent.textContent = `${Math.min(100, Math.max(0, percent))}%`;
+    const clamped = Math.min(100, Math.max(0, percent));
+    progressBar.style.width = `${clamped}%`;
+    statusPercent.textContent = `${clamped}%`;
     if (text) statusText.textContent = text;
     if (detail !== undefined) statusDetail.textContent = detail;
   }
@@ -83,13 +94,15 @@
       return;
     }
     if (!/^https?:\/\/.+/i.test(rawUrl)) {
-      showInputError("Это не похоже на корректную ссылку.");
+      showInputError("Это не похоже на корректную ссылку (нужен http:// или https://).");
       return;
     }
 
     hideAllStates();
     hideError();
     downloadMp4Btn.hidden = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Обработка...";
 
     setProgress(10, "Определяем платформу…", "Анализируем ссылку…");
 
@@ -125,52 +138,82 @@
 
       setProgress(50, "Обрабатываем ответ…", "Получили ссылку на видео");
 
+      // Сохраняем данные для скачивания
       currentDownloadUrl = data.downloadUrl;
+      currentVideoUrl = data.videoUrl;
+      currentTitle = data.title || `video_${Date.now()}`;
 
-      resultTitle.textContent = data.title || `Видео с ${PLATFORM_LABELS[platform]}`;
+      resultTitle.textContent = currentTitle;
       resultPlatform.textContent = PLATFORM_LABELS[platform];
       resultPlatform.className = `platform-badge platform-${platform}`;
       resultVideo.poster = data.coverUrl || "";
+
+      // Показываем превью видео (если браузер поддерживает прямой URL)
+      if (data.videoUrl) {
+        resultVideo.src = data.videoUrl;
+        resultVideo.load();
+      }
 
       setProgress(90, "Готово!", PLATFORM_HINTS[platform] || "");
 
       downloadMp4Btn.hidden = false;
       downloadMp4Btn.dataset.url = currentDownloadUrl;
+      downloadMp4Btn.dataset.title = currentTitle;
 
       showState(resultState);
     } catch (err) {
       console.error(err);
-      setProgress(0, "Ошибка", err.message);
+      // Специфичные сообщения об ошибках
+      let errorMessage = err.message || "Не удалось связаться с бэкендом.";
+
+      if (err.name === "AbortError" || errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
+        errorMessage = "Превышено время ожидания ответа от сервера. Попробуйте ещё раз.";
+      } else if (errorMessage.includes("404")) {
+        errorMessage = "Видео не найдено. Возможно, оно приватное, удалено или ссылка неверная.";
+      } else if (errorMessage.includes("502") || errorMessage.includes("500")) {
+        errorMessage = "Ошибка сервера при получении видео. Попробуйте позже или другую ссылку.";
+      } else if (errorMessage.includes("CORS") || errorMessage.includes("cross-origin")) {
+        errorMessage = "Ошибка CORS. Наш сервер должен это обходить — попробуйте обновить страницу.";
+      }
+
+      setProgress(0, "Ошибка", errorMessage);
       setTimeout(() => {
-        showErrorState(err.message || "Не удалось связаться с бэкендом.");
+        showErrorState(errorMessage);
       }, 800);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Скачать";
     }
   }
 
   function detectPlatform(url) {
-    const host = new URL(url).hostname.toLowerCase();
-    if (
-      host.includes("tiktok.com") ||
-      host.includes("vm.tiktok.com") ||
-      host.includes("vt.tiktok.com") ||
-      host.includes("douyin.com")
-    ) {
-      return "tiktok";
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      if (
+        host.includes("tiktok.com") ||
+        host.includes("vm.tiktok.com") ||
+        host.includes("vt.tiktok.com") ||
+        host.includes("douyin.com")
+      ) {
+        return "tiktok";
+      }
+      if (
+        host.includes("youtube.com") ||
+        host.includes("youtu.be") ||
+        host.includes("youtube-nocookie.com")
+      ) {
+        return "youtube";
+      }
+      if (host.includes("rutube.ru")) {
+        return "rutube";
+      }
+      if (host.includes("vk.com") || host.includes("vkvideo.ru")) {
+        return "vk";
+      }
+      return "generic";
+    } catch (_) {
+      return "generic";
     }
-    if (
-      host.includes("youtube.com") ||
-      host.includes("youtu.be") ||
-      host.includes("youtube-nocookie.com")
-    ) {
-      return "youtube";
-    }
-    if (host.includes("rutube.ru")) {
-      return "rutube";
-    }
-    if (host.includes("vk.com") || host.includes("vkvideo.ru")) {
-      return "vk";
-    }
-    return "generic";
   }
 
   function hideAllStates() {
@@ -203,12 +246,16 @@
   function resetForm() {
     urlInput.value = "";
     currentDownloadUrl = "";
+    currentVideoUrl = "";
+    currentTitle = "";
     currentPlatform = "generic";
     progressBar.style.width = "0%";
     statusPercent.textContent = "0%";
     hideAllStates();
     hideError();
     downloadMp4Btn.hidden = true;
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Скачать";
     urlInput.focus();
     resultVideo.src = "";
     resultVideo.load();
@@ -217,10 +264,41 @@
   // Скачивание видео через прокси-Worker
   function handleDownload() {
     const url = downloadMp4Btn.dataset.url;
+    const title = downloadMp4Btn.dataset.title || "video";
+
     if (!url) return;
 
-    // Открываем прямую ссылку на прокси-Worker — браузер начнёт скачивание
-    window.location.href = url;
+    // Отключаем кнопку на время инициации скачивания
+    downloadMp4Btn.disabled = true;
+    const originalText = downloadMp4Btn.innerHTML;
+    downloadMp4Btn.innerHTML = '<span>↓</span> Начинаем загрузку...';
+
+    // Способ 1: Используем <a download> для надежного скачивания с именем файла
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${sanitizeFilename(title)}.mp4`;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+
+    // Небольшая задержка перед удалением, чтобы браузер успел обработать клик
+    setTimeout(() => {
+      document.body.removeChild(link);
+      downloadMp4Btn.disabled = false;
+      downloadMp4Btn.innerHTML = originalText;
+    }, 1000);
+
+    // Дополнительно: для больших файлов можно использовать window.open как фоллбэк
+    // но <a download> обычно работает лучше
+  }
+
+  // Утилита для очистки имени файла
+  function sanitizeFilename(str) {
+    if (!str) return "video";
+    return str
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+      .replace(/\s+/g, "_")
+      .substring(0, 100);
   }
 
   init();

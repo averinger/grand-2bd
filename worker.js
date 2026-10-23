@@ -40,24 +40,21 @@ export default {
 
       try {
         // Забираем страницу хостинга сервером
-        const tiktokResponse = await fetch(targetUrl, {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.google.com/",
-          },
+        const pageResponse = await fetch(targetUrl, {
+          headers: getPageHeaders(platform),
         });
 
-        if (!tiktokResponse.ok) {
+        if (!pageResponse.ok) {
           return jsonResponse(
-            { error: `Хостинг вернул статус ${tiktokResponse.status}`, platform },
+            { error: `Хостинг вернул статус ${pageResponse.status}`, platform },
             502
           );
         }
 
-        const html = await tiktokResponse.text();
+        // Извлекаем куки из ответа страницы (важно для TikTok tt_chain_token)
+        const cookies = extractCookies(pageResponse.headers);
+
+        const html = await pageResponse.text();
 
         // Извлекаем видео через платформенно-специфичный или универсальный экстрактор
         let videoUrl = "";
@@ -80,20 +77,50 @@ export default {
           );
         }
 
+        // Всегда декодируем URL (убираем unicode escape sequences)
+        videoUrl = decodeVideoUrl(videoUrl);
+        coverUrl = decodeVideoUrl(coverUrl);
+
         // Делаем URL абсолютным
         videoUrl = toAbsoluteUrl(videoUrl, targetUrl);
         coverUrl = toAbsoluteUrl(coverUrl, targetUrl);
+
+        // Для TikTok: заменяем placeholder tt_chain_token на реальный токен из куки
+        if (platform === "tiktok" && cookies.tt_chain_token) {
+          videoUrl = videoUrl.replace(/tk=tt_chain_token/, `tk=${encodeURIComponent(cookies.tt_chain_token)}`);
+        }
+
+        // Fallback для TikTok: если URL с webapp-prime.tiktok.com (требует токен), пробуем short URL подход
+        if (platform === "tiktok" && (videoUrl.includes("tt_chain_token") || videoUrl.includes("webapp-prime.tiktok.com"))) {
+          const shortUrlVideoUrl = await tryTikTokShortUrl(targetUrl, platform);
+          if (shortUrlVideoUrl) {
+            videoUrl = shortUrlVideoUrl;
+          }
+        }
 
         if (!title) {
           const titleMatch = html.match(/<title>([^<]+)<\/title>/);
           title = titleMatch && titleMatch[1] ? titleMatch[1].trim() : `Видео с ${platform}`;
         }
 
+        // Возвращаем ПРЯМУЮ ссылку на видео для возможного прямого использования
+        // и downloadUrl через наш прокси для гарантированного скачивания
+        // Передаем куки через downloadUrl для использования при скачивании
+        const downloadParams = new URLSearchParams({
+          url: targetUrl,
+          videoUrl: videoUrl,
+          platform: platform,
+          title: title,
+        });
+        if (cookies.tt_chain_token) {
+          downloadParams.set('tt_chain_token', cookies.tt_chain_token);
+        }
+
         return jsonResponse({
           success: true,
           platform,
-          videoUrl,
-          downloadUrl: `${url.origin}/api/download?url=${encodeURIComponent(targetUrl)}`,
+          videoUrl,           // прямая ссылка на видео (может не работать из-за CORS)
+          downloadUrl: `${url.origin}/api/download?${downloadParams.toString()}`,
           title,
           coverUrl,
         });
@@ -108,52 +135,27 @@ export default {
     // ---------- API: скачивание видео (прокси) ----------
     if (path === "/api/download") {
       const targetUrl = url.searchParams.get("url");
-      if (!targetUrl) {
-        return jsonResponse({ error: "Не указан параметр url" }, 400);
+      const videoUrl = url.searchParams.get("videoUrl");
+      const platform = url.searchParams.get("platform") || detectPlatform(targetUrl);
+      const title = url.searchParams.get("title") || "video";
+      const ttChainToken = url.searchParams.get("tt_chain_token");
+
+      if (!targetUrl || !videoUrl) {
+        return jsonResponse({ error: "Не указаны параметры url или videoUrl" }, 400);
       }
 
       try {
-        const platform = detectPlatform(targetUrl);
-
-        // Забираем страницу, чтобы получить прямую ссылку на видео
-        const pageResponse = await fetch(targetUrl, {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.google.com/",
-          },
-        });
-
-        if (!pageResponse.ok) {
-          return jsonResponse(
-            { error: `Хостинг вернул статус ${pageResponse.status}`, platform },
-            502
-          );
-        }
-
-        const html = await pageResponse.text();
-        const extraction = extractVideo(html, targetUrl, platform);
-        let videoUrl = extraction.videoUrl;
-
-        if (!videoUrl) {
-          return jsonResponse(
-            { error: `Не удалось найти видеоссылку на ${platform}`, platform },
-            404
-          );
-        }
-
-        videoUrl = toAbsoluteUrl(videoUrl, targetUrl);
-
         // Качаем видео с CDN хостинга сервером (обходит CORS)
-        const videoResponse = await fetch(videoUrl, {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Referer": targetUrl,
-            "Range": request.headers.get("Range") || "",
-          },
+        // Используем потоковую передачу для экономии памяти
+        const videoHeaders = getVideoHeaders(platform, targetUrl, request);
+
+        // Добавляем tt_chain_token куку для TikTok
+        if (platform === "tiktok" && ttChainToken) {
+          videoHeaders["Cookie"] = `tt_chain_token=${ttChainToken}`;
+        }
+
+        const videoResponse = await fetch(decodeURIComponent(videoUrl), {
+          headers: videoHeaders,
         });
 
         if (!videoResponse.ok) {
@@ -163,14 +165,23 @@ export default {
           );
         }
 
-        const headers = new Headers(videoResponse.headers);
+        // Подготавливаем заголовки ответа
+        const headers = new Headers();
+
+        // Копируем важные заголовки от upstream
+        copyResponseHeaders(videoResponse.headers, headers);
+
+        // Добавляем/переопределяем наши заголовки
         headers.set("Access-Control-Allow-Origin", "*");
         headers.set("Access-Control-Allow-Headers", "Range");
-        headers.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Content-Type");
-        headers.set("Content-Disposition", 'attachment; filename="video.mp4"');
+        headers.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Content-Type, Accept-Ranges");
+        headers.set("Content-Disposition", `attachment; filename="${sanitizeFilename(title)}.mp4"`);
         headers.set("Accept-Ranges", "bytes");
         headers.set("Cache-Control", "public, max-age=3600");
+        headers.set("Content-Type", videoResponse.headers.get("Content-Type") || "video/mp4");
 
+        // ВОЗВРАЩАЕМ ПОТОК (streaming) — не загружаем весь файл в память!
+        // Это критично для Cloudflare Workers (лимит CPU/памяти)
         return new Response(videoResponse.body, {
           status: videoResponse.status,
           statusText: videoResponse.statusText,
@@ -178,7 +189,7 @@ export default {
         });
       } catch (err) {
         return jsonResponse(
-          { error: err.message || "Ошибка загрузки видео", platform: detectPlatform(targetUrl) },
+          { error: err.message || "Ошибка загрузки видео", platform },
           500
         );
       }
@@ -187,6 +198,80 @@ export default {
     return jsonResponse({ error: "Неизвестный метод" }, 404);
   },
 };
+
+// ============================================================================
+// Заголовки для запросов
+// ============================================================================
+
+function getPageHeaders(platform) {
+  const baseHeaders = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9,ru;q=0.8",
+  };
+
+  // Платформенно-специфичные Referer для обхода защиты
+  const referers = {
+    tiktok: "https://www.tiktok.com/",
+    youtube: "https://www.youtube.com/",
+    rutube: "https://rutube.ru/",
+    vk: "https://vk.com/",
+    generic: "https://www.google.com/",
+  };
+
+  return {
+    ...baseHeaders,
+    "Referer": referers[platform] || referers.generic,
+  };
+}
+
+function getVideoHeaders(platform, pageUrl, clientRequest) {
+  const headers = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Encoding": "identity", // важно: не запрашиваем сжатие, видео уже сжато
+    "Accept-Language": "en-US,en;q=0.9,ru;q=0.8",
+  };
+
+  // Referer для CDN — используем конкретную страницу видео для TikTok
+  // TikTok теперь требует точный URL страницы как referer
+  const referers = {
+    tiktok: pageUrl, // Используем полный URL страницы видео
+    youtube: "https://www.youtube.com/",
+    rutube: "https://rutube.ru/",
+    vk: "https://vk.com/",
+    generic: pageUrl,
+  };
+  headers["Referer"] = referers[platform] || referers.generic;
+
+  // Пробрасываем Range заголовок для поддержки resumable downloads / seeking
+  const range = clientRequest.headers.get("Range");
+  if (range) {
+    headers["Range"] = range;
+  }
+
+  return headers;
+}
+
+function copyResponseHeaders(sourceHeaders, targetHeaders) {
+  const headersToCopy = [
+    "Content-Length",
+    "Content-Range",
+    "Content-Type",
+    "Last-Modified",
+    "ETag",
+    "Accept-Ranges",
+  ];
+
+  for (const header of headersToCopy) {
+    const value = sourceHeaders.get(header);
+    if (value) {
+      targetHeaders.set(header, value);
+    }
+  }
+}
 
 // ============================================================================
 // Платформы и экстракторы
@@ -233,16 +318,25 @@ function extractVideo(html, pageUrl, platform) {
 // ---------- TikTok ----------
 function extractTikTok(html) {
   const patterns = [
+    // Основные паттерны из JSON данных
     /"playAddr":\s*"([^"]+)"/,
     /"downloadAddr":\s*"([^"]+)"/,
     /"video":\s*\{[^}]*"urls":\s*\[["']([^"']+)["']/,
+    // Дополнительные паттерны для новых версий TikTok
+    /"play_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/,
+    /"download_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/,
+    /"video_url":\s*"([^"]+)"/,
+    /"playUrl":\s*"([^"]+)"/,
+    // В мета-тегах
+    /<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+name=["']twitter:player["'][^>]+content=["']([^"']+)["']/i,
   ];
 
   for (const pattern of patterns) {
     const match = html.match(pattern);
     if (match && match[1]) {
       return {
-        videoUrl: decodeTikTokUrl(match[1]),
+        videoUrl: match[1],
         title: "",
         coverUrl: extractCover(html),
       };
@@ -251,29 +345,140 @@ function extractTikTok(html) {
   return { videoUrl: "", title: "", coverUrl: extractCover(html) };
 }
 
+// ---------- TikTok Short URL Fallback ----------
+async function tryTikTokShortUrl(targetUrl, platform) {
+  try {
+    // Пытаемся извлечь video ID из URL
+    const videoIdMatch = targetUrl.match(/video\/(\d+)/);
+    if (!videoIdMatch) return null;
+    const videoId = videoIdMatch[1];
+
+    // Пробуем известные паттерны short URL
+    const shortUrlPatterns = [
+      `https://vt.tiktok.com/${videoId}/`,
+      `https://vm.tiktok.com/${videoId}/`,
+      `https://www.tiktok.com/t/${videoId}/`,
+    ];
+
+    for (const shortUrl of shortUrlPatterns) {
+      try {
+        const response = await fetch(shortUrl, {
+          headers: getPageHeaders(platform),
+          redirect: "follow",
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          const extraction = extractTikTok(html);
+          if (extraction.videoUrl && !extraction.videoUrl.includes("tt_chain_token")) {
+            // Нашли рабочий URL без placeholder
+            return extraction.videoUrl;
+          }
+        }
+      } catch (_) {
+        // Игнорируем ошибки и пробуем следующий паттерн
+      }
+    }
+  } catch (_) {
+    // Игнорируем ошибки
+  }
+  return null;
+}
+
 // ---------- YouTube ----------
 function extractYouTube(html) {
-  // Пытаемся найти ytInitialPlayerResponse (содержит прямые ссылки на видео)
-  const playerResponseMatch = html.match(
-    /ytInitialPlayerResponse\s*=\s*(\{.+?\});\s*<\/script>/
-  );
+  // Паттерн 1: ytInitialPlayerResponse (самый надежный)
+  let playerResponseMatch = html.match(/ytInitialPlayerResponse\s*=\s*(\{[\s\S]+?\});/);
+  if (!playerResponseMatch) {
+    playerResponseMatch = html.match(/ytInitialPlayerResponse\s*=\s*(\{[\s\S]+?\})\s*;/);
+  }
+  if (!playerResponseMatch) {
+    playerResponseMatch = html.match(/ytInitialPlayerResponse\s*:\s*(\{[\s\S]+?\})\s*,/);
+  }
+
   if (playerResponseMatch && playerResponseMatch[1]) {
     try {
       const data = JSON.parse(playerResponseMatch[1]);
       const streamingData = data.streamingData;
       if (streamingData) {
-        // adaptive formats (лучшее качество, отдельно видео/аудио)
         const formats = [
           ...(streamingData.adaptiveFormats || []),
           ...(streamingData.formats || []),
         ];
-        const videoFormat = formats.find((f) => f.url && f.mimeType?.includes("video/"));
-        if (videoFormat && videoFormat.url) {
+
+        let bestFormat = null;
+        let bestQuality = -1;
+
+        for (const f of formats) {
+          if (!f.url) continue;
+          const mimeType = f.mimeType || "";
+          const quality = f.qualityLabel ? parseInt(f.qualityLabel) : (f.height || 0);
+          const hasVideo = mimeType.includes("video/");
+          const hasAudio = mimeType.includes("audio/");
+
+          if (hasVideo) {
+            const score = quality + (hasAudio ? 1000 : 0);
+            if (score > bestQuality) {
+              bestQuality = score;
+              bestFormat = f;
+            }
+          }
+        }
+
+        if (bestFormat && bestFormat.url) {
           return {
-            videoUrl: videoFormat.url,
+            videoUrl: bestFormat.url,
             title: data.videoDetails?.title || "",
-            coverUrl: data.videoDetails?.thumbnail?.thumbnails?.[-1]?.url || "",
+            coverUrl: getBestThumbnail(data.videoDetails?.thumbnail?.thumbnails),
           };
+        }
+
+        const anyFormat = formats.find((f) => f.url);
+        if (anyFormat) {
+          return {
+            videoUrl: anyFormat.url,
+            title: data.videoDetails?.title || "",
+            coverUrl: getBestThumbnail(data.videoDetails?.thumbnail?.thumbnails),
+          };
+        }
+      }
+    } catch (_) {
+      // Игнорируем ошибки парсинга, пробуем другие методы
+    }
+  }
+
+  // Паттерн 2: ytInitialData
+  const initialDataMatch = html.match(/ytInitialData\s*=\s*(\{[\s\S]+?\});/);
+  if (initialDataMatch && initialDataMatch[1]) {
+    try {
+      const data = JSON.parse(initialDataMatch[1]);
+      const videoUrl = findVideoUrlInYtInitialData(data);
+      if (videoUrl) {
+        return {
+          videoUrl,
+          title: extractTitleFromYtInitialData(data) || "",
+          coverUrl: extractCover(html),
+        };
+      }
+    } catch (_) {}
+  }
+
+  // Паттерн 3: ytplayer.config
+  const playerConfigMatch = html.match(/ytplayer\.config\s*=\s*(\{[\s\S]+?\});/);
+  if (playerConfigMatch && playerConfigMatch[1]) {
+    try {
+      const config = JSON.parse(playerConfigMatch[1]);
+      if (config.args?.url_encoded_fmt_stream_map) {
+        const formats = config.args.url_encoded_fmt_stream_map.split(",").map(decodeURIComponent);
+        for (const fmt of formats) {
+          const urlMatch = fmt.match(/url=([^&]+)/);
+          if (urlMatch) {
+            return {
+              videoUrl: decodeURIComponent(urlMatch[1]),
+              title: config.args.title || "",
+              coverUrl: extractCover(html),
+            };
+          }
         }
       }
     } catch (_) {}
@@ -283,66 +488,122 @@ function extractYouTube(html) {
   return extractGeneric(html);
 }
 
+// Вспомогательные функции для YouTube
+function getBestThumbnail(thumbnails) {
+  if (!thumbnails || !Array.isArray(thumbnails)) return "";
+  return thumbnails[thumbnails.length - 1]?.url || "";
+}
+
+function findVideoUrlInYtInitialData(data) {
+  function search(obj) {
+    if (!obj || typeof obj !== "object") return null;
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = search(item);
+        if (found) return found;
+      }
+      return null;
+    }
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === "url" && typeof value === "string" && value.includes("googlevideo.com")) {
+        return value;
+      }
+      if (typeof value === "object") {
+        const found = search(value);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  return search(data);
+}
+
+function extractTitleFromYtInitialData(data) {
+  function search(obj) {
+    if (!obj || typeof obj !== "object") return null;
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = search(item);
+        if (found) return found;
+      }
+      return null;
+    }
+    if (obj.title && typeof obj.title === "string") return obj.title;
+    if (obj.simpleText && typeof obj.simpleText === "string") return obj.simpleText;
+    for (const value of Object.values(obj)) {
+      if (typeof value === "object") {
+        const found = search(value);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  return search(data);
+}
+
 // ---------- RuTube ----------
 function extractRuTube(html) {
-  // RuTube часто использует og:video или direct video src
-  const ogVideo = html.match(/<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i);
-  if (ogVideo && ogVideo[1]) {
-    return { videoUrl: ogVideo[1], title: "", coverUrl: extractCover(html) };
-  }
+  const patterns = [
+    /<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i,
+    /<video[^>]+src=["']([^"']+)["']/i,
+    /"videoUrl"\s*:\s*"([^"]+)"/,
+    /"video_url"\s*:\s*"([^"]+)"/,
+    /"m3u8Url"\s*:\s*"([^"]+)"/,
+    /"hls_url"\s*:\s*"([^"]+)"/,
+    /videoUrl["']?\s*:\s*["']([^"']+)["']/,
+  ];
 
-  // Ищем direct video URL в скриптах
-  const videoSrc = html.match(/<video[^>]+src=["']([^"']+)["']/i);
-  if (videoSrc && videoSrc[1]) {
-    return { videoUrl: videoSrc[1], title: "", coverUrl: extractCover(html) };
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      return { videoUrl: match[1], title: "", coverUrl: extractCover(html) };
+    }
   }
-
   return { videoUrl: "", title: "", coverUrl: extractCover(html) };
 }
 
 // ---------- VK Video ----------
 function extractVK(html) {
-  // VK часто использует og:video
-  const ogVideo = html.match(/<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i);
-  if (ogVideo && ogVideo[1]) {
-    return { videoUrl: ogVideo[1], title: "", coverUrl: extractCover(html) };
-  }
+  const patterns = [
+    /<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i,
+    /"url":"([^"]+\.(?:mp4|webm|mov|m3u8))"/i,
+    /"video_url"\s*:\s*"([^"]+)"/i,
+    /"player_params"\s*:\s*\{[^}]*"url"\s*:\s*"([^"]+)"/i,
+    /"video_url"\s*:\s*"([^"]+)"/,
+    /"url"\s*:\s*"([^"]+\.(?:mp4|webm|mov|m3u8))"/,
+  ];
 
-  // Ищем video URL в скриптах VK
-  const videoUrl = html.match(/"url":"([^"]+\.(?:mp4|webm|mov))"/i);
-  if (videoUrl && videoUrl[1]) {
-    return { videoUrl: decodeTikTokUrl(videoUrl[1]), title: "", coverUrl: extractCover(html) };
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      return { videoUrl: match[1], title: "", coverUrl: extractCover(html) };
+    }
   }
-
   return { videoUrl: "", title: "", coverUrl: extractCover(html) };
 }
 
 // ---------- Generic (любой сайт) ----------
 function extractGeneric(html) {
-  // 1. og:video
-  const ogVideo = html.match(/<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i);
-  if (ogVideo && ogVideo[1]) {
-    return { videoUrl: ogVideo[1], title: "", coverUrl: extractCover(html) };
-  }
+  const patterns = [
+    /<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+property=["']og:video:url["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+property=["']og:video:secure_url["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+name=["']twitter:player["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+name=["']twitter:player:stream["'][^>]+content=["']([^"']+)["']/i,
+    /<video[^>]+src=["']([^"']+)["']/i,
+    /<source[^>]+src=["']([^"']+)["']/i,
+    /"@type"\s*:\s*["']VideoObject["'][\s\S]{0,500}"contentUrl"\s*:\s*"([^"]+)"/i,
+    /"videoUrl"\s*:\s*"([^"]+)"/i,
+    /"video_url"\s*:\s*"([^"]+)"/i,
+    /"embedUrl"\s*:\s*"([^"]+)"/i,
+    /"embed_url"\s*:\s*"([^"]+)"/i,
+  ];
 
-  // 2. twitter:player
-  const twitterPlayer = html.match(
-    /<meta[^>]+name=["']twitter:player["'][^>]+content=["']([^"']+)["']/i
-  );
-  if (twitterPlayer && twitterPlayer[1]) {
-    return { videoUrl: twitterPlayer[1], title: "", coverUrl: extractCover(html) };
-  }
-
-  // 3. Прямой video src
-  const videoSrc = html.match(/<video[^>]+src=["']([^"']+)["']/i);
-  if (videoSrc && videoSrc[1]) {
-    return { videoUrl: videoSrc[1], title: "", coverUrl: extractCover(html) };
-  }
-
-  // 4. source тег внутри video
-  const sourceSrc = html.match(/<source[^>]+src=["']([^"']+)["']/i);
-  if (sourceSrc && sourceSrc[1]) {
-    return { videoUrl: sourceSrc[1], title: "", coverUrl: extractCover(html) };
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      return { videoUrl: match[1], title: "", coverUrl: extractCover(html) };
+    }
   }
 
   return { videoUrl: "", title: "", coverUrl: extractCover(html) };
@@ -350,22 +611,31 @@ function extractGeneric(html) {
 
 // ---------- Вспомогательные ----------
 function extractCover(html) {
-  const ogImage = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
-  if (ogImage && ogImage[1]) return ogImage[1];
-  const twitterImage = html.match(
-    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i
-  );
-  if (twitterImage && twitterImage[1]) return twitterImage[1];
+  const patterns = [
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+property=["']og:image:url["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+itemprop=["']image["'][^>]+content=["']([^"']+)["']/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) return match[1];
+  }
   return "";
 }
 
-function decodeTikTokUrl(str) {
+function decodeVideoUrl(str) {
+  if (!str) return str;
   return str
     .replace(/\\u0026/g, "&")
     .replace(/\\u002f/g, "/")
+    .replace(/\\u003d/g, "=")
+    .replace(/\\u003f/g, "?")
     .replace(/\\\//g, "/")
     .replace(/\\"/g, '"')
-    .replace(/\\\\/g, "\\");
+    .replace(/\\\\/g, "\\")
+    .replace(/&/g, "&");
 }
 
 function toAbsoluteUrl(url, baseUrl) {
@@ -377,6 +647,32 @@ function toAbsoluteUrl(url, baseUrl) {
     return `${base.protocol}//${base.host}${url}`;
   }
   return url;
+}
+
+function sanitizeFilename(str) {
+  if (!str) return "video";
+  return str
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_") // недопустимые символы
+    .replace(/\s+/g, "_") // пробелы в _
+    .substring(0, 100); // ограничение длины
+}
+
+function extractCookies(headers) {
+  const cookies = {};
+  // In Cloudflare Workers, headers.get() only returns the first value.
+  // We need to iterate over all headers to get all Set-Cookie values.
+  // The headers object is iterable in Workers.
+  for (const [name, value] of headers.entries()) {
+    if (name.toLowerCase() === "set-cookie") {
+      // Parse each Set-Cookie header
+      const cookieParts = value.split(";");
+      const [cookieName, cookieValue] = cookieParts[0].trim().split("=");
+      if (cookieName && cookieValue) {
+        cookies[cookieName] = cookieValue;
+      }
+    }
+  }
+  return cookies;
 }
 
 function jsonResponse(data, status = 200) {
