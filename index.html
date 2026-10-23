@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -25,45 +25,39 @@
     </div>
   </nav>
 
-  <!-- Главный экран -->
+  <!-- Герой -->
   <header class="hero">
     <div class="hero-content">
-      <h1>Скачивайте видео TikTok<br><span class="highlight">без водяных знаков</span></h1>
-      <p class="hero-subtitle">Бесплатно, быстро и без регистрации. Вставьте ссылку на видео ниже.</p>
+      <h1>Скачивание видео TikTok<br><span class="highlight">без водяных знаков</span></h1>
+      <p class="hero-subtitle">Бесплатно, быстро и без регистрации.</p>
     </div>
   </header>
 
-  <!-- Основная карта -->
+  <!-- Главная карта загрузки -->
   <main class="container">
     <div class="card glass" id="downloader-card">
-      <div class="card-header">
-        <h2>Загрузка видео</h2>
-        <p class="card-subtitle">Вставьте ссылку на видео из TikTok</p>
-      </div>
-
-      <form id="download-form" novalidate>
+      <div class="card-body">
         <div class="input-group">
           <label for="tiktok-url" class="visually-hidden">Ссылка на видео TikTok</label>
           <input
             type="url"
             id="tiktok-url"
             name="tiktok-url"
-            placeholder="https://www.tiktok.com/@user/video/1234567890"
+            placeholder="Вставьте ссылку на видео TikTok…"
             required
-            pattern="https?://(www\.)?(tiktok|vm\.tiktok)\.com/.+"
+            pattern="https?://(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com/.+"
           >
           <button type="submit" id="submit-btn" class="btn btn-primary">
-            <span class="btn-text">Скачать</span>
-            <span class="btn-icon">→</span>
+            Скачать
           </button>
         </div>
         <p id="url-error" class="error-msg" role="alert"></p>
-      </form>
+      </div>
 
       <!-- Статус и прогресс -->
       <div id="status-panel" class="status-panel hidden">
         <div class="status-row">
-          <span id="status-text" class="status-text">Обрабатываем ссылку…</span>
+          <span id="status-text" class="status-text">Получение данных, подождите несколько секунд!</span>
           <span id="status-percent" class="status-percent">0%</span>
         </div>
         <div class="progress-track">
@@ -75,7 +69,7 @@
       <!-- Состояние загрузки (fallback) -->
       <div id="loading-state" class="loading-state hidden">
         <div class="spinner"></div>
-        <p>Подождите, идёт обработка…</p>
+        <p>Обрабатываем ссылку, пожалуйста подождите…</p>
       </div>
 
       <!-- Результат -->
@@ -87,18 +81,15 @@
           <h3 id="result-title">Видео из TikTok</h3>
           <p id="proxy-info" class="quality-hint" hidden></p>
           <div class="result-actions">
-            <button id="download-link-btn" class="btn btn-success">
-              <span>↓</span> Скачать видео
+            <button id="download-mp4-btn" class="btn btn-success">
+              <span>↓</span> Загрузить MP4
             </button>
-            <button id="open-tab-btn" class="btn btn-outline">
-              <span>↗</span> Открыть в новой вкладке
-            </button>
-            <button id="copy-btn" class="btn btn-outline">
-              <span>📋</span> Скопировать ссылку
+            <button id="download-mp3-btn" class="btn btn-outline">
+              <span>♪</span> Загрузить MP3
             </button>
           </div>
-          <div class="download-hint" id="download-hint" hidden>
-            <p>Если скачивание не началось автоматически, нажмите «Открыть в новой вкладке», затем там нажмите правой кнопкой → «Сохранить видео как…».</p>
+          <div class="download-hint" id="download-hint">
+            <p>Загрузка начнется автоматически. Пожалуйста, подождите несколько секунд.</p>
           </div>
         </div>
       </div>
@@ -125,7 +116,7 @@
         <div class="step">
           <div class="step-number">1</div>
           <h3>Скопируйте ссылку</h3>
-          <p>Откройте видео в TikTok и скопируйте его ссылку из адресной строки или через кнопку «Поделиться».</p>
+          <p>Откройте видео в TikTok и скопируйте его ссылку через кнопку «Поделиться».</p>
         </div>
         <div class="step">
           <div class="step-number">2</div>
@@ -135,7 +126,7 @@
         <div class="step">
           <div class="step-number">3</div>
           <h3>Скачайте без водяного знака</h3>
-          <p>Получите чистый видеофайл без логотипа TikTok и без учётной записи.</p>
+          <p>Получите чистый видеофайл без логотипа TikTok.</p>
         </div>
       </div>
     </div>
@@ -154,7 +145,6 @@
           <li>Сервис не принадлежит TikTok и не имеет с ним никакого отношения.</li>
           <li>Скачивайте только контент, на который у вас есть права или разрешение автора.</li>
           <li>Уважайте авторские права и Условия обслуживания TikTok.</li>
-          <li>Используйте материал только в личных некоммерческих целях.</li>
         </ul>
       </div>
     </div>

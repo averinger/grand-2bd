@@ -1,5 +1,5 @@
 /* ==========================================================================
-   TikSave — frontend logic
+   TikSave — frontend logic (механика как на tikvideo.app)
    ========================================================================== */
 
 (function () {
@@ -19,9 +19,8 @@
   const errorState = document.getElementById("error-state");
   const resultVideo = document.getElementById("result-video");
   const resultTitle = document.getElementById("result-title");
-  const downloadBtn = document.getElementById("download-link-btn");
-  const openTabBtn = document.getElementById("open-tab-btn");
-  const copyBtn = document.getElementById("copy-btn");
+  const downloadMp4Btn = document.getElementById("download-mp4-btn");
+  const downloadMp3Btn = document.getElementById("download-mp3-btn");
   const retryBtn = document.getElementById("retry-btn");
   const tryAnotherProxyBtn = document.getElementById("try-another-proxy-btn");
   const submitBtn = document.getElementById("submit-btn");
@@ -56,8 +55,8 @@
   let proxyIndex = 0;
   const PROXY_TIMEOUT_MS = 12000;
 
-  // Регулярное выражение для ссылок TikTok
-  const TIKTOK_REGEX = /^https?:\/\/(www\.)?(tiktok|vm\.tiktok)\.com\/.+$/;
+  // Регулярное выражение для ссылок TikTok / Douyin
+  const TIKTOK_REGEX = /^https?:\/\/(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com/.+/;
 
   // Состояние
   let videoUrl = "";
@@ -71,9 +70,8 @@
       proxyIndex = (proxyIndex + 1) % CORS_PROXIES.length;
       handleSubmitInternal(urlInput.value.trim());
     });
-    copyBtn.addEventListener("click", handleCopy);
-    downloadBtn.addEventListener("click", handleDownload);
-    openTabBtn.addEventListener("click", handleOpenTab);
+    downloadMp4Btn.addEventListener("click", () => handleDownload("mp4"));
+    downloadMp3Btn.addEventListener("click", () => handleDownload("mp3"));
 
     urlInput.addEventListener("input", () => {
       if (urlError.textContent) hideError();
@@ -111,7 +109,7 @@
     hideError();
     downloadHint.hidden = true;
 
-    setProgress(5, "Начинаем загрузку…", "Подготовка запроса");
+    setProgress(5, "Получение данных, подождите несколько секунд!", "Подготовка запроса");
     await handleSubmitInternal(rawUrl);
   }
 
@@ -133,8 +131,9 @@
       resultTitle.textContent = extracted.title || "Видео из TikTok";
       resultVideo.poster = extracted.coverUrl || "";
       resultVideo.src = videoUrl;
-      downloadBtn.dataset.url = videoUrl;
-      openTabBtn.dataset.url = videoUrl;
+
+      downloadMp4Btn.dataset.url = videoUrl;
+      downloadMp3Btn.dataset.url = videoUrl;
 
       setProgress(90, "Готово!", `Прокси: ${activeProxyName}`);
 
@@ -143,7 +142,6 @@
         proxyInfo.hidden = false;
       }
 
-      // Показываем подсказку, если скачивание через кнопку не сработает
       downloadHint.hidden = false;
 
       showState(resultState);
@@ -291,16 +289,16 @@
     resultVideo.load();
   }
 
-  // Скачивание видео
-  function handleDownload() {
-    const url = downloadBtn.dataset.url || videoUrl;
+  // Скачивание (MP4 или MP3)
+  function handleDownload(format) {
+    const url = (format === "mp3" ? downloadMp3Btn : downloadMp4Btn).dataset.url || videoUrl;
     if (!url) return;
 
-    // Способ 1: через атрибут download
+    // Пытаемся скачать напрямую через атрибут download
     try {
       const link = document.createElement("a");
       link.href = url;
-      link.download = "tiktok-video.mp4";
+      link.download = format === "mp3" ? "tiktok-audio.mp3" : "tiktok-video.mp4";
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       document.body.appendChild(link);
@@ -308,31 +306,24 @@
       document.body.removeChild(link);
       return;
     } catch (err) {
-      console.warn("Способ 1 не сработал:", err);
+      console.warn("Прямое скачивание не сработало:", err);
     }
 
-    // Способ 2: открыть в новой вкладке
-    handleOpenTab();
-  }
-
-  // Открыть видео в новой вкладке
-  function handleOpenTab() {
-    const url = openTabBtn.dataset.url || videoUrl;
-    if (!url) return;
+    // Fallback: открыть в новой вкладке
     window.open(url, "_blank");
   }
 
-  // Копирование ссылки
+  // Копирование ссылки (опционально, можно убрать)
   async function handleCopy() {
-    const url = downloadBtn.dataset.url || videoUrl;
+    const url = downloadMp4Btn.dataset.url || videoUrl;
     if (!url) return;
 
     try {
       await navigator.clipboard.writeText(url);
-      const original = copyBtn.innerHTML;
-      copyBtn.innerHTML = '<span>✓</span> Скопировано!';
+      const original = downloadMp4Btn.innerHTML;
+      downloadMp4Btn.innerHTML = '<span>✓</span> Скопировано!';
       setTimeout(() => {
-        copyBtn.innerHTML = original;
+        downloadMp4Btn.innerHTML = original;
       }, 2000);
     } catch (err) {
       const textarea = document.createElement("textarea");
