@@ -135,7 +135,7 @@ export default {
     // ---------- API: скачивание видео (прокси) ----------
     if (path === "/api/download") {
       const targetUrl = url.searchParams.get("url");
-      const videoUrl = url.searchParams.get("videoUrl");
+      let videoUrl = url.searchParams.get("videoUrl");
       const platform = url.searchParams.get("platform") || detectPlatform(targetUrl);
       const title = url.searchParams.get("title") || "video";
       const ttChainToken = url.searchParams.get("tt_chain_token");
@@ -143,6 +143,12 @@ export default {
       if (!targetUrl || !videoUrl) {
         return jsonResponse({ error: "Не указаны параметры url или videoUrl" }, 400);
       }
+
+      // Декодируем videoUrl: убираем JSON escape sequences (/ -> / и т.д.)
+      // Это критично, так как videoUrl приходит из /api/info где он мог быть в JSON с экранированными слешами
+      videoUrl = decodeVideoUrl(videoUrl);
+      // Дополнительно декодируем URL-encoding (%2F -> / и т.д.)
+      videoUrl = decodeURIComponent(videoUrl);
 
       try {
         // Качаем видео с CDN хостинга сервером (обходит CORS)
@@ -154,7 +160,7 @@ export default {
           videoHeaders["Cookie"] = `tt_chain_token=${ttChainToken}`;
         }
 
-        const videoResponse = await fetch(decodeURIComponent(videoUrl), {
+        const videoResponse = await fetch(videoUrl, {
           headers: videoHeaders,
         });
 
