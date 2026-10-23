@@ -121,8 +121,8 @@
     setProgress(20, `Платформа: ${PLATFORM_LABELS[platform]}`, "Запрос к бэкенду…");
 
     try {
-      // 1. Звоним на Worker за информацией о видео
-      const workerUrl = `${WORKER_URL}/api/info?url=${encodeURIComponent(rawUrl)}`;
+      // 1. Звоним на Worker за информацией о видео (с cache-busting)
+      const workerUrl = `${WORKER_URL}/api/info?url=${encodeURIComponent(rawUrl)}&t=${Date.now()}`;
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 30000);

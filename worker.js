@@ -36,6 +36,8 @@ export default {
         return jsonResponse({ error: "Не указана ссылка на видео" }, 400);
       }
 
+      console.log("Получен URL для парсинга:", targetUrl);
+
       const platform = detectPlatform(targetUrl);
 
       try {
@@ -329,32 +331,174 @@ function extractVideo(html, pageUrl, platform) {
 
 // ---------- TikTok ----------
 function extractTikTok(html) {
-  const patterns = [
+  const videoUrls = [];
+  const titleCandidates = [];
+
+  // Паттерны для извлечения ВСЕХ возможных video URL
+  const urlPatterns = [
     // Основные паттерны из JSON данных
-    /"playAddr":\s*"([^"]+)"/,
-    /"downloadAddr":\s*"([^"]+)"/,
-    /"video":\s*\{[^}]*"urls":\s*\[["']([^"']+)["']/,
+    /"playAddr":\s*"([^"]+)"/g,
+    /"downloadAddr":\s*"([^"]+)"/g,
+    /"playAddrH264":\s*"([^"]+)"/g,
+    /"downloadAddrH264":\s*"([^"]+)"/g,
+    /"video":\s*\{[^}]*"urls":\s*\[["']([^"']+)["']/g,
     // Дополнительные паттерны для новых версий TikTok
-    /"play_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/,
-    /"download_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/,
-    /"video_url":\s*"([^"]+)"/,
-    /"playUrl":\s*"([^"]+)"/,
+    /"play_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/g,
+    /"download_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/g,
+    /"video_url":\s*"([^"]+)"/g,
+    /"playUrl":\s*"([^"]+)"/g,
+    // bit_rate массив с разными качествами
+    /"bit_rate":\s*\[[\s\S]*?"play_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/g,
+    /"bit_rate":\s*\[[\s\S]*?"download_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/g,
+    // video_data
+    /"video_data":\s*\{[^}]*"play_addr":\s*\{[^}]*"url_list":\s*\[["']([^"']+)["']/g,
+    // В __INITIAL_STATE__ и SIGI_STATE
+    /"ItemModule":\s*\{[^}]*"video":\s*\{[^}]*"playAddr":\s*"([^"]+)"/g,
+    /"VideoModule":\s*\{[^}]*"video":\s*\{[^}]*"playAddr":\s*"([^"]+)"/g,
     // В мета-тегах
-    /<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i,
-    /<meta[^>]+name=["']twitter:player["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/gi,
+    /<meta[^>]+name=["']twitter:player["'][^>]+content=["']([^"']+)["']/gi,
+    /<meta[^>]+property=["']og:video:url["'][^>]+content=["']([^"']+)["']/gi,
+    /<meta[^>]+property=["']og:video:secure_url["'][^>]+content=["']([^"']+)["']/gi,
   ];
 
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-    if (match && match[1]) {
-      return {
-        videoUrl: match[1],
-        title: "",
-        coverUrl: extractCover(html),
-      };
+  // Собираем ВСЕ найденные URL
+  for (const pattern of urlPatterns) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      if (match[1] && match[1].includes('http')) {
+        const decoded = decodeVideoUrl(match[1]);
+        if (decoded && !videoUrls.includes(decoded)) {
+          videoUrls.push(decoded);
+        }
+      }
     }
   }
-  return { videoUrl: "", title: "", coverUrl: extractCover(html) };
+
+  // Паттерны для заголовка
+  const titlePatterns = [
+    /"desc":\s*"([^"]+)"/,
+    /"description":\s*"([^"]+)"/,
+    /"title":\s*"([^"]+)"/,
+    /"text":\s*"([^"]+)"/,
+    /<title>([^<]+)<\/title>/i,
+    /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i,
+  ];
+
+  for (const pattern of titlePatterns) {
+    const match = html.match(pattern);
+    if (match && match[1] && match[1].trim() && !match[1].includes('TikTok - Make Your Day')) {
+      titleCandidates.push(match[1].trim());
+    }
+  }
+
+  // Попробуем извлечь из __INITIAL_STATE__ или SIGI_STATE
+  const statePatterns = [
+    /window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]+?\});/,
+    /window\._sharedData\s*=\s*(\{[\s\S]+?\});/,
+    /"SIGI_STATE"\s*:\s*(\{[\s\S]+?\})\s*,\s*"TrustState"/,
+    /id="SIGI_STATE"[^>]*>(\{[\s\S]+?\})<\/script>/,
+  ];
+
+  for (const statePattern of statePatterns) {
+    const stateMatch = html.match(statePattern);
+    if (stateMatch && stateMatch[1]) {
+      try {
+        const state = JSON.parse(stateMatch[1]);
+        // Ищем video URL в состоянии
+        const stateUrls = findAllVideoUrlsInState(state);
+        for (const u of stateUrls) {
+          if (!videoUrls.includes(u)) videoUrls.push(u);
+        }
+        // Ищем заголовок в состоянии
+        const stateTitles = findTitlesInState(state);
+        for (const t of stateTitles) {
+          if (!titleCandidates.includes(t)) titleCandidates.push(t);
+        }
+      } catch (_) {}
+    }
+  }
+
+  // Фильтруем URL: убираем превью/заглушки, оставляем только полноценные видео
+  const filteredUrls = videoUrls.filter(url => {
+    // Пропускаем очевидные превью/миниатюры
+    if (url.includes('/cover/') || url.includes('/preview/') || url.includes('/thumb/')) return false;
+    if (url.includes('watermark=1') || url.includes('logo=1')) return false;
+    // Предпочитаем URL с video/ в пути (обычно полноценные видео)
+    return true;
+  });
+
+  // Сортируем: приоритет downloadAddr, потом playAddr, потом остальные
+  const sortedUrls = filteredUrls.sort((a, b) => {
+    const score = (url) => {
+      let s = 0;
+      if (url.includes('downloadAddr') || url.includes('download_addr')) s += 100;
+      if (url.includes('playAddrH264') || url.includes('downloadAddrH264')) s += 50;
+      if (url.includes('playAddr') || url.includes('play_addr')) s += 30;
+      if (url.includes('bit_rate')) s += 20;
+      if (url.includes('/video/tos/') || url.includes('/video/')) s += 10;
+      // Штраф за watermark
+      if (url.includes('watermark') || url.includes('logo')) s -= 50;
+      return s;
+    };
+    return score(b) - score(a);
+  });
+
+  const bestVideoUrl = sortedUrls[0] || videoUrls[0] || '';
+  const bestTitle = titleCandidates[0] || '';
+
+  return {
+    videoUrl: bestVideoUrl,
+    title: bestTitle,
+    coverUrl: extractCover(html),
+  };
+}
+
+function findAllVideoUrlsInState(obj) {
+  if (!obj || typeof obj !== 'object') return [];
+
+  const videoKeys = ['playAddr', 'downloadAddr', 'play_addr', 'download_addr', 'videoUrl', 'playUrl', 'playAddrH264', 'downloadAddrH264'];
+  const urls = [];
+
+  function search(o) {
+    if (!o || typeof o !== 'object') return;
+    if (Array.isArray(o)) {
+      for (const item of o) search(item);
+      return;
+    }
+    for (const [key, value] of Object.entries(o)) {
+      if (videoKeys.includes(key) && typeof value === 'string' && value.includes('http')) {
+        urls.push(decodeVideoUrl(value));
+      }
+      if (typeof value === 'object') search(value);
+    }
+  }
+  search(obj);
+  return [...new Set(urls)]; // uniq
+}
+
+function findTitlesInState(obj) {
+  if (!obj || typeof obj !== 'object') return [];
+
+  const titleKeys = ['desc', 'description', 'title', 'text', 'nickname', 'authorName'];
+  const titles = [];
+
+  function search(o) {
+    if (!o || typeof o !== 'object') return;
+    if (Array.isArray(o)) {
+      for (const item of o) search(item);
+      return;
+    }
+    for (const [key, value] of Object.entries(o)) {
+      if (titleKeys.includes(key) && typeof value === 'string' && value.trim() && !value.includes('TikTok - Make Your Day')) {
+        titles.push(value.trim());
+      }
+      if (typeof value === 'object') search(value);
+    }
+  }
+  search(obj);
+  return [...new Set(titles)];
 }
 
 // ---------- TikTok Short URL Fallback ----------
@@ -693,6 +837,7 @@ function jsonResponse(data, status = 200) {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
       'Access-Control-Allow-Origin': '*'
     },
   });

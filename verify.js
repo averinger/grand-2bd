@@ -26,6 +26,27 @@ async function runVerification() {
 
   const page = await context.newPage();
 
+  // Перехват API ответа для диагностики
+  let apiInfoData = null;
+  page.on('response', async (response) => {
+    const url = response.url();
+    if (url.includes('/api/info')) {
+      try {
+        const body = await response.json();
+        apiInfoData = body;
+        console.log('\n🔍 API /api/info response:');
+        console.log(`   success: ${body.success}`);
+        console.log(`   platform: ${body.platform}`);
+        console.log(`   title: ${body.title}`);
+        console.log(`   videoUrl: ${body.videoUrl ? body.videoUrl.substring(0, 100) + '...' : 'НЕТ'}`);
+        console.log(`   downloadUrl: ${body.downloadUrl ? body.downloadUrl.substring(0, 100) + '...' : 'НЕТ'}`);
+        console.log(`   coverUrl: ${body.coverUrl ? body.coverUrl.substring(0, 100) + '...' : 'НЕТ'}`);
+      } catch (e) {
+        console.log('⚠️ Не удалось распарсить ответ /api/info');
+      }
+    }
+  });
+
   try {
     // 1. Открываем сайт
     console.log(`\n🌐 Открываем ${TARGET_SITE}...`);
@@ -106,13 +127,13 @@ async function runVerification() {
       flex-wrap: wrap;
     }
     button {
-      font-size: 18px;
+      font-size: 24px;
       font-weight: bold;
       border: none;
       border-radius: 12px;
       cursor: pointer;
       transition: transform 0.1s, box-shadow 0.1s;
-      min-width: 280px;
+      min-width: 320px;
     }
     button:active { transform: scale(0.96); }
     button:focus { outline: 3px solid #fff; outline-offset: 3px; }
@@ -204,13 +225,28 @@ async function runVerification() {
     console.log(`\n📋 Результат: ${result}`);
 
     if (result === 'yes') {
-      console.log('\n✅ Пользователь подтвердил: ВСЁ РАБОТАЕТ ИДЕАЛЬНО!');
+      console.log('\n✅ УСПЕХ! ВСЁ РАБОТАЕТ');
       process.exit(0);
     } else if (result === 'no') {
-      console.log('\n❌ Пользователь сказал: НЕ ТО ВИДЕО. Требуется исправление.');
+      console.log('\n' + '='.repeat(60));
+      console.log('\x1b[31m╔══════════════════════════════════════════════════════════╗');
+      console.log('║  ПОЛЬЗОВАТЕЛЬ СКАЗАЛ: ЭТО НЕ ТО ВИДЕО                     ║');
+      console.log('╚══════════════════════════════════════════════════════════╝\x1b[0m');
+      console.log('='.repeat(60));
+
+      if (apiInfoData) {
+        console.log('\n📋 JSON-ответ от API /api/info:');
+        console.log(JSON.stringify(apiInfoData, null, 2));
+      }
+
+      console.log('\n🔴 Требуется исправление парсера в воркере!');
       process.exit(1);
     } else {
       console.log('\n⚠️ Окно закрыто без выбора. Считаем как "НЕ ТО ВИДЕО".');
+      if (apiInfoData) {
+        console.log('\n📋 JSON-ответ от API /api/info:');
+        console.log(JSON.stringify(apiInfoData, null, 2));
+      }
       process.exit(1);
     }
 
