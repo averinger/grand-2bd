@@ -1,9 +1,15 @@
 /* ==========================================================================
-   TikSave — frontend logic (механика как на tikvideo.app)
+   TikSave — frontend logic (звонок на свой Cloudflare Worker)
    ========================================================================== */
 
 (function () {
   "use strict";
+
+  // ========================================================================
+  // НАСТРОЙКА: укажите адрес своего развёрнутого Workers-бэкенда
+  // Пример: https://tiktok-downloader.vash-username.workers.dev
+  // ========================================================================
+  const WORKER_URL = "https://tiktok-downloader.ivanger.workers.dev"; // <-- адрес вашего Cloudflare Workers
 
   // DOM элементы
   const form = document.getElementById("download-form");
@@ -22,54 +28,21 @@
   const downloadMp4Btn = document.getElementById("download-mp4-btn");
   const downloadMp3Btn = document.getElementById("download-mp3-btn");
   const retryBtn = document.getElementById("retry-btn");
-  const tryAnotherProxyBtn = document.getElementById("try-another-proxy-btn");
   const submitBtn = document.getElementById("submit-btn");
   const btnText = document.querySelector(".btn-text");
   const proxyInfo = document.getElementById("proxy-info");
   const downloadHint = document.getElementById("download-hint");
-
-  // Список публичных CORS-прокси. Пробуем по порядку, пока один не сработает.
-  const CORS_PROXIES = [
-    {
-      name: "corsproxy.io",
-      buildUrl: (target) => `https://corsproxy.io/?url=${encodeURIComponent(target)}`,
-    },
-    {
-      name: "allorigins.win",
-      buildUrl: (target) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
-    },
-    {
-      name: "cors.bridged.cc",
-      buildUrl: (target) => `https://cors.bridged.cc/${encodeURIComponent(target)}`,
-    },
-    {
-      name: "corsfix.com",
-      buildUrl: (target) => `https://corsfix.com/?url=${encodeURIComponent(target)}`,
-    },
-    {
-      name: "cors.x2u.in",
-      buildUrl: (target) => `https://cors.x2u.in/?url=${encodeURIComponent(target)}`,
-    },
-  ];
-
-  let proxyIndex = 0;
-  const PROXY_TIMEOUT_MS = 12000;
 
   // Регулярное выражение для ссылок TikTok / Douyin
   const TIKTOK_REGEX = /^https?:\/\/(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com/.+/;
 
   // Состояние
   let videoUrl = "";
-  let activeProxyName = "";
 
   // Инициализация
   function init() {
     form.addEventListener("submit", handleSubmit);
     retryBtn.addEventListener("click", resetForm);
-    tryAnotherProxyBtn.addEventListener("click", () => {
-      proxyIndex = (proxyIndex + 1) % CORS_PROXIES.length;
-      handleSubmitInternal(urlInput.value.trim());
-    });
     downloadMp4Btn.addEventListener("click", () => handleDownload("mp4"));
     downloadMp3Btn.addEventListener("click", () => handleDownload("mp3"));
 
@@ -102,43 +75,61 @@
       return;
     }
 
-    proxyIndex = 0;
+    if (!WORKER_URL) {
+      showErrorState(
+        "Бэкенд не настроен. В файле js/app.js укажите WORKER_URL (адрес вашего Cloudflare Workers)."
+      );
+      return;
+    }
+
     videoUrl = "";
-    activeProxyName = "";
     hideAllStates();
     hideError();
     downloadHint.hidden = true;
 
-    setProgress(5, "Получение данных, подождите несколько секунд!", "Подготовка запроса");
-    await handleSubmitInternal(rawUrl);
-  }
+    setProgress(20, "Получение данных, подождите несколько секунд!", "Запрос к бэкенду…");
 
-  async function handleSubmitInternal(rawUrl) {
     try {
-      const html = await fetchThroughProxies(rawUrl);
+      // Звоним на свой Worker
+      const workerUrl = `${WORKER_URL}?url=${encodeURIComponent(rawUrl)}`;
 
-      setProgress(60, "Обрабатываем страницу…", "Извлекаем ссылку на видео");
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
 
-      const extracted = extractVideoData(html);
+      const response = await fetch(workerUrl, {
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
-      if (!extracted.videoUrl) {
-        throw new Error(
-          "Не удалось найти видеоссылку на странице. Ссылка может быть приватной, удалённой или TikTok изменил разметку."
-        );
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Бэкенд вернул ${response.status}`);
       }
 
-      videoUrl = extracted.videoUrl;
-      resultTitle.textContent = extracted.title || "Видео из TikTok";
-      resultVideo.poster = extracted.coverUrl || "";
+      const data = await response.json();
+
+      setProgress(60, "Обрабатываем ответ…", "Извлекаем ссылку на видео");
+
+      if (!data.success || !data.videoUrl) {
+        throw new Error(data.error || "Не удалось получить ссылку на видео");
+      }
+
+      videoUrl = data.videoUrl;
+      resultTitle.textContent = data.title || "Видео из TikTok";
+      resultVideo.poster = data.coverUrl || "";
       resultVideo.src = videoUrl;
 
       downloadMp4Btn.dataset.url = videoUrl;
       downloadMp3Btn.dataset.url = videoUrl;
 
-      setProgress(90, "Готово!", `Прокси: ${activeProxyName}`);
+      setProgress(90, "Готово!", "Видео готово к скачиванию");
 
       if (proxyInfo) {
-        proxyInfo.textContent = `Использован прокси: ${activeProxyName}`;
+        proxyInfo.textContent = "Бэкенд: ваш Cloudflare Workers";
         proxyInfo.hidden = false;
       }
 
@@ -149,100 +140,9 @@
       console.error(err);
       setProgress(0, "Ошибка", err.message);
       setTimeout(() => {
-        showErrorState(err.message || "Все прокси недоступны. Попробуйте другую ссылку.");
-        if (tryAnotherProxyBtn) tryAnotherProxyBtn.hidden = false;
+        showErrorState(err.message || "Не удалось связаться с бэкендом.");
       }, 800);
     }
-  }
-
-  // Последовательный перебор прокси
-  async function fetchThroughProxies(targetUrl) {
-    let lastError = null;
-
-    for (let i = 0; i < CORS_PROXIES.length; i++) {
-      const proxy = CORS_PROXIES[i];
-      proxyIndex = i;
-      const proxyUrl = proxy.buildUrl(targetUrl);
-
-      setProgress(
-        10 + (i * 16),
-        `Пробуем прокси ${i + 1} из ${CORS_PROXIES.length}…`,
-        proxy.name
-      );
-
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
-
-        const response = await fetch(proxyUrl, {
-          signal: controller.signal,
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            Accept: "text/html,application/xhtml+xml",
-          },
-          redirect: "follow",
-        });
-
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-          throw new Error(`Прокси ${proxy.name} вернул ${response.status}`);
-        }
-
-        const html = await response.text();
-
-        if (!html || html.length < 100) {
-          throw new Error(`Прокси ${proxy.name} вернул пустой ответ`);
-        }
-
-        activeProxyName = proxy.name;
-        return html;
-      } catch (err) {
-        lastError = err;
-        console.warn(`Прокси ${proxy.name} не сработал:`, err.message);
-        continue;
-      }
-    }
-
-    throw new Error(lastError ? lastError.message : "Все прокси недоступны");
-  }
-
-  // Извлечение данных о видео из HTML TikTok
-  function extractVideoData(html) {
-    const data = { videoUrl: "", title: "", coverUrl: "" };
-
-    const patterns = [
-      /"playAddr":\s*"([^"]+)"/,
-      /"downloadAddr":\s*"([^"]+)"/,
-      /"video":\s*\{[^}]*"urls":\s*\[["']([^"']+)["']/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        data.videoUrl = decodeEntities(match[1]);
-        break;
-      }
-    }
-
-    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-    if (titleMatch && titleMatch[1]) {
-      data.title = titleMatch[1].replace(/\s*\| TikTok.*/i, "").trim();
-    }
-
-    const coverMatch = html.match(/"cover":\s*"([^"]+)"/);
-    if (coverMatch && coverMatch[1]) {
-      data.coverUrl = decodeEntities(coverMatch[1]);
-    }
-
-    return data;
-  }
-
-  function decodeEntities(str) {
-    const textarea = document.createElement("textarea");
-    textarea.innerHTML = str;
-    return textarea.value;
   }
 
   function hideAllStates() {
@@ -276,14 +176,11 @@
   function resetForm() {
     urlInput.value = "";
     videoUrl = "";
-    activeProxyName = "";
-    proxyIndex = 0;
     progressBar.style.width = "0%";
     statusPercent.textContent = "0%";
     hideAllStates();
     hideError();
     downloadHint.hidden = true;
-    if (tryAnotherProxyBtn) tryAnotherProxyBtn.hidden = true;
     urlInput.focus();
     resultVideo.src = "";
     resultVideo.load();
@@ -294,7 +191,6 @@
     const url = (format === "mp3" ? downloadMp3Btn : downloadMp4Btn).dataset.url || videoUrl;
     if (!url) return;
 
-    // Пытаемся скачать напрямую через атрибут download
     try {
       const link = document.createElement("a");
       link.href = url;
@@ -309,31 +205,7 @@
       console.warn("Прямое скачивание не сработало:", err);
     }
 
-    // Fallback: открыть в новой вкладке
     window.open(url, "_blank");
-  }
-
-  // Копирование ссылки (опционально, можно убрать)
-  async function handleCopy() {
-    const url = downloadMp4Btn.dataset.url || videoUrl;
-    if (!url) return;
-
-    try {
-      await navigator.clipboard.writeText(url);
-      const original = downloadMp4Btn.innerHTML;
-      downloadMp4Btn.innerHTML = '<span>✓</span> Скопировано!';
-      setTimeout(() => {
-        downloadMp4Btn.innerHTML = original;
-      }, 2000);
-    } catch (err) {
-      const textarea = document.createElement("textarea");
-      textarea.value = url;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      alert("Ссылка скопирована в буфер обмена.");
-    }
   }
 
   init();
