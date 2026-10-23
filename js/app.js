@@ -635,7 +635,7 @@
 
   // Override resetVideoPlayer to also reset player UI
   const originalResetVideoPlayer = resetVideoPlayer;
-  function resetVideoPlayer() {
+  resetVideoPlayer = function() {
     originalResetVideoPlayer();
     if (playPauseBtn) {
       playPauseBtn.classList.remove("playing");
@@ -659,7 +659,7 @@
     }
     clearTimeout(controlsHideTimer);
     customPlayer?.classList.remove("controls-visible");
-  }
+  };
 
   // ===== INIT =====
   function init() {
