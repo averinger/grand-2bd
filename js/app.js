@@ -34,7 +34,7 @@
   const downloadHint = document.getElementById("download-hint");
 
   // Регулярное выражение для ссылок TikTok / Douyin
-  const TIKTOK_REGEX = /^https?:\/\/(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com/.+/;
+  const TIKTOK_REGEX = /^https?:\/\/(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com\/.+/;
 
   // Состояние
   let videoUrl = "";
