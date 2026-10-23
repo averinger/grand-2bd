@@ -159,11 +159,24 @@
       try {
         downloadMp4Btn.hidden = false;
         downloadMp4Btn.removeAttribute('hidden');
+        downloadMp4Btn.style.display = 'inline-block';
+        downloadMp4Btn.style.visibility = 'visible';
+        downloadMp4Btn.style.opacity = '1';
         downloadMp4Btn.dataset.url = currentDownloadUrl;
         downloadMp4Btn.dataset.title = currentTitle;
         console.log('[TikSave] Download button enabled, data-url:', currentDownloadUrl);
       } catch (btnErr) {
         console.error('[TikSave] Failed to enable download button:', btnErr);
+      }
+
+      // Also ensure result-state container is visible
+      try {
+        resultState.hidden = false;
+        resultState.removeAttribute('hidden');
+        resultState.classList.remove('hidden');
+        resultState.style.display = 'block';
+      } catch (stateErr) {
+        console.error('[TikSave] Failed to show result state:', stateErr);
       }
 
       showState(resultState);

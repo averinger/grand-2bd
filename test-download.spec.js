@@ -72,6 +72,11 @@ test('TikSave - Download TikTok video', async ({ page }) => {
     await page.waitForSelector('#download-mp4-btn[data-url]', { state: 'attached', timeout: 120000 });
     logToFile('Download button has data-url attribute');
 
+    // Wait for button to be visible (explicit visibility wait as requested)
+    logToFile('Waiting for download button to be visible...');
+    await page.waitForSelector('#download-mp4-btn', { state: 'visible', timeout: 30000 });
+    logToFile('Download button is visible');
+
     // Wait for download event - this is the key: we wait for the actual file download
     // regardless of whether the video preview loads (which may 404 due to CORS)
     logToFile('Waiting for download event...');
