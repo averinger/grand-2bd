@@ -105,9 +105,13 @@
     submitBtn.textContent = "Обработка...";
 
     // Explicitly clear previous video to prevent showing stale preview
-    resultVideo.src = "";
-    resultVideo.poster = "";
-    resultVideo.load();
+    const video = document.getElementById('result-video');
+    if (video) {
+        video.src = '';
+        video.removeAttribute('src');
+        video.load(); // Обязательно, чтобы плеер сбросил старый кадр
+    }
+    document.getElementById('result-state').classList.add('hidden');
 
     setProgress(10, "Определяем платформу…", "Анализируем ссылку…");
 

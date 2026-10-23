@@ -59,7 +59,7 @@ test('TikSave - Download TikTok video', async ({ page }) => {
     logToFile('Download form visible');
 
     const urlInput = page.locator('#tiktok-url');
-    const testUrl = 'https://www.tiktok.com/@andreylarin_/video/7699192432415542546';
+    const testUrl = 'https://www.tiktok.com/@andreylarin_/video/7699535414096301330';
     await urlInput.fill(testUrl);
     logToFile(`Filled URL: ${testUrl}`);
 

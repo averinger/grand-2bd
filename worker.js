@@ -691,9 +691,9 @@ function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "no-store, no-cache, must-revalidate",
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Access-Control-Allow-Origin': '*'
     },
   });
 }
