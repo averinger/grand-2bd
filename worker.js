@@ -1,8 +1,10 @@
 // ============================================================================
-// TikSave — Production-Ready Backend via TikWM API + Cache + Guaranteed CORS
+// TikSave — Production-Ready Backend with Waterfall Providers
+// TikWM (primary) -> Tiklydown (fallback) -> Cache -> 302 Redirect
 // ============================================================================
 
 const TIKWM_API = "https://www.tikwm.com/api/";
+const TIKLYDOWN_API = "https://api.tiklydown.eu.org/api/download";
 const CACHE_TTL = 86400;
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -18,24 +20,21 @@ export default {
     if (request.method === "OPTIONS") return corsResponse();
 
     try {
-      // ---------- /api/info ----------
       if (path === "/api/info" || path === "/") {
         return await handleInfo(request, url, ctx);
       }
-
-      // ---------- /api/download ----------
       if (path === "/api/download") {
         return await handleDownload(request, url);
       }
-
       return jsonResponse({ error: "Not found" }, 404);
     } catch (err) {
-      console.error("[TikSave] Unhandled error:", err.message, err.stack);
+      console.error("[TikSave] Unhandled:", err.message, err.stack);
       return jsonResponse({ error: "Internal server error", hint: err.message }, 500);
     }
   },
 };
 
+// ---------- /api/info: Waterfall TikWM -> Tiklydown ----------
 async function handleInfo(request, url, ctx) {
   let targetUrl = url.searchParams.get("url");
   if (request.method === "POST") {
@@ -53,7 +52,7 @@ async function handleInfo(request, url, ctx) {
 
   console.log("[TikSave] Request:", targetUrl, "| ID:", requestedVideoId);
 
-  // Проверяем кэш (Cache API требует полноценный URL)
+  // Кэш
   const cacheUrl = `https://tiksave.internal/cache/${requestedVideoId || hashUrl(targetUrl)}`;
   const cache = caches.default;
   const cached = await cache.match(cacheUrl);
@@ -63,63 +62,112 @@ async function handleInfo(request, url, ctx) {
     return jsonResponse({ ...data, cached: true });
   }
 
-  try {
-    const tikwmUrl = `${TIKWM_API}?url=${encodeURIComponent(targetUrl)}`;
-    const tikwmRes = await fetch(tikwmUrl, {
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
-    });
+  // Waterfall: пробуем провайдеров по очереди
+  const providers = [
+    { name: "TikWM", fn: () => fetchTikWM(targetUrl) },
+    { name: "Tiklydown", fn: () => fetchTiklydown(targetUrl) },
+  ];
 
-    if (!tikwmRes.ok) {
-      return jsonResponse({ error: `TikWM API вернул ${tikwmRes.status}` }, 502);
+  let lastError = null;
+  for (const p of providers) {
+    try {
+      console.log(`[TikSave] Trying ${p.name}...`);
+      const result = await p.fn();
+
+      // Валидация ID
+      const returnedId = String(result.videoId || "");
+      if (requestedVideoId && requestedVideoId !== "shortlink" && requestedVideoId !== returnedId) {
+        console.error(`[TikSave] ${p.name} ID MISMATCH:`, requestedVideoId, "!=", returnedId);
+        throw new Error(`ID mismatch: ${requestedVideoId} != ${returnedId}`);
+      }
+
+      const response = new Response(JSON.stringify(result), {
+        headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${CACHE_TTL}` },
+      });
+      ctx.waitUntil(cache.put(cacheUrl, response.clone()));
+
+      console.log("[TikSave] Success via", p.name, ":", result.videoId);
+      return jsonResponse({ ...result, provider: p.name });
+    } catch (err) {
+      lastError = err;
+      console.warn(`[TikSave] ${p.name} failed:`, err.message);
+      // пробуем следующий
     }
-
-    const tikwmData = await tikwmRes.json();
-
-    if (tikwmData.code !== 0 || !tikwmData.data) {
-      const msg = tikwmData.msg || "Unknown";
-      let userErr = "Не удалось получить видео";
-      if (msg.includes("private")) userErr = "Видео приватное или удалено";
-      else if (msg.includes("not found")) userErr = "Видео не найдено";
-      else if (msg.includes("region")) userErr = "Недоступно в регионе";
-      else if (msg.includes("limit")) userErr = "Превышен лимит бесплатного API. Попробуйте позже.";
-      return jsonResponse({ error: userErr, hint: msg }, 400);
-    }
-
-    const data = tikwmData.data;
-    const returnedId = String(data.id || data.aweme_id || "");
-
-    if (requestedVideoId && requestedVideoId !== "shortlink" && requestedVideoId !== returnedId) {
-      console.error("[TikSave] ID MISMATCH:", requestedVideoId, "!=", returnedId);
-      return jsonResponse({ error: "Получено не то видео", hint: `Req: ${requestedVideoId}, Got: ${returnedId}` }, 403);
-    }
-
-    const playUrl = data.hdplay || data.play || data.wmplay || "";
-    const result = {
-      success: true,
-      platform: "tiktok",
-      videoId: returnedId || requestedVideoId,
-      videoUrl: playUrl,
-      downloadUrl: `${url.origin}/api/download?videoUrl=${encodeURIComponent(playUrl)}&title=${encodeURIComponent(data.title || "video")}`,
-      title: data.title || `TikTok_${returnedId || requestedVideoId}`,
-      coverUrl: data.cover || data.origin_cover || "",
-      duration: data.duration || 0,
-    };
-
-    // Кэшируем
-    const response = new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${CACHE_TTL}` },
-    });
-    ctx.waitUntil(cache.put(cacheUrl, response.clone()));
-
-    console.log("[TikSave] Success:", result.videoId);
-    return jsonResponse(result);
-
-  } catch (err) {
-    console.error("[TikSave] handleInfo error:", err.message);
-    return jsonResponse({ error: "Ошибка при получении видео", hint: err.message }, 500);
   }
+
+  // Все провайдеры упали
+  console.error("[TikSave] All providers failed:", lastError?.message);
+  return jsonResponse({
+    error: "Все источники недоступны. Попробуйте позже.",
+    hint: lastError?.message,
+  }, 503);
 }
 
+// ---------- TikWM Provider ----------
+async function fetchTikWM(targetUrl) {
+  const tikwmUrl = `${TIKWM_API}?url=${encodeURIComponent(targetUrl)}`;
+  const res = await fetch(tikwmUrl, {
+    headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.code !== 0 || !data.data) throw new Error(data.msg || "No data");
+  const d = data.data;
+  const playUrl = d.hdplay || d.play || d.wmplay || "";
+  if (!playUrl) throw new Error("No video URL in TikWM response");
+  return {
+    success: true,
+    platform: "tiktok",
+    videoId: String(d.id || d.aweme_id || ""),
+    videoUrl: playUrl,
+    title: d.title || "",
+    coverUrl: d.cover || d.origin_cover || "",
+    duration: d.duration || 0,
+  };
+}
+
+// ---------- Tiklydown Provider ----------
+async function fetchTiklydown(targetUrl) {
+  const apiUrl = `${TIKLYDOWN_API}?url=${encodeURIComponent(targetUrl)}`;
+  const res = await fetch(apiUrl, {
+    headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+
+  // Tiklydown response structure:
+  // { status: true, video: { noWatermark: "...", watermark: "..." }, ... }
+  if (!data.status || !data.video) throw new Error(data.message || "No data");
+
+  // Предпочитаем noWatermark
+  const playUrl = data.video.noWatermark || data.video.watermark || "";
+  if (!playUrl) throw new Error("No video URL in Tiklydown response");
+
+  // Tiklydown может не возвращать ID — пытаемся извлечь из URL или используем requested
+  const videoId = extractTikTokVideoIdFromResponse(data) || "";
+
+  return {
+    success: true,
+    platform: "tiktok",
+    videoId: videoId,
+    videoUrl: playUrl,
+    title: data.title || data.desc || "",
+    coverUrl: data.cover || data.thumbnail || "",
+    duration: data.duration || 0,
+  };
+}
+
+// Пытаемся найти ID в ответе Tiklydown
+function extractTikTokVideoIdFromResponse(data) {
+  // Tiklydown может вернуть aweme_id или id в разных местах
+  if (data.aweme_id) return String(data.aweme_id);
+  if (data.id) return String(data.id);
+  if (data.video?.id) return String(data.video.id);
+  if (data.itemInfo?.itemStruct?.id) return String(data.itemInfo.itemStruct.id);
+  return "";
+}
+
+// ---------- /api/download: 302 Redirect ----------
 async function handleDownload(request, url) {
   const videoUrl = url.searchParams.get("videoUrl");
   const title = url.searchParams.get("title") || "video";

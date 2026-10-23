@@ -1,115 +1,182 @@
-# TikSave — скачивание видео без водяных знаков
+# TikSave — Production-Ready TikTok Video Downloader
 
-Одностраничный сайт на чистом HTML/CSS/JS для хостинга на GitHub Pages.
-Бэкенд — Cloudflare Workers, который работает как прокси: забирает страницу видеохостинга,
-извлекает прямую ссылку на видео и отдаёт видеофайл пользователю через себя.
-Это обходит проблемы CORS и позволяет скачивать видео напрямую через браузер.
+> **Архитектура:** Cloudflare Workers + Waterfall Providers + Cache API  
+> **Статус:** Готов к продакшену с отказоустойчивостью
 
-## Поддерживаемые платформы
+---
 
-| Платформа | Статус | Примечание |
-|-----------|--------|------------|
-| TikTok | ✅ Полная поддержка | Видео без водяного знака |
-| YouTube | ✅ Публичные видео | Возрастные ограничения могут работать нестабильно |
-| RuTube | ✅ Публичные видео | |
-| VK Video | ✅ Публичные видео | |
-| Любой другой сайт | ⚠️ Универсальный фоллбэк | Извлекает og:video, video src и т.п. |
-
-## Структура
+## 🏗 Архитектура
 
 ```
-grandmen.de5.net/
-├── favicon.svg          # иконка сайта
-├── index.html           # главная страница
-├── css/
-│   └── style.css        # стили (тёмная тема, стекло-морфизм, адаптив)
-├── js/
-│   └── app.js           # клиентская логика (вызов Worker, скачивание)
-├── worker.js            # Cloudflare Workers бэкенд (мульти-платформенный прокси)
-├── wrangler.toml        # конфигурация Wrangler
-└── README.md            # этот файл
+User → Frontend (GitHub Pages) → Worker (Cloudflare) → [Cache] → Provider 1 (TikWM)
+                                                                    ↓ (fallback)
+                                                              Provider 2 (Tiklydown)
+                                                                    ↓
+                                                              302 Redirect → CDN
 ```
 
-## Как запустить локально
+### Компоненты
 
-Просто откройте `index.html` в браузере. Сервер не требуется — весь код работает в браузере.
-Для работы скачивания необходим развёрнутый Cloudflare Workers бэкенд (см. ниже).
+| Компонент | Технология | Назначение |
+|-----------|------------|------------|
+| **Frontend** | Vanilla JS + HTML/CSS | Ввод URL, прогресс, плеер, скачивание |
+| **Backend** | Cloudflare Workers | API шлюз, валидация, кэш, фоллбеки |
+| **Provider 1** | TikWM API | Основной источник (быстрый, качественный) |
+| **Provider 2** | Tiklydown API | Fallback при лимитах/падениях TikWM |
+| **Cache** | Cloudflare Cache API | 24h TTL — снижает нагрузку на провайдеров |
+| **Download** | 302 Redirect | Worker не стримит видео — отдаёт прямую CDN-ссылку |
 
-## Развёртывание на GitHub Pages
+---
 
-1. Создайте репозиторий на GitHub (например `tiktok-downloader`).
-2. Загрузите в него файлы из этой папки:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial release: TikSave multi-platform video downloader"
-   git branch -M main
-   git remote add origin https://github.com/<ваш-username>/<репозиторий>.git
-   git push -u origin main
-   ```
-3. Зайдите в настройки репозитория → **Pages**.
-4. Источник: ветка `main`, папка `/ (root)`.
-5. Нажмите **Save**. Сайт будет доступен по адресу `https://<ваш-username>.github.io/<репозиторий>/`.
+## 🔄 Waterfall Logic (Водопад провайдеров)
 
-## Развёртывание бэкенда на Cloudflare Workers
+1. **Cache Check** — ищем в `caches.default` (ключ = video ID)
+2. **TikWM** — `https://www.tikwm.com/api/?url=...`
+   - Проверяем `data.code === 0`
+   - Извлекаем `hdplay` / `play` / `wmplay`
+   - **Sanity Check:** `data.id === requestedVideoId`
+3. **Tiklydown** — `https://api.tiklydown.eu.org/api/download?url=...`
+   - Проверяем `status === true`
+   - Берём `video.noWatermark` или `video.watermark`
+   - Тоже проверяем ID (если доступен)
+4. **Fail** — 503 "Все источники недоступны"
 
-1. Установите Node.js и Wrangler:
-   ```bash
-   npm install -g wrangler
-   ```
-2. Авторизуйтесь:
-   ```bash
-   wrangler login
-   ```
-3. Разверните Worker (в папке проекта):
-   ```bash
-   wrangler deploy
-   ```
-4. Скопируйте выданный адрес (например `https://tiktok-downloader.имя.workers.dev`).
-5. Откройте `js/app.js` и укажите адрес в constantes `WORKER_URL`.
-6. Запушьте изменения на GitHub Pages.
+---
 
-## Как это работает
+## 🛡 Sanity Check (Защита от подмены контента)
 
-1. Пользователь вставляет ссылку на видео с любого поддерживаемого хостинга.
-2. Сайт определяет платформу (TikTok, YouTube, RuTube, VK или другой).
-3. Фронтенд отправляет запрос на Cloudflare Workers бэкенд (`/api/info`).
-4. Бэкенд забирает страницу хостинга сервером, извлекает прямую ссылку на видео.
-5. Фронтенд показывает видео в проигрывателе и кнопку **«Загрузить MP4»**.
-6. При нажатии на скачивание браузер переходит по адресу бэкенда (`/api/download?url=...`).
-7. Бэкенд забирает видеофайл с CDN хостинга и отдаёт его пользователю через себя.
-   — Нет проблем с CORS.
-   — Видео скачивается напрямую в браузер.
+> **Критично:** TikTok может вернуть страницу с рекомендациями вместо запрошенного видео.  
+> Worker **всегда** сверяет ID из входящей ссылки с ID в ответе провайдера.
 
-## Список файлов
+```js
+if (requestedVideoId !== returnedVideoId) {
+  throw new Error("ID mismatch — получено не то видео");
+}
+```
 
-| Файл | Назначение |
-|------|-----------|
-| `index.html` | Главная страница с формой и плеером |
-| `css/style.css` | Стили (тёмная тема, стекло-морфинг, адаптив, бейджи платформ) |
-| `js/app.js` | Клиентская логика (детекция платформы, запрос к Worker, скачивание) |
-| `worker.js` | Cloudflare Workers бэкенд (мульти-платформенное извлечение + прокси-скачивание) |
-| `wrangler.toml` | Конфигурация для деплоя через Wrangler |
-| `favicon.svg` | Иконка сайта |
-| `README.md` | Документация |
+Это гарантирует, что пользователь скачает именно то видео, ссылку на которое он вставил.
 
-## Возможные проблемы
+---
 
-- **CORS:** решено — видео отдаётся через свой Worker, браузер не блокирует запрос.
-- **YouTube:** прямой извлекатель может не работать с возрастными ограничениями или обфусцированными страницами.
-- **Приватные видео:** скачивание приватных или удалённых видео невозможно.
-- **Размер видео:** Cloudflare Workers имеет лимиты на ответ (обычно до нескольких десятков мегабайт на бесплатном тарифе). Очень длинные видео могут не пройти.
+## 📦 API Endpoints
 
-## Дисклеймер
+### `GET /api/info?url=<tiktok_url>`
+**Response (success):**
+```json
+{
+  "success": true,
+  "platform": "tiktok",
+  "videoId": "7684765941506264334",
+  "videoUrl": "https://cdn.tiktok.com/.../video.mp4",
+  "downloadUrl": "https://worker.domain/api/download?videoUrl=...&title=...",
+  "title": "Video title",
+  "coverUrl": "https://.../cover.jpg",
+  "duration": 15,
+  "provider": "TikWM",
+  "cached": false
+}
+```
 
-Сервис **не принадлежит** TikTok, YouTube, RuTube, VK или любым другим платформам и не имеет с ними никакого отношения.
+**Response (error):**
+```json
+{ "error": "Видео приватное или удалено", "hint": "Private video" }
+```
 
-- Скачивайте только контент, на который у вас есть права или разрешение автора.
-- Уважайте авторские права и Условия обслуживания соответствующих платформ.
-- Используйте материал только в личных некоммерческих целях.
+### `GET /api/download?videoUrl=<cdn_url>&title=<name>`
+**302 Redirect** → прямая CDN-ссылка  
+Headers: `Content-Disposition: attachment; filename="name.mp4"`
 
-Авторские права на скачанные видео принадлежат их создателям.
+---
 
-## Лицензия
+## 🚀 Деплой
 
-MIT
+```bash
+# Backend (Worker)
+npx wrangler deploy
+
+# Frontend (GitHub Pages)
+git add . && git commit -m "..." && git push
+# GitHub Pages автоматически задеплоит из main
+```
+
+### Переменные окружения (не нужны — всё в коде)
+- TikWM и Tiklydown — публичные бесплатные API
+- Кэш — встроенный Cloudflare Cache API
+
+---
+
+## ⚠️ Масштабирование (Production at Scale)
+
+### Лимиты бесплатных API
+
+| Провайдер | Лимит | Примечание |
+|-----------|-------|------------|
+| **TikWM** | 10,000 req/day | Бесплатный тариф |
+| **Tiklydown** | Не официально | Может меняться |
+
+### Для тысяч пользователей в день нужно:
+
+1. **TikWM Pro** — платный тариф ($29/мес за 100k req/day, выше приоритет, SLA)
+2. **Собственный пул прокси** — резидентные прокси для обхода geo-block/429
+3. **KV Storage** — персистентный кэш (Cache API ограничен isolate'ами)
+4. **Monitoring** — логи в Datadog/Sentry, алерты на 429/503
+
+### Пример конфигурации для продакшена:
+
+```toml
+# wrangler.toml
+[vars]
+TIKWM_API_KEY = "your_pro_key"  # если используете Pro
+RATE_LIMIT = "1000"              # req/min per IP (через Cloudflare Rules)
+```
+
+---
+
+## 🧪 Тестирование
+
+```bash
+# Запуск всех тестов (включая моки)
+npx playwright test test-download.spec.js
+
+# Только моки (быстро, без внешних API)
+npx playwright test test-download.spec.js -g "Frontend Flow"
+
+# Реальное API (пропускается если 429/503)
+npx playwright test test-download.spec.js -g "Real API"
+```
+
+### Мокирование в тестах
+
+Тест `Frontend Flow` полностью изолирован от внешних API:
+- Перехватывает `page.route('**/api/info**')`
+- Возвращает заготовленный JSON с реальной ссылкой на sample MP4
+- Проверяет: кнопка появляется → скачивание работает → файл > 100KB → валидный MP4
+
+---
+
+## 📁 Структура проекта
+
+```
+├── index.html          # Frontend (GitHub Pages)
+├── js/app.js           # Frontend logic
+├── worker.js           # Cloudflare Worker (Backend)
+├── test-download.spec.js  # Playwright E2E tests
+├── verify.js           # Интерактивная проверка (ручная)
+├── wrangler.toml       # Worker config
+└── package.json
+```
+
+---
+
+## 📜 Лицензия
+
+MIT — используйте свободно. Для коммерческого использования в продакшене **обязательно** подключите платные тарифы API или свой пул прокси.
+
+---
+
+## 🔗 Полезные ссылки
+
+- [TikWM API Docs](https://www.tikwm.com/api/)
+- [Tiklydown API](https://api.tiklydown.eu.org/)
+- [Cloudflare Workers Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/)
+- [Cloudflare Workers Deployment](https://developers.cloudflare.com/workers/platform/)
