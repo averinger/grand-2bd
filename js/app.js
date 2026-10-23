@@ -9,20 +9,27 @@
   const form = document.getElementById("download-form");
   const urlInput = document.getElementById("tiktok-url");
   const urlError = document.getElementById("url-error");
+  const statusPanel = document.getElementById("status-panel");
+  const statusText = document.getElementById("status-text");
+  const statusPercent = document.getElementById("status-percent");
+  const progressBar = document.getElementById("progress-bar");
+  const statusDetail = document.getElementById("status-detail");
   const loadingState = document.getElementById("loading-state");
   const resultState = document.getElementById("result-state");
   const errorState = document.getElementById("error-state");
   const resultVideo = document.getElementById("result-video");
   const resultTitle = document.getElementById("result-title");
   const downloadBtn = document.getElementById("download-link-btn");
+  const openTabBtn = document.getElementById("open-tab-btn");
   const copyBtn = document.getElementById("copy-btn");
   const retryBtn = document.getElementById("retry-btn");
+  const tryAnotherProxyBtn = document.getElementById("try-another-proxy-btn");
   const submitBtn = document.getElementById("submit-btn");
   const btnText = document.querySelector(".btn-text");
   const proxyInfo = document.getElementById("proxy-info");
+  const downloadHint = document.getElementById("download-hint");
 
   // Список публичных CORS-прокси. Пробуем по порядку, пока один не сработает.
-  // Каждый элемент: { name, buildUrl(target) }
   const CORS_PROXIES = [
     {
       name: "corsproxy.io",
@@ -46,8 +53,8 @@
     },
   ];
 
-  // Время ожидания ответа от одного прокси (мс)
-  const PROXY_TIMEOUT_MS = 10000;
+  let proxyIndex = 0;
+  const PROXY_TIMEOUT_MS = 12000;
 
   // Регулярное выражение для ссылок TikTok
   const TIKTOK_REGEX = /^https?:\/\/(www\.)?(tiktok|vm\.tiktok)\.com\/.+$/;
@@ -60,13 +67,27 @@
   function init() {
     form.addEventListener("submit", handleSubmit);
     retryBtn.addEventListener("click", resetForm);
+    tryAnotherProxyBtn.addEventListener("click", () => {
+      proxyIndex = (proxyIndex + 1) % CORS_PROXIES.length;
+      handleSubmitInternal(urlInput.value.trim());
+    });
     copyBtn.addEventListener("click", handleCopy);
     downloadBtn.addEventListener("click", handleDownload);
+    openTabBtn.addEventListener("click", handleOpenTab);
 
-    // Сброс ошибок при вводе
     urlInput.addEventListener("input", () => {
       if (urlError.textContent) hideError();
     });
+  }
+
+  // Обновление прогресс-бара и статуса
+  function setProgress(percent, text, detail) {
+    statusPanel.hidden = false;
+    loadingState.hidden = true;
+    progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    statusPercent.textContent = `${Math.min(100, Math.max(0, percent))}%`;
+    if (text) statusText.textContent = text;
+    if (detail !== undefined) statusDetail.textContent = detail;
   }
 
   // Обработка отправки формы
@@ -74,7 +95,6 @@
     event.preventDefault();
     const rawUrl = urlInput.value.trim();
 
-    // Валидация
     if (!rawUrl) {
       showInputError("Пожалуйста, вставьте ссылку на видео TikTok.");
       return;
@@ -84,49 +104,73 @@
       return;
     }
 
-    setLoading(true);
+    proxyIndex = 0;
+    videoUrl = "";
+    activeProxyName = "";
     hideAllStates();
     hideError();
+    downloadHint.hidden = true;
 
+    setProgress(5, "Начинаем загрузку…", "Подготовка запроса");
+    await handleSubmitInternal(rawUrl);
+  }
+
+  async function handleSubmitInternal(rawUrl) {
     try {
       const html = await fetchThroughProxies(rawUrl);
+
+      setProgress(60, "Обрабатываем страницу…", "Извлекаем ссылку на видео");
 
       const extracted = extractVideoData(html);
 
       if (!extracted.videoUrl) {
         throw new Error(
-          "Не удалось извлечь видео из страницы. Ссылка может быть некорректной, приватной или TikTok изменил разметку."
+          "Не удалось найти видеоссылку на странице. Ссылка может быть приватной, удалённой или TikTok изменил разметку."
         );
       }
 
       videoUrl = extracted.videoUrl;
       resultTitle.textContent = extracted.title || "Видео из TikTok";
-
-      // Показываем результат
       resultVideo.poster = extracted.coverUrl || "";
       resultVideo.src = videoUrl;
       downloadBtn.dataset.url = videoUrl;
+      openTabBtn.dataset.url = videoUrl;
 
-      if (proxyInfo && activeProxyName) {
-        proxyInfo.textContent = `Прокси: ${activeProxyName}`;
+      setProgress(90, "Готово!", `Прокси: ${activeProxyName}`);
+
+      if (proxyInfo) {
+        proxyInfo.textContent = `Использован прокси: ${activeProxyName}`;
         proxyInfo.hidden = false;
       }
+
+      // Показываем подсказку, если скачивание через кнопку не сработает
+      downloadHint.hidden = false;
 
       showState(resultState);
     } catch (err) {
       console.error(err);
-      showErrorState(err.message || "Все прокси недоступны. Попробуйте позже или другую ссылку.");
-    } finally {
-      setLoading(false);
+      setProgress(0, "Ошибка", err.message);
+      setTimeout(() => {
+        showErrorState(err.message || "Все прокси недоступны. Попробуйте другую ссылку.");
+        if (tryAnotherProxyBtn) tryAnotherProxyBtn.hidden = false;
+      }, 800);
     }
   }
 
-  // Последовательный перебор прокси до первого успешного ответа
+  // Последовательный перебор прокси
   async function fetchThroughProxies(targetUrl) {
     let lastError = null;
 
-    for (const proxy of CORS_PROXIES) {
+    for (let i = 0; i < CORS_PROXIES.length; i++) {
+      const proxy = CORS_PROXIES[i];
+      proxyIndex = i;
       const proxyUrl = proxy.buildUrl(targetUrl);
+
+      setProgress(
+        10 + (i * 16),
+        `Пробуем прокси ${i + 1} из ${CORS_PROXIES.length}…`,
+        proxy.name
+      );
 
       try {
         const controller = new AbortController();
@@ -136,7 +180,7 @@
           signal: controller.signal,
           headers: {
             "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
             Accept: "text/html,application/xhtml+xml",
           },
           redirect: "follow",
@@ -166,11 +210,10 @@
     throw new Error(lastError ? lastError.message : "Все прокси недоступны");
   }
 
-  // Извлечение данных о видео из HTML TikTok (упрощённый парсинг)
+  // Извлечение данных о видео из HTML TikTok
   function extractVideoData(html) {
     const data = { videoUrl: "", title: "", coverUrl: "" };
 
-    // Ищем прямые ссылки на видео в встроенных данных TikTok
     const patterns = [
       /"playAddr":\s*"([^"]+)"/,
       /"downloadAddr":\s*"([^"]+)"/,
@@ -185,13 +228,11 @@
       }
     }
 
-    // Заголовок
     const titleMatch = html.match(/<title>([^<]+)<\/title>/);
     if (titleMatch && titleMatch[1]) {
       data.title = titleMatch[1].replace(/\s*\| TikTok.*/i, "").trim();
     }
 
-    // Обложка
     const coverMatch = html.match(/"cover":\s*"([^"]+)"/);
     if (coverMatch && coverMatch[1]) {
       data.coverUrl = decodeEntities(coverMatch[1]);
@@ -200,30 +241,23 @@
     return data;
   }
 
-  // Декодирование HTML-сущностей
   function decodeEntities(str) {
     const textarea = document.createElement("textarea");
     textarea.innerHTML = str;
     return textarea.value;
   }
 
-  // Вспомогательные UI-функции
-  function setLoading(isLoading) {
-    submitBtn.disabled = isLoading;
-    btnText.textContent = isLoading ? "Обработка…" : "Скачать";
-    loadingState.hidden = !isLoading;
+  function hideAllStates() {
+    statusPanel.hidden = true;
+    loadingState.hidden = true;
+    resultState.hidden = true;
+    errorState.hidden = true;
+    if (proxyInfo) proxyInfo.hidden = true;
   }
 
   function showState(state) {
     hideAllStates();
     state.hidden = false;
-  }
-
-  function hideAllStates() {
-    loadingState.hidden = true;
-    resultState.hidden = true;
-    errorState.hidden = true;
-    if (proxyInfo) proxyInfo.hidden = true;
   }
 
   function showErrorState(message) {
@@ -245,8 +279,13 @@
     urlInput.value = "";
     videoUrl = "";
     activeProxyName = "";
+    proxyIndex = 0;
+    progressBar.style.width = "0%";
+    statusPercent.textContent = "0%";
     hideAllStates();
     hideError();
+    downloadHint.hidden = true;
+    if (tryAnotherProxyBtn) tryAnotherProxyBtn.hidden = true;
     urlInput.focus();
     resultVideo.src = "";
     resultVideo.load();
@@ -257,14 +296,30 @@
     const url = downloadBtn.dataset.url || videoUrl;
     if (!url) return;
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "tiktok-video.mp4";
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Способ 1: через атрибут download
+    try {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "tiktok-video.mp4";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    } catch (err) {
+      console.warn("Способ 1 не сработал:", err);
+    }
+
+    // Способ 2: открыть в новой вкладке
+    handleOpenTab();
+  }
+
+  // Открыть видео в новой вкладке
+  function handleOpenTab() {
+    const url = openTabBtn.dataset.url || videoUrl;
+    if (!url) return;
+    window.open(url, "_blank");
   }
 
   // Копирование ссылки
@@ -280,7 +335,6 @@
         copyBtn.innerHTML = original;
       }, 2000);
     } catch (err) {
-      console.error("Не удалось скопировать:", err);
       const textarea = document.createElement("textarea");
       textarea.value = url;
       document.body.appendChild(textarea);
@@ -291,6 +345,5 @@
     }
   }
 
-  // Запуск
   init();
 })();

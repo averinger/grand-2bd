@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TikSave | Скачивание видео TikTok без водяных знаков</title>
   <meta name="description" content="Бесплатно скачивайте видео из TikTok без водяных знаков. Просто вставьте ссылку на видео.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -58,10 +60,22 @@
         <p id="url-error" class="error-msg" role="alert"></p>
       </form>
 
-      <!-- Состояние загрузки -->
+      <!-- Статус и прогресс -->
+      <div id="status-panel" class="status-panel hidden">
+        <div class="status-row">
+          <span id="status-text" class="status-text">Обрабатываем ссылку…</span>
+          <span id="status-percent" class="status-percent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p id="status-detail" class="status-detail"></p>
+      </div>
+
+      <!-- Состояние загрузки (fallback) -->
       <div id="loading-state" class="loading-state hidden">
         <div class="spinner"></div>
-        <p>Обрабатываем ссылку, пожалуйста подождите…</p>
+        <p>Подождите, идёт обработка…</p>
       </div>
 
       <!-- Результат -->
@@ -71,16 +85,21 @@
         </div>
         <div class="result-info">
           <h3 id="result-title">Видео из TikTok</h3>
+          <p id="proxy-info" class="quality-hint" hidden></p>
           <div class="result-actions">
             <button id="download-link-btn" class="btn btn-success">
               <span>↓</span> Скачать видео
+            </button>
+            <button id="open-tab-btn" class="btn btn-outline">
+              <span>↗</span> Открыть в новой вкладке
             </button>
             <button id="copy-btn" class="btn btn-outline">
               <span>📋</span> Скопировать ссылку
             </button>
           </div>
-          <p id="result-quality" class="quality-hint">Качество: определяется автоматически</p>
-          <p id="proxy-info" class="quality-hint" hidden></p>
+          <div class="download-hint" id="download-hint" hidden>
+            <p>Если скачивание не началось автоматически, нажмите «Открыть в новой вкладке», затем там нажмите правой кнопкой → «Сохранить видео как…».</p>
+          </div>
         </div>
       </div>
 
@@ -89,7 +108,11 @@
         <div class="error-icon">⚠</div>
         <h3>Не удалось скачать видео</h3>
         <p id="error-msg"></p>
-        <button id="retry-btn" class="btn btn-outline">Попробовать снова</button>
+        <div class="error-actions">
+          <button id="retry-btn" class="btn btn-outline">Попробовать снова</button>
+          <button id="try-another-proxy-btn" class="btn btn-outline" style="display:none">Другой прокси</button>
+        </div>
+        <p class="error-tip">Совет: попробуйте другую ссылку TikTok или подождите несколько минут — публичные прокси могут быть перегружены.</p>
       </div>
     </div>
   </main>
