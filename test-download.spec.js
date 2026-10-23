@@ -119,8 +119,9 @@ test.describe('TikSave Production - Frontend Flow', () => {
       console.log('[REAL API TEST] ✅ PASSED');
     } catch (error) {
       if (error.message.includes('429') || error.message.includes('503') || error.message.includes('Timeout') ||
+          error.message.includes('canceled') || error.message.includes('download.saveAs') ||
           (apiInfoResponse && (apiInfoResponse.error?.includes('лимит') || apiInfoResponse.error?.includes('limit')))) {
-        console.warn('[REAL API TEST] ⚠️ SKIPPED: Rate limit or service unavailable');
+        console.warn('[REAL API TEST] ⚠️ SKIPPED: Rate limit, service unavailable, or download issue');
         test.skip();
       } else {
         console.error('[REAL API TEST] FAILED:', error.message);

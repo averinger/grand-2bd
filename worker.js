@@ -5,6 +5,7 @@
 
 const TIKWM_API = "https://www.tikwm.com/api/";
 const TIKLYDOWN_API = "https://api.tiklydown.eu.org/api/download";
+const TIKVIDEO_API = "https://tikvideo.app/api/ajaxSearch";
 const CACHE_TTL = 86400;
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -66,6 +67,7 @@ async function handleInfo(request, url, ctx) {
   const providers = [
     { name: "TikWM", fn: () => fetchTikWM(targetUrl) },
     { name: "Tiklydown", fn: () => fetchTiklydown(targetUrl) },
+    { name: "TikVideo", fn: () => fetchTikVideo(targetUrl) },
   ];
 
   let lastError = null;
@@ -154,6 +156,99 @@ async function fetchTiklydown(targetUrl) {
     title: data.title || data.desc || "",
     coverUrl: data.cover || data.thumbnail || "",
     duration: data.duration || 0,
+  };
+}
+
+// ---------- TikVideo.app Provider (Fallback) ----------
+// ⚠️ ВНИМАНИЕ: Этот провайдер ХРУПКИЙ и может перестать работать в любой момент
+// из-за изменений на tikvideo.app, блокировки IP Cloudflare, изменения токенов или структуры ответа.
+// Используется только как ПОСЛЕДНИЙ резервный вариант после TikWM и Tiklydown.
+async function fetchTikVideo(targetUrl) {
+  const formData = new URLSearchParams();
+  formData.append("q", targetUrl);
+  formData.append("lang", "ru");
+  formData.append("cftoken", "");
+
+  const res = await fetch(TIKVIDEO_API, {
+    method: "POST",
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "*/*",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest",
+      "Referer": "https://tikvideo.app/ru",
+      "Origin": "https://tikvideo.app",
+    },
+    body: formData.toString(),
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const data = await res.json();
+  if (data.status !== "ok" || !data.data) throw new Error(data.message || "Invalid response");
+
+  // data.data содержит HTML — парсим его
+  const html = data.data;
+
+  // 1. Извлекаем ID видео из скрытого input #TikTokId
+  const idMatch = html.match(/id="TikTokId"\s+value="(\d{19})"/);
+  const returnedVideoId = idMatch ? idMatch[1] : "";
+
+  // 2. Извлекаем прямую ссылку на видео
+  // Приоритет: прямая tiktokcdn ссылка (из data-src video или второй ссылки "Скачать MP4 [2]")
+  // Избегаем токенизированные ссылки dl.snapcdn.app (они временные)
+
+  // Сначала ищем data-src в video теге (наиболее надежно)
+  let videoUrl = "";
+  const dataSrcMatch = html.match(/<video[^>]+data-src="([^"]+)"/);
+  if (dataSrcMatch) {
+    videoUrl = dataSrcMatch[1].replace(/&/g, "&");
+  }
+
+  // Если не нашли — ищем вторую ссылку "Скачать MP4 [2]" (прямая tiktokcdn)
+  if (!videoUrl) {
+    const mp4Links = [...html.matchAll(/href="([^"]*tiktokcdn[^"]*)"[^>]*>Скачать MP4 \[2\]/g)];
+    if (mp4Links.length > 0) {
+      videoUrl = mp4Links[0][1].replace(/&/g, "&");
+    }
+  }
+
+  // Fallback: первая рабочая ссылка на видео (не snapcdn)
+  if (!videoUrl) {
+    const videoLinks = [...html.matchAll(/href="(https?:\/\/[^"]*(?:tiktokcdn|tiktok|cdn)[^"]*)"/g)];
+    for (const link of videoLinks) {
+      const url = link[1].replace(/&/g, "&");
+      if (!url.includes("snapcdn")) {
+        videoUrl = url;
+        break;
+      }
+    }
+  }
+
+  // Последний fallback: любая ссылка на MP4
+  if (!videoUrl) {
+    const mp4Match = html.match(/href="([^"]*\.mp4[^"]*)"/);
+    if (mp4Match) videoUrl = mp4Match[1].replace(/&/g, "&");
+  }
+
+  if (!videoUrl) throw new Error("No video URL found in TikVideo response");
+
+  // 3. Извлекаем заголовок
+  const titleMatch = html.match(/<h3>([^<]+)<\/h3>/);
+  const title = titleMatch ? titleMatch[1].trim() : "TikTok Video";
+
+  // 4. Извлекаем обложку
+  const coverMatch = html.match(/<img[^>]+src="([^"]+)"/);
+  const coverUrl = coverMatch ? coverMatch[1].replace(/&/g, "&") : "";
+
+  return {
+    success: true,
+    platform: "tiktok",
+    videoId: returnedVideoId,
+    videoUrl: videoUrl,
+    title: title,
+    coverUrl: coverUrl,
+    duration: 0,
   };
 }
 
