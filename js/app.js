@@ -169,17 +169,18 @@
         console.error('[TikSave] Failed to enable download button:', btnErr);
       }
 
-      // Also ensure result-state container is visible
+      // Hide other blocks and show result-state
       try {
-        resultState.hidden = false;
-        resultState.removeAttribute('hidden');
-        resultState.classList.remove('hidden');
-        resultState.style.display = 'block';
+        document.getElementById('status-panel').classList.add('hidden');
+        document.getElementById('loading-state').classList.add('hidden');
+
+        const resultStateEl = document.getElementById('result-state');
+        resultStateEl.classList.remove('hidden');
+        resultStateEl.style.display = 'flex';
+        console.log('[TikSave] Result state shown, classList:', resultStateEl.classList.toString());
       } catch (stateErr) {
         console.error('[TikSave] Failed to show result state:', stateErr);
       }
-
-      showState(resultState);
     } catch (err) {
       console.error(err);
       // Специфичные сообщения об ошибках
