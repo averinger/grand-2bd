@@ -42,6 +42,15 @@
   const retryBtn = document.getElementById("retry-btn");
   const submitBtn = document.getElementById("submit-btn");
 
+  // DOM — Custom Video Player
+  const customPlayer = document.getElementById("custom-player");
+  const playerControls = document.getElementById("player-controls");
+  const playPauseBtn = document.getElementById("play-pause-btn");
+  const timeDisplay = document.getElementById("time-display");
+  const seekBar = document.getElementById("seek-bar");
+  const muteBtn = document.getElementById("mute-btn");
+  const fullscreenBtn = document.getElementById("fullscreen-btn");
+
   let currentDownloadUrl = "";
   let currentTitle = "";
   let authToken = localStorage.getItem("tiksave_token") || "";
@@ -395,6 +404,209 @@
       .substring(0, 100);
   }
 
+  // ===== CUSTOM VIDEO PLAYER =====
+  let controlsHideTimer = null;
+  let isSeeking = false;
+
+  function initPlayer() {
+    if (!resultVideo) return;
+
+    // Play/Pause
+    playPauseBtn?.addEventListener("click", togglePlayPause);
+
+    // Video click to play/pause
+    resultVideo.addEventListener("click", togglePlayPause);
+
+    // Time update
+    resultVideo.addEventListener("timeupdate", updateTimeDisplay);
+
+    // Duration loaded
+    resultVideo.addEventListener("loadedmetadata", () => {
+      updateTimeDisplay();
+      seekBar.max = resultVideo.duration || 100;
+    });
+
+    // Seek bar
+    seekBar?.addEventListener("input", handleSeekInput);
+    seekBar?.addEventListener("change", handleSeekChange);
+    seekBar?.addEventListener("mousedown", () => { isSeeking = true; });
+    seekBar?.addEventListener("mouseup", () => { isSeeking = false; });
+
+    // Mute
+    muteBtn?.addEventListener("click", toggleMute);
+
+    // Fullscreen
+    fullscreenBtn?.addEventListener("click", toggleFullscreen);
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", handlePlayerKeys);
+
+    // Mouse movement to show/hide controls
+    customPlayer?.addEventListener("mousemove", showControls);
+    customPlayer?.addEventListener("mouseleave", () => {
+      if (!resultVideo.paused) startControlsHideTimer();
+    });
+
+    // Show controls initially
+    showControls();
+  }
+
+  function togglePlayPause() {
+    if (resultVideo.paused) {
+      resultVideo.play().catch(() => {});
+      playPauseBtn.classList.add("playing");
+      playPauseBtn.querySelector(".icon-play").classList.add("hidden");
+      playPauseBtn.querySelector(".icon-pause").classList.remove("hidden");
+      playPauseBtn.setAttribute("aria-label", "Pause");
+    } else {
+      resultVideo.pause();
+      playPauseBtn.classList.remove("playing");
+      playPauseBtn.querySelector(".icon-play").classList.remove("hidden");
+      playPauseBtn.querySelector(".icon-pause").classList.add("hidden");
+      playPauseBtn.setAttribute("aria-label", "Play");
+    }
+  }
+
+  function updateTimeDisplay() {
+    if (!timeDisplay || isSeeking) return;
+    const current = formatTime(resultVideo.currentTime);
+    const total = formatTime(resultVideo.duration);
+    timeDisplay.textContent = `${current} / ${total}`;
+
+    // Update seek bar
+    if (resultVideo.duration && !isSeeking) {
+      seekBar.value = (resultVideo.currentTime / resultVideo.duration) * 100;
+      // Update progress fill via CSS custom property
+      seekBar.style.setProperty("--progress", `${seekBar.value}%`);
+    }
+  }
+
+  function formatTime(seconds) {
+    if (!seconds || isNaN(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  function handleSeekInput(e) {
+    isSeeking = true;
+    const percent = e.target.value;
+    if (resultVideo.duration) {
+      const time = (percent / 100) * resultVideo.duration;
+      timeDisplay.textContent = `${formatTime(time)} / ${formatTime(resultVideo.duration)}`;
+    }
+    e.target.style.setProperty("--progress", `${percent}%`);
+  }
+
+  function handleSeekChange(e) {
+    isSeeking = false;
+    const percent = e.target.value;
+    if (resultVideo.duration) {
+      resultVideo.currentTime = (percent / 100) * resultVideo.duration;
+    }
+  }
+
+  function toggleMute() {
+    resultVideo.muted = !resultVideo.muted;
+    muteBtn.querySelector(".icon-volume").classList.toggle("hidden", resultVideo.muted);
+    muteBtn.querySelector(".icon-muted").classList.toggle("hidden", !resultVideo.muted);
+    muteBtn.setAttribute("aria-label", resultVideo.muted ? "Unmute" : "Mute");
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      customPlayer.requestFullscreen().catch(() => {});
+      fullscreenBtn.querySelector(".icon-fullscreen").classList.add("hidden");
+      fullscreenBtn.querySelector(".icon-exit-fullscreen").classList.remove("hidden");
+      fullscreenBtn.setAttribute("aria-label", "Exit fullscreen");
+    } else {
+      document.exitFullscreen();
+      fullscreenBtn.querySelector(".icon-fullscreen").classList.remove("hidden");
+      fullscreenBtn.querySelector(".icon-exit-fullscreen").classList.add("hidden");
+      fullscreenBtn.setAttribute("aria-label", "Fullscreen");
+    }
+  }
+
+  function handlePlayerKeys(e) {
+    // Only handle keys when video is focused or player is visible
+    if (!resultState.classList.contains("hidden") && !e.target.matches("input, textarea")) {
+      switch (e.key) {
+        case " ":
+        case "k":
+          e.preventDefault();
+          togglePlayPause();
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          resultVideo.currentTime = Math.max(0, resultVideo.currentTime - 10);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          resultVideo.currentTime = Math.min(resultVideo.duration, resultVideo.currentTime + 10);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          resultVideo.volume = Math.min(1, resultVideo.volume + 0.1);
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          resultVideo.volume = Math.max(0, resultVideo.volume - 0.1);
+          break;
+        case "m":
+          e.preventDefault();
+          toggleMute();
+          break;
+        case "f":
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+      }
+    }
+  }
+
+  function showControls() {
+    customPlayer?.classList.add("controls-visible");
+    clearTimeout(controlsHideTimer);
+    if (!resultVideo.paused) {
+      startControlsHideTimer();
+    }
+  }
+
+  function startControlsHideTimer() {
+    clearTimeout(controlsHideTimer);
+    controlsHideTimer = setTimeout(() => {
+      customPlayer?.classList.remove("controls-visible");
+    }, 3000);
+  }
+
+  // Override resetVideoPlayer to also reset player UI
+  const originalResetVideoPlayer = resetVideoPlayer;
+  function resetVideoPlayer() {
+    originalResetVideoPlayer();
+    if (playPauseBtn) {
+      playPauseBtn.classList.remove("playing");
+      playPauseBtn.querySelector(".icon-play").classList.remove("hidden");
+      playPauseBtn.querySelector(".icon-pause").classList.add("hidden");
+      playPauseBtn.setAttribute("aria-label", "Play");
+    }
+    if (timeDisplay) timeDisplay.textContent = "0:00 / 0:00";
+    if (seekBar) {
+      seekBar.value = 0;
+      seekBar.style.setProperty("--progress", "0%");
+    }
+    if (muteBtn) {
+      resultVideo.muted = false;
+      muteBtn.querySelector(".icon-volume").classList.remove("hidden");
+      muteBtn.querySelector(".icon-muted").classList.add("hidden");
+    }
+    if (fullscreenBtn) {
+      fullscreenBtn.querySelector(".icon-fullscreen").classList.remove("hidden");
+      fullscreenBtn.querySelector(".icon-exit-fullscreen").classList.add("hidden");
+    }
+    clearTimeout(controlsHideTimer);
+    customPlayer?.classList.remove("controls-visible");
+  }
+
   // ===== INIT =====
   function init() {
     // Downloader events
@@ -437,6 +649,9 @@
     }
     updateAuthUI();
     checkAuthOnLoad();
+
+    // Init custom video player
+    initPlayer();
 
     // Очистка localStorage при загрузке (на случай застревания)
     try { localStorage.removeItem("tiksave_last"); } catch (_) {}
