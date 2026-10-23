@@ -8,6 +8,7 @@ const TIKLYDOWN_API = "https://api.tiklydown.eu.org/api/download";
 const TIKVIDEO_API = "https://tikvideo.app/api/ajaxSearch";
 const CACHE_TTL = 86400;
 const GUEST_DAILY_LIMIT = 10;
+const VERIFICATION_TOKEN_TTL = 24 * 60 * 60; // 24 hours in seconds
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -31,9 +32,18 @@ export default {
       if (path === "/api/login" && request.method === "POST") {
         return await handleLogin(request, env);
       }
+      if (path === "/api/verify-email" && request.method === "GET") {
+        return await handleVerifyEmail(request, env);
+      }
+      if (path === "/api/resend-verification" && request.method === "POST") {
+        return await handleResendVerification(request, env);
+      }
 
       // Protected endpoints (require auth)
       const auth = await verifyAuth(request, env);
+      if (!auth) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
       if (path === "/api/profile" && request.method === "GET") {
         return await handleProfile(auth, env);
       }
@@ -138,13 +148,177 @@ async function verifyAuth(request, env) {
   const claims = await verifyJWT(token, env);
   if (!claims) return null;
   // Verify user still exists and get role
-  const user = await env.tiksave_db.prepare("SELECT id, email, username, avatar_url, role FROM users WHERE id = ?").bind(claims.userId).first();
+  const user = await env.tiksave_db.prepare("SELECT id, email, username, avatar_url, role, is_verified FROM users WHERE id = ?").bind(claims.userId).first();
   if (!user) return null;
-  return { userId: user.id, user, role: user.role };
+  return { userId: user.id, user, role: user.role, isVerified: user.is_verified };
 }
 
 function isAdmin(auth) {
   return auth && auth.role === "admin";
+}
+
+// ============================================================================
+// EMAIL VERIFICATION (Resend API)
+// ============================================================================
+
+async function sendVerificationEmail(env, email, username, verificationToken) {
+  const resendApiKey = env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    console.warn("[TikSave] RESEND_API_KEY not configured, skipping email send");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  const verifyUrl = `${new URL(env.WORKER_URL || "https://tiktok-downloader.ivanger.workers.dev").origin}/verify-email.html?token=${verificationToken}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Подтверждение email — TikSave</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 40px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+    <tr>
+      <td style="background: linear-gradient(135deg, #7c3aed, #a855f7); padding: 40px 30px; text-align: center;">
+        <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700;">TikSave</h1>
+        <p style="margin: 10px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Подтверждение email адреса</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 40px 30px;">
+        <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 22px;">Привет, ${username}!</h2>
+        <p style="margin: 0 0 20px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+          Спасибо за регистрацию в TikSave. Чтобы начать пользоваться безлимитным скачиванием видео,
+          пожалуйста, подтвердите ваш email адрес.
+        </p>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="text-align: center; padding: 20px 0;">
+              <a href="${verifyUrl}" style="display: inline-block; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);">
+                Подтвердить email
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin: 30px 0 0; color: #9ca3af; font-size: 14px; line-height: 1.6;">
+          Ссылка действительна в течение <strong>24 часов</strong>.
+          Если вы не регистрировались в TikSave, просто проигнорируйте это письмо.
+        </p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+        <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+          Если кнопка не работает, скопируйте эту ссылку в браузер:<br>
+          <a href="${verifyUrl}" style="color: #7c3aed; word-break: break-all;">${verifyUrl}</a>
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+          © 2026 TikSave. Сделано для GitHub Pages + Cloudflare Workers.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "TikSave <noreply@tiksave.app>",
+        to: [email],
+        subject: "Подтвердите ваш email для TikSave",
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      console.error("[TikSave] Resend error:", err);
+      return { success: false, error: err.message || "Failed to send email" };
+    }
+
+    const result = await res.json();
+    console.log("[TikSave] Verification email sent:", result.id);
+    return { success: true, emailId: result.id };
+  } catch (err) {
+    console.error("[TikSave] sendVerificationEmail error:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function handleVerifyEmail(request, env) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token");
+
+  if (!token) {
+    return jsonResponse({ error: "Токен верификации не указан" }, 400);
+  }
+
+  // Find user with this verification token
+  const user = await env.tiksave_db.prepare(
+    "SELECT id, email, username, verification_token, token_expires_at, is_verified FROM users WHERE verification_token = ?"
+  ).bind(token).first();
+
+  if (!user) {
+    return jsonResponse({ error: "Неверный или недействительный токен подтверждения" }, 400);
+  }
+
+  if (user.is_verified) {
+    return jsonResponse({ success: true, message: "Email уже подтвержден. Вы можете войти." });
+  }
+
+  // Check token expiration
+  const expiresAt = new Date(user.token_expires_at).getTime();
+  if (Date.now() > expiresAt) {
+    return jsonResponse({ error: "Срок действия токена истек. Запросите новый код при входе." }, 400);
+  }
+
+  // Mark user as verified
+  await env.tiksave_db.prepare(
+    "UPDATE users SET is_verified = 1, verification_token = NULL, token_expires_at = NULL WHERE id = ?"
+  ).bind(user.id).run();
+
+  console.log("[TikSave] Email verified for user:", user.email);
+  return jsonResponse({ success: true, message: "Email успешно подтвержден! Теперь вы можете войти." });
+}
+
+async function handleResendVerification(request, env) {
+  const { email } = await request.json().catch(() => ({}));
+  if (!email) {
+    return jsonResponse({ error: "Email обязателен" }, 400);
+  }
+
+  const user = await env.tiksave_db.prepare("SELECT id, email, username, is_verified FROM users WHERE email = ?").bind(email).first();
+  if (!user) {
+    // Don't reveal if user exists
+    return jsonResponse({ success: true, message: "Если аккаунт существует, письмо будет отправлено." });
+  }
+
+  if (user.is_verified) {
+    return jsonResponse({ error: "Email уже подтвержден. Вы можете войти." }, 400);
+  }
+
+  // Generate new verification token
+  const verificationToken = crypto.getRandomValues(new Uint8Array(32));
+  const tokenHex = Array.from(verificationToken, b => b.toString(16).padStart(2, '0')).join('');
+  const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL * 1000).toISOString();
+
+  await env.tiksave_db.prepare(
+    "UPDATE users SET verification_token = ?, token_expires_at = ? WHERE id = ?"
+  ).bind(tokenHex, expiresAt, user.id).run();
+
+  // Send verification email
+  await sendVerificationEmail(env, user.email, user.username, tokenHex);
+
+  return jsonResponse({ success: true, message: "Письмо с подтверждением отправлено повторно." });
 }
 
 // ============================================================================
@@ -203,12 +377,27 @@ async function handleRegister(request, env) {
   const { salt, hash } = await hashPassword(password);
   // First user with admin@tiksave.com becomes admin
   const role = email === "admin@tiksave.com" ? "admin" : "user";
-  const result = await env.tiksave_db.prepare("INSERT INTO users (email, password_hash, username, salt, role) VALUES (?, ?, ?, ?, ?)")
-    .bind(email, hash, username, salt, role).run();
+
+  // Generate verification token
+  const verificationToken = crypto.getRandomValues(new Uint8Array(32));
+  const tokenHex = Array.from(verificationToken, b => b.toString(16).padStart(2, '0')).join('');
+  const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL * 1000).toISOString();
+
+  const result = await env.tiksave_db.prepare(
+    "INSERT INTO users (email, password_hash, username, salt, role, is_verified, verification_token, token_expires_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)"
+  ).bind(email, hash, username, salt, role, tokenHex, expiresAt).run();
 
   const userId = result.meta.last_row_id;
-  const token = await createJWT({ userId, email, username, role }, env);
-  return jsonResponse({ success: true, token, user: { id: userId, email, username, avatar_url: "", role } });
+
+  // Send verification email
+  await sendVerificationEmail(env, email, username, tokenHex);
+
+  // Don't return JWT yet - user must verify email first
+  return jsonResponse({
+    success: true,
+    message: "Регистрация успешна! Проверьте почту для подтверждения email.",
+    requiresVerification: true
+  });
 }
 
 async function handleLogin(request, env) {
@@ -216,9 +405,16 @@ async function handleLogin(request, env) {
   if (!email || !password) {
     return jsonResponse({ error: "Email и пароль обязательны" }, 400);
   }
-  const user = await env.tiksave_db.prepare("SELECT id, email, username, avatar_url, password_hash, salt, role FROM users WHERE email = ?").bind(email).first();
+  const user = await env.tiksave_db.prepare("SELECT id, email, username, avatar_url, password_hash, salt, role, is_verified FROM users WHERE email = ?").bind(email).first();
   if (!user || !(await verifyPassword(password, user.salt, user.password_hash))) {
     return jsonResponse({ error: "Неверный email или пароль" }, 401);
+  }
+  if (!user.is_verified) {
+    return jsonResponse({
+      error: "Email не подтвержден. Проверьте почту и перейдите по ссылке в письме.",
+      requiresVerification: true,
+      email: user.email
+    }, 403);
   }
   const token = await createJWT({ userId: user.id, email: user.email, username: user.username, role: user.role }, env);
   return jsonResponse({ success: true, token, user: { id: user.id, email: user.email, username: user.username, avatar_url: user.avatar_url, role: user.role } });

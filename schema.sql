@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL,
     avatar_url TEXT DEFAULT '',
     role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+    is_verified INTEGER DEFAULT 0 CHECK (is_verified IN (0, 1)),
+    verification_token TEXT,
+    token_expires_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

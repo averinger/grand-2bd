@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Подтверждение email — TikSave</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #e8e8e8;
+    }
+    .container {
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 40px 32px;
+      backdrop-filter: blur(20px);
+    }
+    .icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 32px;
+    }
+    .icon.success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .icon.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .icon.loading { background: rgba(124, 58, 237, 0.2); color: #a855f7; }
+    h1 { font-size: 24px; font-weight: 600; margin-bottom: 12px; color: #fff; }
+    p { color: #9ca3af; line-height: 1.6; margin-bottom: 16px; }
+    .btn {
+      display: inline-block;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: white;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 28px rgba(124, 58, 237, 0.6); transform: translateY(-1px); }
+    .btn-secondary {
+      background: transparent;
+      color: #a855f7;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+    .btn-secondary:hover { background: rgba(168, 85, 247, 0.1); }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(168, 85, 247, 0.3);
+      border-top-color: #a855f7;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+    .message { padding: 16px; border-radius: 10px; margin-top: 16px; font-size: 14px; }
+    .message.success { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #86efac; }
+    .message.error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">TikSave</div>
+    <div class="card">
+      <div id="icon-loading" class="icon loading">
+        <div class="spinner"></div>
+      </div>
+      <div id="icon-success" class="icon success hidden">✓</div>
+      <div id="icon-error" class="icon error hidden">✕</div>
+
+      <h1 id="title">Проверяем токен…</h1>
+      <p id="subtitle">Пожалуйста, подождите, пока мы подтверждаем ваш email.</p>
+
+      <div id="message" class="message hidden"></div>
+
+      <div id="actions-loading" class="hidden">
+        <!-- Loading state - no buttons -->
+      </div>
+      <div id="actions-success" class="hidden">
+        <a href="/" class="btn btn-primary" style="margin-right: 12px;">Перейти на TikSave</a>
+        <a href="/#auth" class="btn btn-secondary">Войти</a>
+      </div>
+      <div id="actions-error" class="hidden">
+        <a href="/#auth" class="btn btn-primary">Попробовать войти</a>
+      </div>
+    </div>
+    <p style="margin-top: 20px; font-size: 13px; color: #6b7280;">© 2026 TikSave</p>
+  </div>
+
+  <script>
+    (async function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      const iconLoading = document.getElementById('icon-loading');
+      const iconSuccess = document.getElementById('icon-success');
+      const iconError = document.getElementById('icon-error');
+      const title = document.getElementById('title');
+      const subtitle = document.getElementById('subtitle');
+      const message = document.getElementById('message');
+      const actionsLoading = document.getElementById('actions-loading');
+      const actionsSuccess = document.getElementById('actions-success');
+      const actionsError = document.getElementById('actions-error');
+
+      if (!token) {
+        showError('Токен подтверждения не найден в ссылке.');
+        return;
+      }
+
+      try {
+        const workerUrl = 'https://tiktok-downloader.ivanger.workers.dev';
+        const response = await fetch(`${workerUrl}/api/verify-email?token=${encodeURIComponent(token)}`);
+        const data = await response.json();
+
+        if (data.success) {
+          showSuccess(data.message || 'Email успешно подтвержден!');
+        } else {
+          showError(data.error || 'Ошибка подтверждения.');
+        }
+      } catch (err) {
+        console.error(err);
+        showError('Ошибка соединения. Попробуйте обновить страницу.');
+      }
+
+      function showSuccess(msg) {
+        iconLoading.classList.add('hidden');
+        iconSuccess.classList.remove('hidden');
+        title.textContent = 'Email подтвержден!';
+        subtitle.textContent = 'Теперь вы можете пользоваться всеми функциями TikSave без ограничений.';
+        message.textContent = msg;
+        message.className = 'message success';
+        message.classList.remove('hidden');
+        actionsLoading.classList.add('hidden');
+        actionsSuccess.classList.remove('hidden');
+      }
+
+      function showError(msg) {
+        iconLoading.classList.add('hidden');
+        iconError.classList.remove('hidden');
+        title.textContent = 'Не удалось подтвердить';
+        subtitle.textContent = 'Ссылка может быть недействительной или устаревшей.';
+        message.textContent = msg;
+        message.className = 'message error';
+        message.classList.remove('hidden');
+        actionsLoading.classList.add('hidden');
+        actionsError.classList.remove('hidden');
+      }
+    })();
+  </script>
+</body>
+</html>

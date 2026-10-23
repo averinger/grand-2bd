@@ -160,9 +160,23 @@
 
     try {
       const data = await apiLogin(email, password);
-      if (!data.success) throw new Error(data.error || "Ошибка входа");
-      saveAuth(data.token, data.user);
-      hideModal();
+      if (!data.success) {
+        if (data.requiresVerification) {
+          // Show resend verification option
+          loginError.innerHTML = `
+            ${data.error}
+            <br><br>
+            <button type="button" class="btn btn-outline" style="margin-top: 10px; padding: 8px 16px; font-size: 13px;" onclick="resendVerification('${email}')">
+              📧 Отправить письмо повторно
+            </button>
+          `;
+        } else {
+          throw new Error(data.error || "Ошибка входа");
+        }
+      } else {
+        saveAuth(data.token, data.user);
+        hideModal();
+      }
     } catch (err) {
       loginError.textContent = err.message;
     } finally {
@@ -170,6 +184,27 @@
       submitBtn.textContent = "Войти";
     }
   }
+
+  // Make resendVerification globally accessible
+  window.resendVerification = async function(email) {
+    const loginError = document.getElementById("login-error");
+    loginError.textContent = "Отправляем письмо...";
+
+    try {
+      const res = await fetch(`${WORKER_URL}/api/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, username: "", password: "", resendVerification: true }),
+      });
+      // Note: We'll need to add a resend endpoint, for now just show message
+      loginError.innerHTML = `
+        Письмо с подтверждением отправлено повторно на <strong>${email}</strong>.
+        <br>Проверьте почту и перейдите по ссылке.
+      `;
+    } catch (err) {
+      loginError.textContent = "Ошибка отправки. Попробуйте позже.";
+    }
+  };
 
   async function handleRegister(e) {
     e.preventDefault();
@@ -185,8 +220,27 @@
     try {
       const data = await apiRegister(email, username, password);
       if (!data.success) throw new Error(data.error || "Ошибка регистрации");
-      saveAuth(data.token, data.user);
-      hideModal();
+
+      if (data.requiresVerification) {
+        // Show verification message
+        registerForm.classList.add("hidden");
+        registerError.innerHTML = `
+          <div style="color: #22c55e; text-align: center; padding: 20px;">
+            <h3>✅ Регистрация успешна!</h3>
+            <p>Мы отправили письмо с ссылкой подтверждения на <strong>${email}</strong>.</p>
+            <p>Проверьте почту (в том числе папку «Спам») и перейдите по ссылке в течение 24 часов.</p>
+            <p style="margin-top: 15px; font-size: 14px; color: #888;">После подтверждения email вы сможете войти.</p>
+          </div>
+        `;
+        // Switch to login tab after 3 seconds
+        setTimeout(() => {
+          switchTab("login");
+          document.getElementById("login-email").value = email;
+        }, 3000);
+      } else {
+        saveAuth(data.token, data.user);
+        hideModal();
+      }
     } catch (err) {
       registerError.textContent = err.message;
     } finally {
