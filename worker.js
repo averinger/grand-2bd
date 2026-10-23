@@ -62,7 +62,7 @@ export default {
         for (const pattern of patterns) {
           const match = html.match(pattern);
           if (match && match[1]) {
-            videoUrl = decodeTikTokUrl(match[1]);
+            videoUrl = toAbsoluteUrl(decodeTikTokUrl(match[1]));
             break;
           }
         }
@@ -80,7 +80,7 @@ export default {
         const coverMatch = html.match(/"cover":\s*"([^"]+)"/);
         let coverUrl = "";
         if (coverMatch && coverMatch[1]) {
-          coverUrl = decodeTikTokUrl(coverMatch[1]);
+          coverUrl = toAbsoluteUrl(decodeTikTokUrl(coverMatch[1]));
         }
 
         return jsonResponse({
@@ -130,7 +130,7 @@ export default {
         for (const pattern of patterns) {
           const match = html.match(pattern);
           if (match && match[1]) {
-            videoUrl = decodeTikTokUrl(match[1]);
+            videoUrl = toAbsoluteUrl(decodeTikTokUrl(match[1]));
             break;
           }
         }
@@ -188,7 +188,16 @@ function jsonResponse(data, status = 200) {
 function decodeTikTokUrl(str) {
   return str
     .replace(/\\u0026/g, "&")
+    .replace(/\\u002f/g, "/")
     .replace(/\\\//g, "/")
     .replace(/\\"/g, '"')
     .replace(/\\\\/g, "\\");
+}
+
+function toAbsoluteUrl(url) {
+  if (!url) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("//")) return "https:" + url;
+  if (url.startsWith("/")) return "https://www.tiktok.com" + url;
+  return url;
 }
