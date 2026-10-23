@@ -1,5 +1,6 @@
 /* ============================================================================
-   TikSave — frontend logic (прокси через свой Cloudflare Worker)
+   TikSave — frontend logic (мульти-платформа через Cloudflare Worker)
+   Поддерживает: TikTok, YouTube, RuTube, VK Video + любые другие сайты
    ============================================================================ */
 
 (function () {
@@ -25,17 +26,31 @@
   const errorState = document.getElementById("error-state");
   const resultVideo = document.getElementById("result-video");
   const resultTitle = document.getElementById("result-title");
+  const resultPlatform = document.getElementById("result-platform");
   const downloadMp4Btn = document.getElementById("download-mp4-btn");
   const retryBtn = document.getElementById("retry-btn");
   const submitBtn = document.getElementById("submit-btn");
-  const btnText = document.querySelector(".btn-text");
 
-  // Регулярное выражение для ссылок TikTok / Douyin
-  const TIKTOK_REGEX = /^https?:\/\/(www\.)?(tiktok|vm\.tiktok|vt\.tiktok|v\.douyin)\.com\/.+/;
+  // Карта платформ для отображения
+  const PLATFORM_LABELS = {
+    tiktok: "TikTok",
+    youtube: "YouTube",
+    rutube: "RuTube",
+    vk: "VK Video",
+    generic: "Другой сайт",
+  };
+
+  const PLATFORM_HINTS = {
+    tiktok: "Видео будет скачано без водяного знака",
+    youtube: "Доступны публичные видео. Возрастные ограничения могут работать нестабильно",
+    rutube: "Публичные видео RuTube",
+    vk: "Публичные видео VK",
+    generic: "Универсальное извлечение видео со страницы",
+  };
 
   // Состояние
-  let currentVideoUrl = "";
-  let currentTitle = "";
+  let currentDownloadUrl = "";
+  let currentPlatform = "generic";
 
   // Инициализация
   function init() {
@@ -64,11 +79,11 @@
     const rawUrl = urlInput.value.trim();
 
     if (!rawUrl) {
-      showInputError("Пожалуйста, вставьте ссылку на видео TikTok.");
+      showInputError("Пожалуйста, вставьте ссылку на видео.");
       return;
     }
-    if (!TIKTOK_REGEX.test(rawUrl)) {
-      showInputError("Это не похоже на корректную ссылку TikTok.");
+    if (!/^https?:\/\/.+/i.test(rawUrl)) {
+      showInputError("Это не похоже на корректную ссылку.");
       return;
     }
 
@@ -76,7 +91,12 @@
     hideError();
     downloadMp4Btn.hidden = true;
 
-    setProgress(10, "Получение данных, подождите несколько секунд!", "Запрос к бэкенду…");
+    setProgress(10, "Определяем платформу…", "Анализируем ссылку…");
+
+    const platform = detectPlatform(rawUrl);
+    currentPlatform = platform;
+
+    setProgress(20, `Платформа: ${PLATFORM_LABELS[platform]}`, "Запрос к бэкенду…");
 
     try {
       // 1. Звоним на Worker за информацией о видео
@@ -105,15 +125,17 @@
 
       setProgress(50, "Обрабатываем ответ…", "Получили ссылку на видео");
 
-      currentVideoUrl = data.videoUrl;
-      currentTitle = data.title || "Видео из TikTok";
-      resultTitle.textContent = currentTitle;
+      currentDownloadUrl = data.downloadUrl;
+
+      resultTitle.textContent = data.title || `Видео с ${PLATFORM_LABELS[platform]}`;
+      resultPlatform.textContent = PLATFORM_LABELS[platform];
+      resultPlatform.className = `platform-badge platform-${platform}`;
       resultVideo.poster = data.coverUrl || "";
 
-      setProgress(90, "Готово!", "Видео найдено");
+      setProgress(90, "Готово!", PLATFORM_HINTS[platform] || "");
 
       downloadMp4Btn.hidden = false;
-      downloadMp4Btn.dataset.url = `${WORKER_URL}/api/download?url=${encodeURIComponent(rawUrl)}`;
+      downloadMp4Btn.dataset.url = currentDownloadUrl;
 
       showState(resultState);
     } catch (err) {
@@ -123,6 +145,32 @@
         showErrorState(err.message || "Не удалось связаться с бэкендом.");
       }, 800);
     }
+  }
+
+  function detectPlatform(url) {
+    const host = new URL(url).hostname.toLowerCase();
+    if (
+      host.includes("tiktok.com") ||
+      host.includes("vm.tiktok.com") ||
+      host.includes("vt.tiktok.com") ||
+      host.includes("douyin.com")
+    ) {
+      return "tiktok";
+    }
+    if (
+      host.includes("youtube.com") ||
+      host.includes("youtu.be") ||
+      host.includes("youtube-nocookie.com")
+    ) {
+      return "youtube";
+    }
+    if (host.includes("rutube.ru")) {
+      return "rutube";
+    }
+    if (host.includes("vk.com") || host.includes("vkvideo.ru")) {
+      return "vk";
+    }
+    return "generic";
   }
 
   function hideAllStates() {
@@ -154,8 +202,8 @@
 
   function resetForm() {
     urlInput.value = "";
-    currentVideoUrl = "";
-    currentTitle = "";
+    currentDownloadUrl = "";
+    currentPlatform = "generic";
     progressBar.style.width = "0%";
     statusPercent.textContent = "0%";
     hideAllStates();

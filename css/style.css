@@ -368,6 +368,49 @@ img, video {
   flex-wrap: wrap;
 }
 
+.platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.platform-tiktok {
+  background: rgba(0, 242, 255, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+}
+
+.platform-youtube {
+  background: rgba(255, 0, 0, 0.15);
+  color: #ff0000;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+.platform-rutube {
+  background: rgba(255, 107, 0, 0.15);
+  color: #ff6b00;
+  border: 1px solid rgba(255, 107, 0, 0.3);
+}
+
+.platform-vk {
+  background: rgba(74, 112, 180, 0.15);
+  color: #4a70b4;
+  border: 1px solid rgba(74, 112, 180, 0.3);
+}
+
+.platform-generic {
+  background: rgba(161, 161, 170, 0.15);
+  color: var(--text-muted);
+  border: 1px solid rgba(161, 161, 170, 0.3);
+}
+
 .quality-hint {
   font-size: 0.875rem;
   color: var(--text-muted);
